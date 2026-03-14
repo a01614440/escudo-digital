@@ -54,16 +54,16 @@
       </section>
 
       <section id="loadingSection" class="panel hidden">
-        <p class="eyebrow">Analisis en curso</p>
+        <p class="eyebrow">Análisis en curso</p>
         <h2>Estamos revisando tus respuestas</h2>
         <p class="lead">
-          La IA esta evaluando tu perfil para darte un resultado mas preciso.
+          La IA está evaluando tu perfil para darte un resultado más preciso.
           Esto puede tardar unos segundos.
         </p>
         <div class="loader">
           <div class="loader-bar"></div>
         </div>
-        <p class="hint">No cierres la pagina.</p>
+        <p class="hint">No cierres la página.</p>
       </section>
 
       <section id="resultSection" class="panel hidden">
@@ -82,12 +82,141 @@
             </div>
           </div>
           <div class="result-card">
-            <h3>Proximos pasos</h3>
+            <h3>Próximos pasos</h3>
             <div id="nextStepsGrid" class="steps-grid"></div>
           </div>
         </div>
 
-        <button id="restartBtn" class="btn primary">Reiniciar encuesta</button>
+        <div class="row">
+          <button id="goToCoursesBtn" class="btn primary">Tomar cursos</button>
+          <button id="restartBtn" class="btn ghost">Reiniciar encuesta</button>
+        </div>
+      </section>
+
+      <section id="coursesSection" class="panel hidden">
+        <div class="courses-header">
+          <div>
+            <p class="eyebrow">Cursos personalizados</p>
+            <h2>Tu Ruta de Blindaje</h2>
+            <p class="hint">
+              La IA crea cursos a tu medida para cerrar tus “grietas” de seguridad.
+            </p>
+          </div>
+          <div class="row inline">
+            <button id="backToResultsBtn" class="btn ghost">Volver</button>
+            <button id="scrollToChatBtn" class="btn ghost">Chat</button>
+          </div>
+        </div>
+
+        <div class="course-grid">
+          <div class="course-panel">
+            <div class="donut-wrap">
+              <div id="shieldDonut" class="donut" style="--p: 0">
+                <div class="donut-inner">
+                  <p id="shieldScoreLabel" class="donut-label">0%</p>
+                  <p id="shieldScoreName" class="donut-sub">Blindaje Digital</p>
+                </div>
+              </div>
+              <div>
+                <h3 class="course-title">Tu mapa de fortalezas</h3>
+                <p class="hint">
+                  Esto se actualiza mientras avanzas en los cursos.
+                </p>
+              </div>
+            </div>
+
+            <div id="competencyList" class="competencies"></div>
+          </div>
+
+          <div class="course-panel">
+            <h3 class="course-title">Antes de empezar</h3>
+            <p class="hint">
+              Personaliza el estilo del curso. Puedes regenerarlo cuando quieras.
+            </p>
+
+            <div class="pref-grid">
+              <div class="pref">
+                <label for="prefStyle">Estilo</label>
+                <select id="prefStyle">
+                  <option value="mix">Mixto (recomendado)</option>
+                  <option value="simulaciones">Muchas simulaciones</option>
+                  <option value="ejemplos">Muchos ejemplos</option>
+                  <option value="checklists">Checklists y pasos rápidos</option>
+                </select>
+              </div>
+              <div class="pref">
+                <label for="prefDifficulty">Dificultad</label>
+                <select id="prefDifficulty">
+                  <option value="auto">Automática (recomendado)</option>
+                  <option value="facil">Fácil</option>
+                  <option value="normal">Normal</option>
+                  <option value="avanzada">Avanzada</option>
+                </select>
+              </div>
+              <div class="pref">
+                <label for="prefSession">Duración</label>
+                <select id="prefSession">
+                  <option value="5-10">5–10 min</option>
+                  <option value="3-5">3–5 min</option>
+                  <option value="10-15">10–15 min</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="topics" id="prefTopics">
+              <p class="topics-label">Temas</p>
+              <label class="chip">
+                <input type="checkbox" value="sms" checked />
+                <span>SMS</span>
+              </label>
+              <label class="chip">
+                <input type="checkbox" value="whatsapp" checked />
+                <span>WhatsApp</span>
+              </label>
+              <label class="chip">
+                <input type="checkbox" value="web" checked />
+                <span>Web</span>
+              </label>
+              <label class="chip">
+                <input type="checkbox" value="llamadas" checked />
+                <span>Llamadas</span>
+              </label>
+              <label class="chip">
+                <input type="checkbox" value="correo_redes" checked />
+                <span>Correo/Redes</span>
+              </label>
+            </div>
+
+            <button id="generateCourseBtn" class="btn primary">
+              Generar mi curso con IA
+            </button>
+            <p class="hint">
+              Tardará unos segundos. No compartas datos sensibles.
+            </p>
+          </div>
+        </div>
+
+        <div id="courseLoading" class="course-loading hidden">
+          <p class="eyebrow">IA trabajando</p>
+          <h3>Creando tu curso</h3>
+          <p class="hint">
+            Estamos preparando ejemplos y simulaciones según tu perfil.
+          </p>
+          <div class="loader">
+            <div class="loader-bar"></div>
+          </div>
+        </div>
+
+        <div id="courseContent" class="course-content hidden">
+          <div class="course-topbar">
+            <h3 class="course-title">Tu ruta</h3>
+            <div class="row inline">
+              <button id="regenerateCourseBtn" class="btn ghost">Regenerar</button>
+            </div>
+          </div>
+          <div id="modulesList" class="modules"></div>
+          <div id="activityPanel" class="activity-panel hidden"></div>
+        </div>
       </section>
 
       <section id="chatSection" class="panel hidden">
@@ -115,8 +244,8 @@
           <h3>Tipos de estafa que cubrimos</h3>
           <div class="pill-row">
             <span class="pill">SMS con enlaces falsos</span>
-            <span class="pill">WhatsApp y suplantacion</span>
-            <span class="pill">Paginas web clonadas</span>
+            <span class="pill">WhatsApp y suplantación</span>
+            <span class="pill">Páginas web clonadas</span>
             <span class="pill">Llamadas fraudulentas</span>
             <span class="pill">Correos y phishing</span>
           </div>

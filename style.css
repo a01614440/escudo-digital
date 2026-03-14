@@ -171,6 +171,18 @@ textarea {
   margin-top: 10px;
 }
 
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.row.inline {
+  justify-content: flex-end;
+  align-items: center;
+}
+
 .btn {
   border: none;
   border-radius: 999px;
@@ -279,6 +291,349 @@ textarea {
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.45;
+}
+
+.courses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.course-panel {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 18px;
+  background: #f9fbff;
+}
+
+.course-title {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.donut {
+  --p: 0;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--primary) calc(var(--p) * 1%),
+    var(--primary-soft) 0
+  );
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.donut-inner {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  text-align: center;
+}
+
+.donut-label {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.donut-sub {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.competencies {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.comp {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.comp-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.comp-name {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.comp-val {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.comp-bar {
+  margin-top: 8px;
+  height: 10px;
+  background: var(--primary-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.comp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: inherit;
+  transition: width 0.35s ease;
+}
+
+.comp-note {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.pref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.pref label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0 16px;
+}
+
+.topics-label {
+  margin: 0 10px 0 0;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip input {
+  accent-color: var(--primary);
+}
+
+.chip span {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.course-loading {
+  margin-top: 18px;
+  border-radius: 16px;
+  border: 1px dashed var(--border);
+  padding: 18px;
+  background: #f9fbff;
+}
+
+.course-content {
+  margin-top: 16px;
+}
+
+.course-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.modules {
+  display: grid;
+  gap: 12px;
+}
+
+.module-card {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 16px;
+}
+
+.module-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.module-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.module-desc {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.badge {
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.progress-mini {
+  margin-top: 12px;
+  height: 8px;
+  background: var(--primary-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-mini .fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.3s ease;
+}
+
+.module-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.activity-panel {
+  margin-top: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #f9fbff;
+  padding: 18px;
+}
+
+.activity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.activity-title {
+  margin: 0;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.activity-type {
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.activity-body {
+  margin-top: 12px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.option-btn {
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.98rem;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.option-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.option-btn.correct {
+  border-color: rgba(47, 179, 123, 0.6);
+  background: rgba(47, 179, 123, 0.12);
+}
+
+.option-btn.wrong {
+  border-color: rgba(242, 87, 87, 0.7);
+  background: rgba(242, 87, 87, 0.1);
+}
+
+.feedback {
+  margin-top: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 12px 14px;
+  color: var(--muted);
+}
+
+.activity-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .info-panel {
@@ -402,6 +757,11 @@ textarea {
 
   .btn {
     width: 100%;
+  }
+
+  .donut-wrap {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .chat-form {

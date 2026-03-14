@@ -21,6 +21,24 @@ const chatMessages = document.getElementById('chatMessages');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
 const loadingSection = document.getElementById('loadingSection');
+const goToCoursesBtn = document.getElementById('goToCoursesBtn');
+const coursesSection = document.getElementById('coursesSection');
+const backToResultsBtn = document.getElementById('backToResultsBtn');
+const scrollToChatBtn = document.getElementById('scrollToChatBtn');
+const shieldDonut = document.getElementById('shieldDonut');
+const shieldScoreLabel = document.getElementById('shieldScoreLabel');
+const shieldScoreName = document.getElementById('shieldScoreName');
+const competencyList = document.getElementById('competencyList');
+const prefStyle = document.getElementById('prefStyle');
+const prefDifficulty = document.getElementById('prefDifficulty');
+const prefSession = document.getElementById('prefSession');
+const prefTopics = document.getElementById('prefTopics');
+const generateCourseBtn = document.getElementById('generateCourseBtn');
+const courseLoading = document.getElementById('courseLoading');
+const courseContent = document.getElementById('courseContent');
+const regenerateCourseBtn = document.getElementById('regenerateCourseBtn');
+const modulesList = document.getElementById('modulesList');
+const activityPanel = document.getElementById('activityPanel');
 
 const chatHistory = [];
 
@@ -180,6 +198,42 @@ const questions = [
 const answers = {};
 let currentIndex = 0;
 
+let latestAssessment = null;
+let latestCoursePlan = null;
+let courseProgress = null;
+
+const STORAGE_KEYS = {
+  assessment: 'escudo_assessment_v1',
+  answers: 'escudo_answers_v1',
+  coursePlan: 'escudo_course_plan_v1',
+  courseProgress: 'escudo_course_progress_v1',
+};
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const CATEGORY_LABELS = {
+  sms: 'SMS',
+  whatsapp: 'WhatsApp',
+  web: 'Web',
+  llamadas: 'Llamadas',
+  correo_redes: 'Correo/Redes',
+  habitos: 'Hábitos',
+};
+
+const categoryNote = (value) => {
+  if (value >= 75) return 'Fuerte';
+  if (value >= 55) return 'Bien';
+  if (value >= 35) return 'Por reforzar';
+  return 'Prioridad alta';
+};
+
+const computeTotalScore = (competencias) => {
+  const values = Object.values(competencias || {}).filter((v) => Number.isFinite(v));
+  if (!values.length) return 0;
+  const avg = values.reduce((acc, val) => acc + val, 0) / values.length;
+  return Math.round(avg);
+};
+
 const normalizeRiskLevel = (value) => {
   const raw = String(value || '').trim();
   const lower = raw.toLowerCase();
@@ -188,6 +242,485 @@ const normalizeRiskLevel = (value) => {
   if (lower.startsWith('bajo')) return 'Bajo';
   // Capitalize first letter as a safe fallback.
   return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw;
+};
+
+const safeJsonParse = (value) => {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const persistState = () => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.answers, JSON.stringify(answers));
+    if (latestAssessment) {
+      localStorage.setItem(
+        STORAGE_KEYS.assessment,
+        JSON.stringify(latestAssessment)
+      );
+    }
+    if (latestCoursePlan) {
+      localStorage.setItem(STORAGE_KEYS.coursePlan, JSON.stringify(latestCoursePlan));
+    }
+    if (courseProgress) {
+      localStorage.setItem(
+        STORAGE_KEYS.courseProgress,
+        JSON.stringify(courseProgress)
+      );
+    }
+  } catch {
+    // ignore
+  }
+};
+
+const hydrateState = () => {
+  const storedAnswers = safeJsonParse(localStorage.getItem(STORAGE_KEYS.answers));
+  if (storedAnswers && typeof storedAnswers === 'object') {
+    Object.assign(answers, storedAnswers);
+  }
+  latestAssessment = safeJsonParse(localStorage.getItem(STORAGE_KEYS.assessment));
+  latestCoursePlan = safeJsonParse(localStorage.getItem(STORAGE_KEYS.coursePlan));
+  courseProgress = safeJsonParse(localStorage.getItem(STORAGE_KEYS.courseProgress));
+};
+
+const setDonut = (score, label) => {
+  if (!shieldDonut) return;
+  const safe = clamp(Number(score) || 0, 0, 100);
+  shieldDonut.style.setProperty('--p', String(safe));
+  if (shieldScoreLabel) shieldScoreLabel.textContent = `${safe}%`;
+  if (shieldScoreName && label) shieldScoreName.textContent = label;
+};
+
+const renderCompetencies = (competencias) => {
+  if (!competencyList) return;
+  competencyList.innerHTML = '';
+  const entries = Object.entries(competencias || {});
+  if (!entries.length) {
+    competencyList.innerHTML =
+      '<p class="hint">Genera tu curso para ver tu mapa.</p>';
+    return;
+  }
+
+  entries.forEach(([key, value]) => {
+    const val = clamp(Number(value) || 0, 0, 100);
+    const card = document.createElement('div');
+    card.className = 'comp';
+
+    const top = document.createElement('div');
+    top.className = 'comp-top';
+
+    const name = document.createElement('span');
+    name.className = 'comp-name';
+    name.textContent = CATEGORY_LABELS[key] || key;
+
+    const pct = document.createElement('span');
+    pct.className = 'comp-val';
+    pct.textContent = `${val}%`;
+
+    top.appendChild(name);
+    top.appendChild(pct);
+
+    const bar = document.createElement('div');
+    bar.className = 'comp-bar';
+    const fill = document.createElement('div');
+    fill.className = 'comp-fill';
+    fill.style.width = `${val}%`;
+    bar.appendChild(fill);
+
+    const note = document.createElement('p');
+    note.className = 'comp-note';
+    note.textContent = categoryNote(val);
+
+    card.appendChild(top);
+    card.appendChild(bar);
+    card.appendChild(note);
+    competencyList.appendChild(card);
+  });
+};
+
+const defaultTopicsFromAnswers = () => {
+  const set = new Set();
+  const priority = answers.priority;
+  if (priority === 'todo') {
+    ['sms', 'whatsapp', 'web', 'llamadas', 'correo_redes'].forEach((t) => set.add(t));
+    return Array.from(set);
+  }
+  if (priority) set.add(priority);
+  const channels = Array.isArray(answers.channels) ? answers.channels : [];
+  channels.forEach((ch) => {
+    if (ch === 'correo' || ch === 'redes') set.add('correo_redes');
+    else set.add(ch);
+  });
+  if (set.size === 0) {
+    ['sms', 'whatsapp', 'web', 'llamadas'].forEach((t) => set.add(t));
+  }
+  return Array.from(set);
+};
+
+const applyDefaultCoursePrefs = () => {
+  if (!prefStyle || !prefDifficulty || !prefSession || !prefTopics) return;
+  if (!prefStyle.value) prefStyle.value = 'mix';
+  if (!prefDifficulty.value) prefDifficulty.value = 'auto';
+  if (!prefSession.value) prefSession.value = '5-10';
+
+  const topics = defaultTopicsFromAnswers();
+  prefTopics.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+    input.checked = topics.includes(input.value);
+  });
+};
+
+const readCoursePrefs = () => {
+  const topics = [];
+  if (prefTopics) {
+    prefTopics.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      if (input.checked) topics.push(input.value);
+    });
+  }
+  return {
+    estilo: prefStyle ? prefStyle.value : 'mix',
+    dificultad: prefDifficulty ? prefDifficulty.value : 'auto',
+    duracion: prefSession ? prefSession.value : '5-10',
+    temas: topics.length ? topics : defaultTopicsFromAnswers(),
+  };
+};
+
+const renderCoursePlan = () => {
+  if (!modulesList || !latestCoursePlan || !courseProgress) return;
+  modulesList.innerHTML = '';
+
+  const route = Array.isArray(latestCoursePlan.ruta) ? latestCoursePlan.ruta : [];
+
+  if (!route.length) {
+    modulesList.innerHTML = '<p class="hint">No hay módulos disponibles todavía.</p>';
+    return;
+  }
+
+  route.forEach((module, moduleIndex) => {
+    const card = document.createElement('div');
+    card.className = 'module-card';
+
+    const head = document.createElement('div');
+    head.className = 'module-head';
+
+    const left = document.createElement('div');
+    const title = document.createElement('p');
+    title.className = 'module-title';
+    title.textContent = module.titulo || `Módulo ${moduleIndex + 1}`;
+    const desc = document.createElement('p');
+    desc.className = 'module-desc';
+    desc.textContent = module.descripcion || '';
+    left.appendChild(title);
+    left.appendChild(desc);
+
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = CATEGORY_LABELS[module.categoria] || module.categoria || 'Curso';
+
+    head.appendChild(left);
+    head.appendChild(badge);
+
+    const activities = Array.isArray(module.actividades) ? module.actividades : [];
+    const completed = activities.filter((act) => courseProgress.completed?.[act.id]).length;
+    const total = activities.length || 1;
+    const pct = Math.round((completed / total) * 100);
+
+    const mini = document.createElement('div');
+    mini.className = 'progress-mini';
+    const fill = document.createElement('div');
+    fill.className = 'fill';
+    fill.style.width = `${pct}%`;
+    mini.appendChild(fill);
+
+    const actions = document.createElement('div');
+    actions.className = 'module-actions';
+
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = pct >= 100 ? 'Repetir' : pct > 0 ? 'Continuar' : 'Empezar';
+    btn.addEventListener('click', () => startModule(moduleIndex));
+
+    actions.appendChild(btn);
+
+    card.appendChild(head);
+    card.appendChild(mini);
+    card.appendChild(actions);
+    modulesList.appendChild(card);
+  });
+};
+
+const renderActivityPanel = (moduleIndex, activityIndex) => {
+  if (!activityPanel || !latestCoursePlan || !courseProgress) return;
+  const route = Array.isArray(latestCoursePlan.ruta) ? latestCoursePlan.ruta : [];
+  const module = route[moduleIndex];
+  if (!module) return;
+  const activities = Array.isArray(module.actividades) ? module.actividades : [];
+  const activity = activities[activityIndex];
+  if (!activity) return;
+
+  activityPanel.classList.remove('hidden');
+  activityPanel.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.className = 'activity-head';
+
+  const title = document.createElement('p');
+  title.className = 'activity-title';
+  title.textContent = activity.titulo || 'Actividad';
+
+  const type = document.createElement('span');
+  type.className = 'activity-type';
+  type.textContent = activity.tipo || 'actividad';
+
+  head.appendChild(title);
+  head.appendChild(type);
+
+  const body = document.createElement('div');
+  body.className = 'activity-body';
+
+  const renderParagraphs = (text) => {
+    String(text || '')
+      .split('\\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        const p = document.createElement('p');
+        p.textContent = line;
+        body.appendChild(p);
+      });
+  };
+
+  const feedback = document.createElement('div');
+  feedback.className = 'feedback hidden';
+
+  const actions = document.createElement('div');
+  actions.className = 'activity-actions';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn ghost';
+  closeBtn.textContent = 'Cerrar';
+  closeBtn.addEventListener('click', () => {
+    activityPanel.classList.add('hidden');
+  });
+
+  const complete = (opts = {}) => {
+    completeActivity(moduleIndex, activityIndex, opts);
+  };
+
+  if (activity.tipo === 'simulacion' || activity.tipo === 'quiz') {
+    renderParagraphs(activity.escenario);
+
+    const options = Array.isArray(activity.opciones) ? activity.opciones : [];
+    const correctIndex = Number(activity.correcta);
+    let answered = false;
+
+    options.forEach((optionText, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.type = 'button';
+      btn.textContent = optionText;
+      btn.addEventListener('click', () => {
+        if (answered) return;
+        answered = true;
+        const isCorrect = idx === correctIndex;
+        btn.classList.add(isCorrect ? 'correct' : 'wrong');
+        feedback.classList.remove('hidden');
+        feedback.textContent = activity.explicacion || (isCorrect ? '¡Bien!' : 'Casi.');
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn primary';
+        nextBtn.textContent = 'Continuar';
+        nextBtn.addEventListener('click', () => complete({ correct: isCorrect }));
+        actions.appendChild(nextBtn);
+      });
+      body.appendChild(btn);
+    });
+  } else if (activity.tipo === 'checklist') {
+    renderParagraphs(activity.intro || 'Marca cada punto antes de continuar.');
+    const items = Array.isArray(activity.items) ? activity.items : [];
+    const boxWrap = document.createElement('div');
+    boxWrap.className = 'question-body';
+
+    const state = items.map(() => false);
+    const updateReady = () => state.every(Boolean);
+
+    items.forEach((item, idx) => {
+      const label = document.createElement('label');
+      label.className = 'option';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      const span = document.createElement('span');
+      span.textContent = item;
+      label.appendChild(input);
+      label.appendChild(span);
+      input.addEventListener('change', () => {
+        state[idx] = input.checked;
+      });
+      boxWrap.appendChild(label);
+    });
+    body.appendChild(boxWrap);
+
+    const doneBtn = document.createElement('button');
+    doneBtn.className = 'btn primary';
+    doneBtn.textContent = 'Listo';
+    doneBtn.addEventListener('click', () => {
+      const ok = updateReady();
+      if (!ok) {
+        feedback.classList.remove('hidden');
+        feedback.textContent = 'Marca todos los puntos para continuar.';
+        return;
+      }
+      complete({ correct: true });
+    });
+    actions.appendChild(doneBtn);
+  } else {
+    renderParagraphs(activity.contenido);
+    const doneBtn = document.createElement('button');
+    doneBtn.className = 'btn primary';
+    doneBtn.textContent = 'Marcar como completado';
+    doneBtn.addEventListener('click', () => complete({ correct: true }));
+    actions.appendChild(doneBtn);
+  }
+
+  actions.appendChild(closeBtn);
+
+  activityPanel.appendChild(head);
+  activityPanel.appendChild(body);
+  activityPanel.appendChild(feedback);
+  activityPanel.appendChild(actions);
+};
+
+const startModule = (moduleIndex) => {
+  if (!latestCoursePlan || !courseProgress) return;
+  const route = Array.isArray(latestCoursePlan.ruta) ? latestCoursePlan.ruta : [];
+  const module = route[moduleIndex];
+  if (!module) return;
+  const activities = Array.isArray(module.actividades) ? module.actividades : [];
+  const nextIndex = activities.findIndex((act) => !courseProgress.completed?.[act.id]);
+  const activityIndex = nextIndex === -1 ? 0 : nextIndex;
+  renderActivityPanel(moduleIndex, activityIndex);
+  activityPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const completeActivity = (moduleIndex, activityIndex, { correct } = {}) => {
+  const route = Array.isArray(latestCoursePlan?.ruta) ? latestCoursePlan.ruta : [];
+  const module = route[moduleIndex];
+  if (!module) return;
+  const activities = Array.isArray(module.actividades) ? module.actividades : [];
+  const activity = activities[activityIndex];
+  if (!activity) return;
+
+  const id = activity.id || `${moduleIndex}-${activityIndex}`;
+  courseProgress.completed = courseProgress.completed || {};
+  courseProgress.completed[id] = { correct: Boolean(correct) };
+
+  const basePoints = Number(activity.puntos) || 4;
+  const delta = Boolean(correct) ? basePoints : Math.max(1, Math.round(basePoints * 0.4));
+  const cat = module.categoria || 'habitos';
+  courseProgress.competencias = courseProgress.competencias || {};
+  const prev = Number(courseProgress.competencias[cat]) || 0;
+  courseProgress.competencias[cat] = clamp(prev + delta, 0, 100);
+  courseProgress.score_total = computeTotalScore(courseProgress.competencias);
+
+  setDonut(courseProgress.score_total, latestCoursePlan.score_name);
+  renderCompetencies(courseProgress.competencias);
+  renderCoursePlan();
+  persistState();
+
+  // Next activity
+  const nextIndex = activities.findIndex((act, idx) => idx > activityIndex && !courseProgress.completed?.[act.id]);
+  if (nextIndex !== -1) {
+    renderActivityPanel(moduleIndex, nextIndex);
+    return;
+  }
+  activityPanel.classList.add('hidden');
+};
+
+const ensureCourseState = (plan) => {
+  // Normalize ids so progress tracking never prints [object Object] or misses completions.
+  if (Array.isArray(plan?.ruta)) {
+    plan.ruta.forEach((mod, mIdx) => {
+      if (!mod || typeof mod !== 'object') return;
+      if (!mod.id) mod.id = `m${mIdx + 1}`;
+      if (!mod.categoria) mod.categoria = 'habitos';
+      if (Array.isArray(mod.actividades)) {
+        mod.actividades.forEach((act, aIdx) => {
+          if (!act || typeof act !== 'object') return;
+          if (!act.id) act.id = `${mod.id}-a${aIdx + 1}`;
+        });
+      }
+    });
+  }
+
+  latestCoursePlan = plan;
+  const competencias = plan?.competencias && typeof plan.competencias === 'object'
+    ? plan.competencias
+    : {};
+  courseProgress = courseProgress && typeof courseProgress === 'object'
+    ? courseProgress
+    : { completed: {}, competencias: {}, score_total: 0 };
+  courseProgress.competencias = { ...competencias, ...(courseProgress.competencias || {}) };
+  courseProgress.score_total = computeTotalScore(courseProgress.competencias);
+};
+
+const showCourses = () => {
+  if (!coursesSection) return;
+  applyDefaultCoursePrefs();
+  resultSection.classList.add('hidden');
+  coursesSection.classList.remove('hidden');
+  coursesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  if (latestCoursePlan && courseProgress) {
+    setDonut(courseProgress.score_total, latestCoursePlan.score_name);
+    renderCompetencies(courseProgress.competencias);
+    renderCoursePlan();
+    if (courseContent) courseContent.classList.remove('hidden');
+  } else {
+    setDonut(0, 'Blindaje Digital');
+    renderCompetencies({});
+  }
+};
+
+const hideCourses = () => {
+  if (!coursesSection) return;
+  coursesSection.classList.add('hidden');
+  resultSection.classList.remove('hidden');
+  resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const generateCourse = async () => {
+  if (!latestAssessment) return;
+  if (!generateCourseBtn) return;
+
+  const prefs = readCoursePrefs();
+
+  generateCourseBtn.disabled = true;
+  if (courseContent) courseContent.classList.add('hidden');
+  if (courseLoading) courseLoading.classList.remove('hidden');
+  if (activityPanel) activityPanel.classList.add('hidden');
+
+  try {
+    const plan = await callBackend('/api/course', {
+      answers,
+      assessment: latestAssessment,
+      prefs,
+      progress: courseProgress,
+    });
+
+    ensureCourseState(plan);
+    persistState();
+
+    setDonut(courseProgress.score_total, plan.score_name);
+    renderCompetencies(courseProgress.competencias);
+    renderCoursePlan();
+    if (courseContent) courseContent.classList.remove('hidden');
+  } catch (error) {
+    alert(`No se pudo generar el curso: ${error.message}`);
+  } finally {
+    if (courseLoading) courseLoading.classList.add('hidden');
+    generateCourseBtn.disabled = false;
+  }
 };
 
 const getVisibleQuestions = () =>
@@ -442,6 +975,8 @@ const showResults = async () => {
 
   try {
     const data = await callBackend('/api/assess', { answers });
+    latestAssessment = data;
+    persistState();
     if (data.nivel) riskLevel.textContent = normalizeRiskLevel(data.nivel);
     if (data.resumen) riskSummary.textContent = data.resumen;
     if (Array.isArray(data.recomendaciones)) {
@@ -502,11 +1037,20 @@ const showResults = async () => {
 const resetSurvey = () => {
   Object.keys(answers).forEach((key) => delete answers[key]);
   currentIndex = 0;
+  latestAssessment = null;
+  latestCoursePlan = null;
+  courseProgress = null;
   resultSection.classList.add('hidden');
+  coursesSection?.classList.add('hidden');
   chatSection.classList.add('hidden');
   loadingSection.classList.add('hidden');
   chatMessages.innerHTML = '';
   chatHistory.length = 0;
+  try {
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
   document.getElementById('questionCard').classList.remove('hidden');
   renderQuestion();
 };
@@ -530,6 +1074,22 @@ prevBtn.addEventListener('click', () => {
 
 restartBtn.addEventListener('click', resetSurvey);
 
+goToCoursesBtn?.addEventListener('click', () => {
+  showCourses();
+});
+
+backToResultsBtn?.addEventListener('click', () => {
+  hideCourses();
+});
+
+scrollToChatBtn?.addEventListener('click', () => {
+  chatSection?.classList.remove('hidden');
+  chatSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+generateCourseBtn?.addEventListener('click', generateCourse);
+regenerateCourseBtn?.addEventListener('click', generateCourse);
+
 chatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const text = chatInput.value.trim();
@@ -552,4 +1112,5 @@ chatForm.addEventListener('submit', async (event) => {
   }
 });
 
+hydrateState();
 renderQuestion();
