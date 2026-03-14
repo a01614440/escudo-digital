@@ -413,6 +413,8 @@ const callBackend = async (path, payload) => {
   return response.json();
 };
 
+const isChatOpen = () => !els.chatDrawer?.classList.contains('hidden');
+
 const openChat = () => {
   els.chatDrawer?.classList.remove('hidden');
   els.chatBackdrop?.classList.remove('hidden');
@@ -421,6 +423,11 @@ const openChat = () => {
 const closeChat = () => {
   els.chatDrawer?.classList.add('hidden');
   els.chatBackdrop?.classList.add('hidden');
+};
+
+const toggleChat = () => {
+  if (isChatOpen()) closeChat();
+  else openChat();
 };
 
 const getVisibleQuestions = () =>
@@ -1612,7 +1619,7 @@ els.applyCoursePrefsBtn?.addEventListener('click', async () => {
   els.courseSettings?.classList.add('hidden');
 });
 
-els.chatFab?.addEventListener('click', openChat);
+els.chatFab?.addEventListener('click', toggleChat);
 els.chatClose?.addEventListener('click', closeChat);
 els.chatBackdrop?.addEventListener('click', closeChat);
 document.addEventListener('click', (event) => {
