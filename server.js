@@ -394,7 +394,10 @@ const chooseCourseCategories = ({ answers, assessment, prefs }) => {
     signals.hasWhatsapp || temas.includes('whatsapp') ? 'whatsapp' : 'sms';
 
   const cats = [];
-  const push = (cat) => cats.push(normalizeCourseCategory(cat));
+  const push = (cat) => {
+    const normalized = normalizeCourseCategory(cat);
+    cats.push(normalized);
+  };
 
   const pushScamHistoryFocus = () => {
     if (signals.scammed !== 'si') return;
@@ -1381,6 +1384,20 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
       return buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment });
     });
   }
+
+  // Avoid duplicate module titles by adding a level suffix when needed.
+  const titleCounts = {};
+  safe.ruta = safe.ruta.map((mod, idx) => {
+    const baseTitle = String(mod?.titulo || `Módulo ${idx + 1}`).trim();
+    const key = baseTitle.toLowerCase();
+    titleCounts[key] = (titleCounts[key] || 0) + 1;
+    if (titleCounts[key] === 1) {
+      return { ...mod, titulo: baseTitle };
+    }
+    const suffixes = ['Refuerzo', 'Avanzado', 'Práctica'];
+    const suffix = suffixes[(titleCounts[key] - 2) % suffixes.length];
+    return { ...mod, titulo: `${baseTitle} — ${suffix}` };
+  });
 
   return safe;
 };
