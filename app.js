@@ -331,10 +331,38 @@ const scoreAnswers = () => {
   return score;
 };
 
+const escapeHtml = (value) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+const formatMessage = (text) => {
+  const safe = escapeHtml(text || '');
+  const lines = safe.split('\n').map((line) => line.trim()).filter(Boolean);
+  const bulletLines = lines.filter((line) => line.startsWith('- '));
+  if (bulletLines.length >= 2) {
+    const items = bulletLines
+      .map((line) => `<li>${line.replace(/^-\\s*/, '')}</li>`)
+      .join('');
+    return `<ul>${items}</ul>`;
+  }
+  const numbered = lines.filter((line) => /^\\d+\\.\\s/.test(line));
+  if (numbered.length >= 2) {
+    const items = numbered
+      .map((line) => `<li>${line.replace(/^\\d+\\.\\s*/, '')}</li>`)
+      .join('');
+    return `<ol>${items}</ol>`;
+  }
+  return lines.join('<br />');
+};
+
 const appendChat = (text, role) => {
   const bubble = document.createElement('div');
   bubble.className = `chat-bubble ${role}`;
-  bubble.textContent = text;
+  bubble.innerHTML = formatMessage(text);
   chatMessages.appendChild(bubble);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 };

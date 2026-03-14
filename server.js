@@ -30,9 +30,10 @@ const buildAssessmentPrompt = (answers) => {
       role: 'system',
       content:
         'Eres un analista de riesgos de estafas digitales en México. ' +
-        'Debes evaluar el nivel de riesgo (bajo, medio, alto) y dar un resumen breve, ' +
-        'además de 3 recomendaciones personalizadas. Responde en español. ' +
-        'Devuelve JSON estricto con las llaves: nivel, resumen, recomendaciones (array).',
+        'Debes evaluar el nivel de riesgo (bajo, medio, alto) y dar un resumen MUY breve, ' +
+        'además de 3 recomendaciones personalizadas (máximo 7 palabras cada una). ' +
+        'Responde en español. Devuelve SOLO JSON válido con las llaves: ' +
+        'nivel, resumen, recomendaciones (array). No agregues texto extra.',
     },
     {
       role: 'user',
@@ -47,9 +48,10 @@ const buildChatPrompt = (messages) => {
       role: 'system',
       content:
         'Eres un asistente experto en estafas digitales en México. ' +
-        'Responde de forma clara, empática y con pasos concretos. ' +
-        'Si el usuario menciona un fraude en curso, sugiere medidas inmediatas ' +
-        'y canales oficiales sin inventar números específicos.',
+        'Responde de forma clara y breve. Usa máximo 4 puntos en lista. ' +
+        'No excedas 90 palabras. Si el usuario menciona un fraude en curso, ' +
+        'sugiere medidas inmediatas y canales oficiales sin inventar números específicos. ' +
+        'Formatea con viñetas usando "-" cuando des pasos.',
     },
     ...messages,
   ];
@@ -100,6 +102,26 @@ const extractText = (data) => {
   return blocks.join('\n');
 };
 
+const extractJson = (text) => {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Try to extract the first JSON object in the text.
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      const slice = text.slice(start, end + 1);
+      try {
+        return JSON.parse(slice);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+};
+
 app.post('/api/assess', async (req, res) => {
   try {
     const answers = req.body?.answers || {};
@@ -113,17 +135,13 @@ app.post('/api/assess', async (req, res) => {
     });
 
     const text = extractText(data);
-    let parsed = null;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = null;
-    }
+    const parsed = extractJson(text);
 
     if (!parsed || !parsed.nivel) {
       return res.json({
         nivel: 'Medio',
-        resumen: text || 'No se pudo interpretar la respuesta del modelo.',
+        resumen:
+          'No se pudo interpretar la respuesta del modelo. Mostramos un resultado preliminar.',
         recomendaciones: [],
       });
     }
