@@ -12,7 +12,9 @@ const resultLead = document.getElementById('resultLead');
 const riskLevel = document.getElementById('riskLevel');
 const riskSummary = document.getElementById('riskSummary');
 const riskRecs = document.getElementById('riskRecs');
-const nextStepsGrid = document.getElementById('nextStepsGrid');
+const nextStepsGrid =
+  document.getElementById('nextStepsGrid') ||
+  document.getElementById('nextStepsList');
 const restartBtn = document.getElementById('restartBtn');
 const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
@@ -429,7 +431,9 @@ const showResults = async () => {
   riskLevel.textContent = normalizeRiskLevel(level);
   riskSummary.textContent = summary;
   riskRecs.innerHTML = '';
-  nextStepsGrid.innerHTML = '';
+  if (nextStepsGrid) {
+    nextStepsGrid.innerHTML = '';
+  }
 
   document.getElementById('questionCard').classList.add('hidden');
   resultSection.classList.add('hidden');
@@ -447,30 +451,37 @@ const showResults = async () => {
         riskRecs.appendChild(li);
       });
     }
-    if (Array.isArray(data.proximos_pasos)) {
+    if (Array.isArray(data.proximos_pasos) && nextStepsGrid) {
       data.proximos_pasos.forEach((step) => {
+        const titleText =
+          typeof step === 'string'
+            ? step
+            : step?.titulo || step?.title || step?.tema || 'Siguiente paso';
+        const descText =
+          typeof step === 'string'
+            ? ''
+            : step?.descripcion || step?.aprenderas || step?.desc || '';
+
+        if (nextStepsGrid.tagName === 'UL') {
+          const li = document.createElement('li');
+          li.textContent = descText ? `${titleText}: ${descText}` : titleText;
+          nextStepsGrid.appendChild(li);
+          return;
+        }
+
         const card = document.createElement('div');
         card.className = 'step-card';
 
         const title = document.createElement('p');
         title.className = 'step-title';
-        title.textContent =
-          typeof step === 'string'
-            ? step
-            : step?.titulo || step?.title || 'Siguiente paso';
+        title.textContent = titleText;
+        card.appendChild(title);
 
-        const descText =
-          typeof step === 'string'
-            ? ''
-            : step?.descripcion || step?.aprenderas || step?.desc || '';
         if (descText) {
           const desc = document.createElement('p');
           desc.className = 'step-desc';
           desc.textContent = descText;
-          card.appendChild(title);
           card.appendChild(desc);
-        } else {
-          card.appendChild(title);
         }
 
         nextStepsGrid.appendChild(card);
