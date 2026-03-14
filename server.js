@@ -71,6 +71,8 @@ const buildChatPrompt = (messages) => {
         '6) Varía el tono: a veces directo, otras cercano, pero evita frases empáticas forzadas.\n' +
         '7) Termina con una señal de alerta o recomendación preventiva.\n' +
         '8) Nunca respondas solo con viñetas.\n' +
+        '9) Limita el alcance a estafas digitales, fraudes en línea y seguridad digital. ' +
+        'Si la pregunta NO está relacionada, responde breve y amablemente que solo puedes ayudar con seguridad digital y prevención de estafas, e invita a preguntar sobre eso.\n' +
         'Si el usuario menciona un fraude en curso, sugiere medidas inmediatas y canales oficiales sin inventar números.',
     },
     {
