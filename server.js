@@ -42,7 +42,8 @@ const buildAssessmentPrompt = (answers) => {
         '4) proximos_pasos: array de 4 módulos de aprendizaje, no frases genéricas. ' +
         'Cada módulo debe ser un objeto con: titulo (3–6 palabras, estilo título) y descripcion (1 frase: qué aprenderá/practicará). ' +
         'Al menos 1 módulo debe atacar la estafa previa si existe. ' +
-        'Al menos 1 módulo debe seguir la prioridad del usuario. ' +
+        'Al menos 2 módulos deben seguir la prioridad del usuario. ' +
+        'Si la prioridad es "todo", cubre varios canales (web, WhatsApp/SMS y llamadas) en los módulos. ' +
         'Si nivel es "Alto", cubre varios canales, no solo uno. ' +
         'Prohibido usar estas frases: "Contenido personalizado", "Alertas sobre fraudes", "Ejercicios prácticos". ' +
         'Si hay anécdota, úsala para personalizar (sin pedir datos sensibles).',
@@ -269,6 +270,21 @@ const buildFallbackAssessment = (answers) => {
     'Checklist rápido para validar mensajes, enlaces y “ofertas”.'
   );
 
+  if (signals.priority === 'todo') {
+    pushModule(
+      'Páginas Clonadas y Dominios',
+      'Cómo detectar sitios falsos antes de comprar o ingresar datos.'
+    );
+    pushModule(
+      'Enlaces Sospechosos (SMS/WhatsApp)',
+      'Cómo identificar urgencia, links falsos y suplantación.'
+    );
+    pushModule(
+      'Llamadas Fraudulentas',
+      'Qué datos nunca dar y cómo verificar en canales oficiales.'
+    );
+  }
+
   // Order by the user's declared priority when possible.
   const priorityKey = String(signals.priority || '').toLowerCase();
   const priorityMatchers = {
@@ -276,6 +292,7 @@ const buildFallbackAssessment = (answers) => {
     sms: /sms|enlaces sospechosos/i,
     whatsapp: /whatsapp|enlaces sospechosos/i,
     llamadas: /llamadas fraudulentas/i,
+    todo: /p[aá]ginas clonadas|compras y pagos|dominios|enlaces sospechosos|whatsapp|llamadas fraudulentas/i,
   };
 
   if (priorityMatchers[priorityKey]) {
