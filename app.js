@@ -12,7 +12,7 @@ const resultLead = document.getElementById('resultLead');
 const riskLevel = document.getElementById('riskLevel');
 const riskSummary = document.getElementById('riskSummary');
 const riskRecs = document.getElementById('riskRecs');
-const nextStepsList = document.getElementById('nextStepsList');
+const nextStepsGrid = document.getElementById('nextStepsGrid');
 const restartBtn = document.getElementById('restartBtn');
 const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
@@ -177,6 +177,16 @@ const questions = [
 
 const answers = {};
 let currentIndex = 0;
+
+const normalizeRiskLevel = (value) => {
+  const raw = String(value || '').trim();
+  const lower = raw.toLowerCase();
+  if (lower.startsWith('alto')) return 'Alto';
+  if (lower.startsWith('medio')) return 'Medio';
+  if (lower.startsWith('bajo')) return 'Bajo';
+  // Capitalize first letter as a safe fallback.
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw;
+};
 
 const getVisibleQuestions = () =>
   questions.filter((question) => !question.showIf || question.showIf(answers));
@@ -416,10 +426,10 @@ const showResults = async () => {
 
   resultLead.textContent =
     'Analizando tus respuestas con IA para personalizar el contenido.';
-  riskLevel.textContent = level;
+  riskLevel.textContent = normalizeRiskLevel(level);
   riskSummary.textContent = summary;
   riskRecs.innerHTML = '';
-  nextStepsList.innerHTML = '';
+  nextStepsGrid.innerHTML = '';
 
   document.getElementById('questionCard').classList.add('hidden');
   resultSection.classList.add('hidden');
@@ -428,7 +438,7 @@ const showResults = async () => {
 
   try {
     const data = await callBackend('/api/assess', { answers });
-    if (data.nivel) riskLevel.textContent = data.nivel;
+    if (data.nivel) riskLevel.textContent = normalizeRiskLevel(data.nivel);
     if (data.resumen) riskSummary.textContent = data.resumen;
     if (Array.isArray(data.recomendaciones)) {
       data.recomendaciones.forEach((item) => {
@@ -438,10 +448,32 @@ const showResults = async () => {
       });
     }
     if (Array.isArray(data.proximos_pasos)) {
-      data.proximos_pasos.forEach((item) => {
-        const li = document.createElement('li');
-        li.textContent = item;
-        nextStepsList.appendChild(li);
+      data.proximos_pasos.forEach((step) => {
+        const card = document.createElement('div');
+        card.className = 'step-card';
+
+        const title = document.createElement('p');
+        title.className = 'step-title';
+        title.textContent =
+          typeof step === 'string'
+            ? step
+            : step?.titulo || step?.title || 'Siguiente paso';
+
+        const descText =
+          typeof step === 'string'
+            ? ''
+            : step?.descripcion || step?.aprenderas || step?.desc || '';
+        if (descText) {
+          const desc = document.createElement('p');
+          desc.className = 'step-desc';
+          desc.textContent = descText;
+          card.appendChild(title);
+          card.appendChild(desc);
+        } else {
+          card.appendChild(title);
+        }
+
+        nextStepsGrid.appendChild(card);
       });
     }
     resultLead.textContent =

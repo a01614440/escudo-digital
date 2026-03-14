@@ -252,6 +252,35 @@ textarea {
   line-height: 1.6;
 }
 
+.steps-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.step-card {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.step-title {
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.step-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .info-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
