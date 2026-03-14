@@ -496,8 +496,8 @@ textarea {
 }
 
 #courseReadyHint {
-  margin-top: 18px;
-  padding-top: 12px;
+  margin-top: 28px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 
