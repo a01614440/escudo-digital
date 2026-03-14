@@ -70,8 +70,21 @@ const callOpenAI = async (payload) => {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+    const contentType = response.headers.get('content-type') || '';
+    let errorText = '';
+    try {
+      if (contentType.includes('application/json')) {
+        const json = await response.json();
+        errorText = JSON.stringify(json);
+      } else {
+        errorText = await response.text();
+      }
+    } catch (err) {
+      errorText = `No se pudo leer el error: ${err.message}`;
+    }
+    const err = new Error(`OpenAI API error: ${response.status} ${errorText}`);
+    err.status = response.status;
+    throw err;
   }
 
   return response.json();
@@ -117,7 +130,11 @@ app.post('/api/assess', async (req, res) => {
 
     return res.json(parsed);
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Error interno' });
+    console.error('Error /api/assess:', error);
+    return res.status(500).json({
+      error: error.message || 'Error interno',
+      status: error.status || 500,
+    });
   }
 });
 
@@ -136,7 +153,11 @@ app.post('/api/chat', async (req, res) => {
     const text = extractText(data);
     return res.json({ reply: text });
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Error interno' });
+    console.error('Error /api/chat:', error);
+    return res.status(500).json({
+      error: error.message || 'Error interno',
+      status: error.status || 500,
+    });
   }
 });
 

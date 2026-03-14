@@ -347,7 +347,9 @@ const callBackend = async (path, payload) => {
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al conectar con la IA.');
+    const message = error.error || 'Error al conectar con la IA.';
+    const status = error.status ? ` (status ${error.status})` : '';
+    throw new Error(`${message}${status}`);
   }
   return response.json();
 };
@@ -394,7 +396,7 @@ const showResults = async () => {
       'La IA ajustó tu perfil con base en tus respuestas.';
   } catch (error) {
     resultLead.textContent =
-      'No se pudo conectar con la IA. Mostramos un resultado preliminar.';
+      `No se pudo conectar con la IA. ${error.message || ''}`.trim();
   }
 };
 
@@ -443,7 +445,10 @@ chatForm.addEventListener('submit', async (event) => {
     appendChat(reply, 'bot');
     chatHistory.push({ role: 'assistant', content: reply });
   } catch (error) {
-    appendChat('No pude conectar con la IA. Intenta de nuevo.', 'bot');
+    appendChat(
+      `No pude conectar con la IA. ${error.message || 'Intenta de nuevo.'}`,
+      'bot'
+    );
   }
 });
 
