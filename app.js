@@ -1615,6 +1615,13 @@ els.applyCoursePrefsBtn?.addEventListener('click', async () => {
 els.chatFab?.addEventListener('click', openChat);
 els.chatClose?.addEventListener('click', closeChat);
 els.chatBackdrop?.addEventListener('click', closeChat);
+document.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.matches('[data-chat-close]')) {
+    closeChat();
+  }
+});
 
 els.chatForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
