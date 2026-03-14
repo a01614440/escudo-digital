@@ -339,13 +339,20 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
+const applyInlineFormatting = (value) =>
+  value.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
 const formatMessage = (text) => {
-  const safe = escapeHtml(text || '');
+  const safe = applyInlineFormatting(escapeHtml(text || ''));
   const lines = safe.split('\n').map((line) => line.trim()).filter(Boolean);
-  const bulletLines = lines.filter((line) => line.startsWith('- '));
+  const bulletLines = lines.filter(
+    (line) => line.startsWith('- ') || line.startsWith('• ')
+  );
   if (bulletLines.length >= 2) {
     const items = bulletLines
-      .map((line) => `<li>${line.replace(/^-\\s*/, '')}</li>`)
+      .map((line) =>
+        `<li>${line.replace(/^(-|•)\\s*/, '')}</li>`
+      )
       .join('');
     return `<ul>${items}</ul>`;
   }

@@ -48,10 +48,13 @@ const buildChatPrompt = (messages) => {
       role: 'system',
       content:
         'Eres un asistente experto en estafas digitales en México. ' +
-        'Responde de forma clara y breve. Usa máximo 4 puntos en lista. ' +
+        'Responde de forma clara y breve. Estructura siempre así: ' +
+        '1) Una frase empática corta. ' +
+        '2) 3 a 4 viñetas con acciones concretas (usa "- "). ' +
+        '3) Un cierre corto con señal de alerta. ' +
         'No excedas 90 palabras. Si el usuario menciona un fraude en curso, ' +
         'sugiere medidas inmediatas y canales oficiales sin inventar números específicos. ' +
-        'Formatea con viñetas usando "-" cuando des pasos.',
+        'No uses listas numeradas ni párrafos largos.',
     },
     ...messages,
   ];
