@@ -94,38 +94,68 @@ const buildChatPrompt = (messages) => {
   ];
 };
 
-const buildCoursePrompt = ({ answers, assessment, prefs, progress, categories }) => {
+const buildCoursePrompt = ({ answers, assessment, prefs, progress, categories, levels }) => {
   return [
     {
       role: 'system',
-      content:
-        'Eres un diseñador instruccional y analista de estafas digitales en México. ' +
-        'Vas a crear un programa de aprendizaje PERSONALIZADO tipo app (retos, práctica y simulaciones). ' +
-        'Usa su edad, experiencia previa, canales de exposición, hábitos y prioridad de aprendizaje. ' +
-        'No pidas datos sensibles. No inventes números telefónicos. No inventes enlaces reales. ' +
-        'No digas que revisas enlaces o sitios; enseña qué revisar por su cuenta.\n\n' +
-        'Devuelve SOLO JSON válido con estas llaves exactas:\n' +
-        '- score_name (string creativo)\n' +
-        '- score_total (entero 0-100)\n' +
-        '- competencias (objeto con 0-100 por tema)\n' +
-        '- ruta (array de 7 módulos)\n\n' +
-        'Reglas:\n' +
-        '1) competencias debe incluir (siempre): web, whatsapp, sms, llamadas, correo_redes, habitos.\n' +
-        '2) ruta debe tener EXACTAMENTE 7 módulos. Cada módulo: id, titulo, descripcion, categoria, actividades.\n' +
-        '3) categoria debe ser una de: web, whatsapp, sms, llamadas, correo_redes, habitos.\n' +
-        '4) Cada módulo debe tener EXACTAMENTE 6 actividades. Tipos obligatorios: concepto, quiz, simulacion, abierta, sim_chat, checklist.\n' +
-        '5) Cada actividad debe tener: id, tipo, titulo, peso.\n' +
-        '   - peso es un número 0.5 a 3 (más peso = más impacto).\n' +
-        '   - concepto: contenido (max 110 palabras)\n' +
-        '   - checklist: items (4-8 bullets), intro (1 frase)\n' +
-        '   - simulacion/quiz: escenario (max 120 palabras), opciones (3-5), correcta (index), explicacion (max 55 palabras)\n' +
-        '   - abierta: prompt (1-2 frases) y opcional pistas (0-3 bullets)\n' +
-        '   - sim_chat: escenario (max 90 palabras), inicio (1 mensaje del estafador), turnos_max (5-8)\n' +
-        '6) La ruta DEBE respetar "categorias_sugeridas" (mismo orden y longitud) que viene en el input.\n' +
-        '   Si una categoría se repite, ese módulo debe ser distinto (básico vs avanzado / recuperación).\n' +
-        '7) Si la prioridad del usuario es "todo", cubre web + mensajería (sms/whatsapp) + llamadas en varios módulos.\n' +
-        '8) Si hay estafa previa o anécdota, incluye al menos 1 sim_chat inspirado en esa situación (sin datos sensibles).\n' +
-        '9) Ajusta el tono al usuario (por edad) y al nivel (Bajo/Medio/Alto).',
+      content: `Eres un diseñador instruccional y analista de estafas digitales en México.
+Vas a crear un programa de aprendizaje PERSONALIZADO tipo app (retos, práctica y simulaciones).
+Usa su edad, experiencia previa, canales de exposición, hábitos y prioridad de aprendizaje.
+No pidas datos sensibles. No inventes números telefónicos. No inventes enlaces reales.
+No digas que revisas enlaces o sitios; enseña qué revisar por su cuenta.
+
+Devuelve SOLO JSON válido con estas llaves exactas:
+- score_name (string creativo)
+- score_total (entero 0-100)
+- competencias (objeto con 0-100 por tema)
+- ruta (array de 7 módulos)
+
+Reglas globales:
+1) competencias debe incluir (siempre): web, whatsapp, sms, llamadas, correo_redes, habitos.
+2) ruta debe tener EXACTAMENTE 7 módulos. Cada módulo: id, titulo, descripcion, categoria, nivel, actividades.
+3) categoria debe ser una de: web, whatsapp, sms, llamadas, correo_redes, habitos.
+4) nivel debe ser EXACTAMENTE: "basico", "refuerzo" o "avanzado".
+5) actividades: entre 6 y 10 por módulo (varía el formato; no todos iguales).
+6) Tipos permitidos de actividad:
+   - concepto, quiz, simulacion, abierta, sim_chat, checklist,
+   - compare_domains, signal_hunt, inbox, web_lab, scenario_flow.
+7) Cada actividad debe tener: id, tipo, titulo, peso (0.5 a 3).
+
+Campos por tipo:
+- concepto: contenido (max 120 palabras)
+- checklist: intro (1 frase), items (4-9)
+- quiz/simulacion: escenario (max 140 palabras), opciones (3-5), correcta (index), explicacion (max 55 palabras)
+- abierta: prompt (1-2 frases) y opcional pistas (0-3)
+- sim_chat: escenario (max 90 palabras), inicio (1 mensaje del estafador), turnos_max (5-8)
+- compare_domains: prompt (1 frase), dominios (2-4), correcta (index), explicacion (max 55 palabras), tip (opcional)
+- signal_hunt: mensaje (max 160 palabras), senales (4-8 objetos con: id, label, correcta, explicacion corta)
+- inbox: kind ("sms" o "correo"), intro (1 frase), mensajes (4-7 objetos con: id, from, subject opcional, text, correcto ("seguro"|"estafa"), explicacion corta)
+- web_lab: intro (1 frase), pagina (marca, dominio, banner, sub, contacto, pagos[], productos[]), hotspots (target debe ser: "domain","banner","contacto","pago"; 2-4 correctas)
+- scenario_flow: intro (1 frase), pasos (2-5; cada paso: texto y 2-4 opciones con: texto, puntaje 0-1, feedback corto, siguiente opcional)
+
+Reglas de dificultad por nivel:
+- basico: señales claras y decisiones fáciles.
+- refuerzo: señales mezcladas y más ambiguas.
+- avanzado: escenarios realistas; señales menos obvias; requiere verificar y analizar.
+
+Reglas por categoría (evita repetición):
+- web: incluye web_lab y compare_domains (ideal también signal_hunt). No uses sim_chat aquí salvo que aporte.
+- sms: incluye inbox(kind="sms") y signal_hunt.
+- correo_redes: incluye inbox(kind="correo") y signal_hunt.
+- whatsapp: incluye sim_chat y signal_hunt (enlaces/urgencia/suplantación).
+- llamadas: incluye scenario_flow (y una abierta tipo “guión para colgar/verificar”).
+- habitos: incluye scenario_flow (rutina) y checklist (regla personal).
+
+Reglas de consistencia:
+- La ruta DEBE respetar "categorias_sugeridas" (mismo orden y longitud).
+- Si viene "niveles_sugeridos", úsalo para nivel por módulo (mismo orden).
+- Si una categoría se repite, cambia enfoque y sube dificultad (básico -> refuerzo -> avanzado).
+- No repitas títulos ni actividades “clonadas”.
+
+Seguridad:
+- No incluyas URLs ni teléfonos.
+- No des instrucciones para estafar; es solo educación defensiva.
+`,
     },
     {
       role: 'user',
@@ -135,6 +165,7 @@ const buildCoursePrompt = ({ answers, assessment, prefs, progress, categories })
           evaluacion: assessment,
           preferencias: prefs,
           categorias_sugeridas: Array.isArray(categories) ? categories : [],
+          niveles_sugeridos: Array.isArray(levels) ? levels : [],
           progreso_actual: progress || null,
         },
         null,
@@ -465,6 +496,36 @@ const chooseCourseCategories = ({ answers, assessment, prefs }) => {
   return cats.slice(0, COURSE_MODULE_COUNT);
 };
 
+const computeDifficultyDelta = ({ answers, assessment, prefs }) => {
+  const pref = String(prefs?.dificultad || '').toLowerCase();
+  if (pref === 'facil') return -1;
+  if (pref === 'normal') return 0;
+  if (pref === 'avanzada') return 1;
+
+  // auto: lightly adapt using the assessment + self-reported knowledge (without turning it into an exam).
+  const nivel = normalizeNivel(assessment?.nivel || 'Medio');
+  const knowledge = String(answers?.knowledge || '').toLowerCase();
+  const deltaFromNivel = nivel === 'Alto' ? 1 : nivel === 'Bajo' ? -1 : 0;
+  const deltaFromKnowledge = knowledge === 'avanzado' ? 1 : knowledge === 'nada' ? -1 : 0;
+  const raw = deltaFromNivel + deltaFromKnowledge;
+  return clampNumber(raw, -1, 1);
+};
+
+const computeModuleLevels = (categories, { answers, assessment, prefs }) => {
+  const cats = Array.isArray(categories) ? categories.map(normalizeCourseCategory) : [];
+  const counts = {};
+  const base = cats.map((cat) => {
+    const n = counts[cat] || 0;
+    counts[cat] = n + 1;
+    if (n === 0) return 'basico';
+    if (n === 1) return 'refuerzo';
+    return 'avanzado';
+  });
+
+  const delta = computeDifficultyDelta({ answers, assessment, prefs });
+  return base.map((lvl) => shiftModuleLevel(lvl, delta));
+};
+
 const buildFallbackAssessment = (answers) => {
   const signals = detectSignals(answers);
 
@@ -758,10 +819,28 @@ const COURSE_CATEGORIES = [
 
 const COURSE_MODULE_COUNT = 7;
 
+const MODULE_LEVELS = ['basico', 'refuerzo', 'avanzado'];
+
 const clampNumber = (value, min, max) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return min;
   return Math.max(min, Math.min(max, num));
+};
+
+const normalizeModuleLevel = (value) => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return 'basico';
+  if (raw.startsWith('ava')) return 'avanzado';
+  if (raw.startsWith('ref')) return 'refuerzo';
+  if (raw.startsWith('bas')) return 'basico';
+  if (raw.startsWith('int') || raw.startsWith('med')) return 'refuerzo';
+  return MODULE_LEVELS.includes(raw) ? raw : 'basico';
+};
+
+const shiftModuleLevel = (nivel, delta) => {
+  const idx = MODULE_LEVELS.indexOf(normalizeModuleLevel(nivel));
+  const next = clampNumber(idx + (Number(delta) || 0), 0, MODULE_LEVELS.length - 1);
+  return MODULE_LEVELS[next] || 'basico';
 };
 
 const normalizeCourseCategory = (value) => {
@@ -779,418 +858,938 @@ const normalizeCourseCategory = (value) => {
   return COURSE_CATEGORIES.includes(raw) ? raw : 'habitos';
 };
 
-const buildModuleTemplate = ({ categoria, index, answers, assessment }) => {
-  const level = normalizeNivel(assessment?.nivel || 'Medio');
+const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel }) => {
+  const userNivel = normalizeNivel(assessment?.nivel || 'Medio');
+  const modNivel = normalizeModuleLevel(nivel);
+  const cat = normalizeCourseCategory(categoria);
+  const modId = `mod_${cat}_${index + 1}`;
+
   const age = String(answers?.age || '');
   const toneNote =
     age === '13-17'
-      ? 'con ejemplos sencillos'
+      ? 'con ejemplos muy simples'
       : age === '55+'
         ? 'con pasos muy claros'
         : 'con ejemplos cotidianos';
 
-  const cat = normalizeCourseCategory(categoria);
-  const modId = `mod_${cat}_${index + 1}`;
+  const levelBoost = modNivel === 'avanzado' ? 1.15 : modNivel === 'refuerzo' ? 1.05 : 1;
+  const peso = (base) => clampNumber((Number(base) || 1) * levelBoost, 0.5, 3);
 
-  const templates = {
-    web: {
+  const mk = (n, base) => ({ id: `${modId}_a${n}`, ...base, peso: peso(base.peso ?? 1) });
+
+  const levelHint =
+    modNivel === 'basico'
+      ? 'señales claras y decisiones simples'
+      : modNivel === 'refuerzo'
+        ? 'señales mezcladas y un poco ambiguas'
+        : 'escenarios realistas con señales menos obvias';
+
+  if (cat === 'web') {
+    const page =
+      modNivel === 'basico'
+        ? {
+            marca: 'NovaTienda',
+            dominio: 'novatienda-descuentos.shop',
+            banner: '90% OFF SOLO HOY',
+            sub: 'Venta “oficial” con envío inmediato.',
+            contacto: 'Contacto: solo chat (sin dirección ni razón social).',
+            pagos: ['Transferencia bancaria (único método)'],
+            productos: [
+              { nombre: 'Audífonos X', antes: '$1,299', precio: '$199' },
+              { nombre: 'Smartwatch Z', antes: '$2,499', precio: '$349' },
+              { nombre: 'Bocina Mini', antes: '$999', precio: '$149' },
+            ],
+          }
+        : modNivel === 'refuerzo'
+          ? {
+              marca: 'NovaTienda',
+              dominio: 'novatienda-mx-promos.com',
+              banner: '30% OFF fin de semana',
+              sub: 'Diseño “pro” pero con detalles raros al pagar.',
+              contacto: 'Contacto: correo genérico y sin políticas claras.',
+              pagos: ['Tarjeta (enlace externo)', 'Transferencia'],
+              productos: [
+                { nombre: 'Cámara Compacta', antes: '$3,799', precio: '$2,599' },
+                { nombre: 'Teclado Mecánico', antes: '$1,799', precio: '$1,299' },
+                { nombre: 'Mouse Gamer', antes: '$899', precio: '$599' },
+              ],
+            }
+          : {
+              marca: 'NovaTienda',
+              dominio: 'novatienda-mx.com',
+              banner: 'Descuento por “verificación”',
+              sub: 'Parece normal, pero te empuja a “confirmar” fuera del flujo.',
+              contacto: 'Contacto: solo formulario; sin datos fiscales visibles.',
+              pagos: ['Tarjeta (sin 3D Secure)', 'Depósito “para confirmar”'],
+              productos: [
+                { nombre: 'Tablet 10"', antes: '$5,999', precio: '$4,999' },
+                { nombre: 'Celular A1', antes: '$4,499', precio: '$3,999' },
+                { nombre: 'Cargador Rápido', antes: '$399', precio: '$329' },
+              ],
+            };
+
+    const hotspots =
+      modNivel === 'basico'
+        ? [
+            { id: 'h1', target: 'domain', label: 'Dominio raro', correcta: true, explicacion: 'El dominio no coincide con uno “oficial”.' },
+            { id: 'h2', target: 'banner', label: 'Descuento exagerado', correcta: true, explicacion: 'Descuentos extremos buscan que actúes con prisa.' },
+            { id: 'h3', target: 'contacto', label: 'Contacto incompleto', correcta: true, explicacion: 'Sin dirección/políticas claras es mala señal.' },
+            { id: 'h4', target: 'pago', label: 'Pago riesgoso', correcta: true, explicacion: 'Transferencia/depósito es difícil de recuperar.' },
+          ]
+        : modNivel === 'refuerzo'
+          ? [
+              { id: 'h1', target: 'domain', label: 'Dominio “promos”', correcta: true, explicacion: 'Los estafadores agregan palabras para parecer oficiales.' },
+              { id: 'h3', target: 'contacto', label: 'Contacto dudoso', correcta: true, explicacion: 'Correo genérico y políticas vagas aumentan el riesgo.' },
+              { id: 'h4', target: 'pago', label: 'Pago por enlace externo', correcta: true, explicacion: 'Pagos fuera del sitio oficial son una bandera roja.' },
+              { id: 'h2', target: 'banner', label: 'Oferta normal', correcta: false, explicacion: 'No todo descuento es estafa: mira el conjunto de señales.' },
+            ]
+          : [
+              { id: 'h1', target: 'domain', label: 'Dominio similar', correcta: true, explicacion: 'Un dominio “casi igual” es una técnica común (typosquatting).' },
+              { id: 'h4', target: 'pago', label: '“Confirmación” con depósito', correcta: true, explicacion: 'Piden pago extra para saltarse verificación real.' },
+              { id: 'h2', target: 'banner', label: 'Banner normal', correcta: false, explicacion: 'Aquí la estafa no está en el diseño: está en el flujo de pago.' },
+              { id: 'h3', target: 'contacto', label: 'Formulario sin datos', correcta: true, explicacion: 'Sin razón social/aviso legal, es difícil reclamar.' },
+            ];
+
+    const domains =
+      modNivel === 'basico'
+        ? ['novatienda.com.mx', 'novatienda-descuentos.shop']
+        : modNivel === 'refuerzo'
+          ? ['novatienda.com.mx', 'novatienda-mx-promos.com', 'novatiendaoficial.com.mx']
+          : ['novatienda.com.mx', 'novatienda-mx.com', 'novatienda-mex.com', 'novatienda.com-mx.site'];
+
+    const signalMessage =
+      modNivel === 'basico'
+        ? 'Tu compra quedó “pendiente”. Para confirmar el descuento, envía tu comprobante y tus datos hoy.'
+        : modNivel === 'refuerzo'
+          ? 'Para “validar” tu pedido, necesitamos una confirmación rápida: responde con tus datos y paga en 30 minutos.'
+          : 'Tu pago requiere “verificación manual”. Si confirmas ahora, conservas el precio; si no, se cancela.';
+
+    const signals =
+      modNivel === 'basico'
+        ? [
+            { id: 's1', label: 'Urgencia (“hoy”)', correcta: true, explicacion: 'Te empuja a actuar sin verificar.' },
+            { id: 's2', label: 'Pide comprobante/pago', correcta: true, explicacion: 'Quieren cerrar la transacción rápido.' },
+            { id: 's3', label: 'Pide datos personales', correcta: true, explicacion: 'Pueden usarlo para robo de identidad.' },
+            { id: 's4', label: 'Mensaje claro y largo', correcta: false, explicacion: 'No es señal por sí sola.' },
+            { id: 's5', label: 'Amenaza de cancelación', correcta: true, explicacion: 'Presión típica para que no revises.' },
+          ]
+        : modNivel === 'refuerzo'
+          ? [
+              { id: 's1', label: '“Validación” fuera del sitio', correcta: true, explicacion: 'Te sacan del canal oficial.' },
+              { id: 's2', label: 'Tiempo límite corto', correcta: true, explicacion: 'Reduce tu capacidad de revisar.' },
+              { id: 's3', label: 'Pide datos por respuesta', correcta: true, explicacion: 'No es un canal seguro.' },
+              { id: 's4', label: 'Menciona políticas de envío', correcta: false, explicacion: 'Puede ser texto copiado.' },
+              { id: 's5', label: '“Confirmación” sin referencia', correcta: true, explicacion: 'No da números verificables.' },
+            ]
+          : [
+              { id: 's1', label: '“Verificación manual”', correcta: true, explicacion: 'Excusa común para pedir pasos extra.' },
+              { id: 's2', label: 'Presión por mantener el precio', correcta: true, explicacion: 'Juega con tu miedo a perder la oferta.' },
+              { id: 's3', label: 'Falta de canal oficial claro', correcta: true, explicacion: 'No te da cómo verificar por tu cuenta.' },
+              { id: 's4', label: 'Buen tono y ortografía', correcta: false, explicacion: 'Hoy las estafas pueden verse “profesionales”.' },
+              { id: 's5', label: 'Cambia de método de pago', correcta: true, explicacion: 'Red flag: te empuja a algo sin protección.' },
+            ];
+
+    return {
+      id: modId,
       titulo: 'Detecta Páginas Clonadas',
-      descripcion: `Aprenderás señales para identificar webs falsas ${toneNote}.`,
-      concepto: {
-        titulo: 'Señales Rápidas en una Web',
-        contenido:
-          'Antes de comprar, revisa el dominio exacto, la información de contacto y las políticas. ' +
-          'Desconfía de precios demasiado bajos y de sitios con errores o enlaces raros.',
-      },
-      simulacion: {
-        titulo: 'Simulación: Tienda con Descuento',
-        escenario:
-          'Ves una “tienda oficial” con 70% de descuento y te pide transferir para apartar. ¿Qué haces primero?',
-        opciones: [
-          'Pago la transferencia para asegurar el precio.',
-          'Verifico dominio y busco reseñas fuera del sitio.',
-          'Escribo mi tarjeta y luego reviso.',
-          'Comparto el link con amigos para preguntarles.',
-        ],
-        correcta: 1,
-        explicacion:
-          'Primero valida el dominio y la reputación. Evita transferencias: son difíciles de recuperar.',
-      },
-      checklist: {
-        titulo: 'Checklist Antes de Pagar',
-        intro: 'Antes de pagar, confirma:',
-        items: [
-          'Dominio exacto y sin letras raras.',
-          'Contacto real (dirección/correo/políticas).',
-          'Método de pago con protección (tarjeta).',
-          'Reseñas fuera del sitio y señales de alerta.',
-        ],
-      },
-    },
-    whatsapp: {
-      titulo: 'WhatsApp: Suplantación y Enlaces',
-      descripcion: `Aprenderás a detectar engaños en WhatsApp ${toneNote}.`,
-      concepto: {
-        titulo: 'Señales de Suplantación',
-        contenido:
-          'Si te piden dinero, códigos o urgencia, pausa. Verifica por otro canal: una llamada directa o pregunta clave. ' +
-          'No confíes solo en foto o nombre.',
-      },
-      simulacion: {
-        titulo: 'Simulación: “Soy tu familiar”',
-        escenario:
-          'Te escriben: “Cambié de número, necesito que me transfieras ya”. ¿Qué harías?',
-        opciones: [
-          'Transfiero para ayudar rápido.',
-          'Pido un audio y verifico con una llamada al número de siempre.',
-          'Le mando mi ubicación para que venga.',
-          'Le paso mi contraseña para “confirmar”.',
-        ],
-        correcta: 1,
-        explicacion:
-          'Verifica identidad por un canal distinto antes de cualquier pago o dato.',
-      },
-      checklist: {
-        titulo: 'Tu Regla de Oro en WhatsApp',
-        intro: 'Si hay urgencia o dinero:',
-        items: [
-          'Pausa 30 segundos.',
-          'Verifica por otro canal.',
-          'No abras links sin validar.',
-          'Nunca compartas códigos/NIP.',
-        ],
-      },
-    },
-    sms: {
-      titulo: 'SMS: Enlaces y Falsos Avisos',
-      descripcion: `Aprenderás a detectar SMS falsos ${toneNote}.`,
-      concepto: {
-        titulo: 'SMS Falso vs Real',
-        contenido:
-          'Los fraudes usan urgencia (“último aviso”) y enlaces acortados. ' +
-          'Para verificar, entra a la app oficial o escribe el sitio tú mismo.',
-      },
-      simulacion: {
-        titulo: 'Simulación: “Banco bloqueó tu cuenta”',
-        escenario:
-          'Recibes un SMS que dice que tu banco bloqueó tu cuenta y te deja un link. ¿Qué haces?',
-        opciones: [
-          'Abro el link para desbloquear.',
-          'Entro a la app oficial y reviso notificaciones.',
-          'Respondo con mis datos para confirmar.',
-          'Reenvío el SMS para que “validen”.',
-        ],
-        correcta: 1,
-        explicacion:
-          'No uses el link del SMS. Verifica desde la app o sitio oficial escrito por ti.',
-      },
-      checklist: {
-        titulo: 'Checklist de Enlaces',
-        intro: 'Antes de abrir un link:',
-        items: [
-          '¿Esperaba este mensaje?',
-          '¿Pide urgencia o datos?',
-          '¿El enlace se ve raro/acortado?',
-          'Mejor verifica por app oficial.',
-        ],
-      },
-    },
-    llamadas: {
-      titulo: 'Llamadas Fraudulentas',
-      descripcion: `Aprenderás a protegerte en llamadas ${toneNote}.`,
-      concepto: {
-        titulo: 'Datos que Nunca se Dan',
-        contenido:
-          'Ningún banco debe pedirte NIP, contraseñas o códigos por teléfono. ' +
-          'Si te presionan, cuelga y llama tú al número oficial.',
-      },
-      simulacion: {
-        titulo: 'Simulación: “Soy del banco”',
-        escenario:
-          'Te llaman diciendo que hay cargos raros y te piden un código SMS. ¿Qué haces?',
-        opciones: [
-          'Doy el código para cancelar.',
-          'Cuelgo y llamo al número oficial del banco.',
-          'Pido que me lo repitan más lento.',
-          'Les doy mi contraseña para “verificar”.',
-        ],
-        correcta: 1,
-        explicacion:
-          'Cuelga y verifica por canales oficiales. El código SMS es una llave para entrar.',
-      },
-      checklist: {
-        titulo: 'Guión Anti-Fraude',
-        intro: 'Si recibes una llamada sospechosa:',
-        items: [
-          'No confirmes datos sensibles.',
-          'Cuelga si hay presión/urgencia.',
-          'Verifica desde tu app o número oficial.',
-          'Reporta el intento si aplica.',
-        ],
-      },
-    },
-    correo_redes: {
-      titulo: 'Correo y Redes: Phishing',
-      descripcion: `Aprenderás a detectar engaños por correo/redes ${toneNote}.`,
-      concepto: {
-        titulo: 'Cómo se Ve un Phishing',
-        contenido:
-          'Los correos falsos imitan paqueterías o “soporte”. Revisa el remitente, el dominio y el mensaje. ' +
-          'No descargues archivos ni abras links si no esperabas nada.',
-      },
-      simulacion: {
-        titulo: 'Simulación: Paquete Detenido',
-        escenario:
-          'Te llega un correo: “Tu paquete está detenido, paga $45”. ¿Qué haces?',
-        opciones: [
-          'Pago para liberarlo.',
-          'Verifico en la web oficial de la paquetería con mi guía.',
-          'Respondo con mis datos.',
-          'Descargo el archivo adjunto.',
-        ],
-        correcta: 1,
-        explicacion:
-          'Verifica desde la web oficial y nunca pagues desde links de correos sospechosos.',
-      },
-      checklist: {
-        titulo: 'Checklist de Correo',
-        intro: 'Antes de confiar en un correo:',
-        items: [
-          'Revisa el remitente y dominio.',
-          'Evita adjuntos inesperados.',
-          'Busca urgencia o amenazas.',
-          'Verifica en la web oficial.',
-        ],
-      },
-    },
-    habitos: {
-      titulo: 'Hábitos de Verificación',
-      descripcion: `Crearás una rutina simple para evitar estafas ${toneNote}.`,
-      concepto: {
-        titulo: 'Tu Pausa de 10 Segundos',
-        contenido:
-          'La mayoría de estafas funcionan por prisa. Antes de actuar, respira, revisa y verifica por un canal oficial. ' +
-          'Esta pausa reduce errores.',
-      },
-      simulacion: {
-        titulo: 'Simulación: Mensaje Urgente',
-        escenario:
-          'Te llega un mensaje urgente con un link. ¿Cuál es tu primer paso?',
-        opciones: [
-          'Abrir el link para ver.',
-          'Pausar y verificar por app/canal oficial.',
-          'Reenviar a un amigo.',
-          'Responder con mis datos.',
-        ],
-        correcta: 1,
-        explicacion:
-          'Primero pausa y verifica. La prisa es la herramienta #1 del fraude.',
-      },
-      checklist: {
-        titulo: 'Checklist de 4 Pasos',
-        intro: 'Antes de actuar:',
-        items: [
-          '¿Esperaba este mensaje?',
-          '¿Me mete urgencia o miedo?',
-          '¿Pide datos o dinero?',
-          'Verifico por canal oficial.',
-        ],
-      },
-    },
-  };
-
-  const base = templates[cat] || templates.habitos;
-
-  const pesoConcepto = level === 'Bajo' ? 0.9 : level === 'Alto' ? 1.05 : 0.95;
-  const pesoQuiz = level === 'Bajo' ? 1.0 : level === 'Alto' ? 1.15 : 1.05;
-  const pesoSim = level === 'Bajo' ? 1.1 : level === 'Alto' ? 1.3 : 1.2;
-  const pesoAbierta = level === 'Bajo' ? 1.15 : level === 'Alto' ? 1.35 : 1.25;
-  const pesoChat = level === 'Bajo' ? 1.4 : level === 'Alto' ? 1.75 : 1.6;
-  const pesoChecklist = level === 'Bajo' ? 1.0 : level === 'Alto' ? 1.15 : 1.05;
-
-  const pickQuiz = () => {
-    if (base.quiz) return base.quiz;
-    if (cat === 'web') {
-      return {
-        titulo: 'Quiz: Señal Más Fuerte',
-        escenario: '¿Qué te haría sospechar MÁS de una tienda en línea?',
-        opciones: [
-          'Solo acepta transferencia y tiene dominio raro.',
-          'Tiene muchas fotos del producto.',
-          'Tiene un logo moderno.',
-          'Tiene varios productos.',
-        ],
-        correcta: 0,
-        explicacion: 'Transferencia + dominio raro es una combinación muy sospechosa.',
-      };
-    }
-    if (cat === 'llamadas') {
-      return {
-        titulo: 'Quiz: Dato Prohibido',
-        escenario: '¿Qué NO se comparte por teléfono?',
-        opciones: ['Nombre', 'NIP/contraseña/códigos', 'Estado', 'Correo'],
-        correcta: 1,
-        explicacion: 'NIP, contraseñas y códigos no se comparten por llamada.',
-      };
-    }
-    return {
-      titulo: 'Quiz: Urgencia',
-      escenario: '¿Cuál es una señal típica de estafa?',
-      opciones: [
-        'Urgencia/amenaza (“hoy”, “último aviso”).',
-        'Mensaje largo con detalles.',
-        'Saludo cordial.',
-        'Imagen bonita.',
+      descripcion: `Entrenamiento ${levelHint} para compras seguras ${toneNote}.`,
+      categoria: cat,
+      nivel: modNivel,
+      actividades: [
+        mk(1, {
+          tipo: 'concepto',
+          titulo: 'Mapa Rápido: Qué Revisar',
+          contenido:
+            'Antes de comprar, revisa dominio, contacto y métodos de pago. ' +
+            'No te guíes solo por diseño o “candado”. Si te presionan o te piden depósito/transferencia, frena y verifica por canales oficiales.',
+          peso: 0.9,
+        }),
+        mk(2, {
+          tipo: 'web_lab',
+          titulo: 'Modo Detective: Tienda en Vivo',
+          intro: 'Explora la tienda y marca lo que te parezca sospechoso.',
+          pagina: page,
+          hotspots,
+          peso: 1.5,
+        }),
+        mk(3, {
+          tipo: 'compare_domains',
+          titulo: 'Comparación de Dominios',
+          prompt: '¿Cuál dominio se ve más legítimo?',
+          dominios: domains,
+          correcta: 0,
+          explicacion:
+            'El dominio oficial suele ser simple y consistente. Los falsos agregan palabras o cambian letras.',
+          tip: 'Si dudas, no entres desde anuncios: escribe tú el dominio.',
+          peso: 1.1,
+        }),
+        mk(4, {
+          tipo: 'signal_hunt',
+          titulo: 'Encuentra Señales en el Mensaje',
+          mensaje: signalMessage,
+          senales: signals,
+          peso: 1.2,
+        }),
+        mk(5, {
+          tipo: 'quiz',
+          titulo: 'Decisión Rápida',
+          escenario: 'Si una web te empuja a pagar por transferencia, ¿qué haces?',
+          opciones: [
+            'Pagar para no perder la oferta.',
+            'Pausar y verificar dominio/reseñas fuera del sitio.',
+            'Mandar captura del pago para que “confirmen”.',
+            'Dar datos para “validar” mi compra.',
+          ],
+          correcta: 1,
+          explicacion: 'Primero verifica fuera del sitio y evita pagos sin protección.',
+          peso: 1.0,
+        }),
+        mk(6, {
+          tipo: 'abierta',
+          titulo: 'Tu Checklist Personal',
+          prompt:
+            modNivel === 'avanzado'
+              ? 'Escribe 4–6 cosas que verificarías antes de pagar en una web “muy bien hecha”.'
+              : 'Escribe 3–5 cosas que verificarías antes de pagar en una web nueva.',
+          pistas: ['dominio exacto', 'contacto/políticas', 'método de pago', 'reseñas fuera del sitio'],
+          peso: 1.2,
+        }),
+        mk(7, {
+          tipo: 'checklist',
+          titulo: 'Checklist Final Antes de Pagar',
+          intro: 'Antes de pagar, confirma:',
+          items: [
+            'Dominio exacto (sin letras raras).',
+            'Contacto y políticas claras.',
+            'Pago con protección (tarjeta/plataforma).',
+            'Reseñas fuera del sitio.',
+            'Nada de prisa: si te presionan, te sales.',
+          ],
+          peso: 1.0,
+        }),
       ],
-      correcta: 0,
-      explicacion: 'La urgencia es el gancho más común en fraudes.',
     };
-  };
+  }
 
-  const pickAbierta = () => {
-    if (base.abierta) return base.abierta;
-    if (cat === 'web') {
-      return {
-        titulo: 'Reto Abierto: Checklist',
-        prompt: 'Escribe 3 a 5 cosas que revisarías antes de comprar en una web nueva.',
-        pistas: ['dominio exacto', 'reseñas externas', 'método de pago', 'contacto real'],
-      };
-    }
-    if (cat === 'whatsapp') {
-      return {
-        titulo: 'Reto Abierto: Respuesta Segura',
-        prompt: 'Escribe una respuesta corta y segura si te piden dinero “urgente” por WhatsApp.',
-        pistas: ['verificar por llamada', 'pausar', 'no transferir', 'no compartir códigos'],
-      };
-    }
-    if (cat === 'sms') {
-      return {
-        titulo: 'Reto Abierto: 3 Pasos',
-        prompt: 'Describe (en 3 pasos) qué harías si te llega un SMS del “banco” con un link.',
-        pistas: ['no abrir link', 'verificar en app', 'llamar a número oficial'],
-      };
-    }
-    if (cat === 'llamadas') {
-      return {
-        titulo: 'Reto Abierto: Guión',
-        prompt: 'Escribe una frase para colgar con seguridad y verificar por canales oficiales.',
-        pistas: ['cuelgo', 'verifico en app', 'yo llamo', 'no doy códigos'],
-      };
-    }
-    if (cat === 'correo_redes') {
-      return {
-        titulo: 'Reto Abierto: Señales',
-        prompt: 'Escribe 3 cosas que revisarías en un correo/DM antes de creerlo.',
-        pistas: ['remitente/dominio', 'urgencia', 'links/adjuntos'],
-      };
-    }
+  if (cat === 'sms') {
+    const inbox =
+      modNivel === 'basico'
+        ? [
+            {
+              id: 'm1',
+              from: 'Aviso',
+              text: 'Tu cuenta será bloqueada hoy. Confirma en el enlace.',
+              correcto: 'estafa',
+              explicacion: 'Urgencia + “enlace” es una combinación típica de fraude.',
+            },
+            {
+              id: 'm2',
+              from: 'Paquetería',
+              text: 'Tu envío requiere pago extra. Entra a “confirmar” ahora.',
+              correcto: 'estafa',
+              explicacion: 'Te pide pago/acción urgente fuera de un canal verificable.',
+            },
+            {
+              id: 'm3',
+              from: 'Servicio',
+              text: 'Tu código de verificación es 123456. No lo compartas.',
+              correcto: 'seguro',
+              explicacion: 'Un código legítimo suele decir “no lo compartas”.',
+            },
+            {
+              id: 'm4',
+              from: 'Promo',
+              text: 'Ganaste un premio. Responde con tus datos para reclamar.',
+              correcto: 'estafa',
+              explicacion: 'Premios + datos personales: señal muy común de estafa.',
+            },
+          ]
+        : modNivel === 'refuerzo'
+          ? [
+              {
+                id: 'm1',
+                from: 'Notificación',
+                text: 'Actividad inusual detectada. Confirma tu acceso en el enlace.',
+                correcto: 'estafa',
+                explicacion: 'Te empuja a “confirmar” con urgencia sin canal oficial claro.',
+              },
+              {
+                id: 'm2',
+                from: 'Paquetería',
+                text: 'Tu paquete está en revisión. Consulta el estatus en la app oficial.',
+                correcto: 'seguro',
+                explicacion: 'Te orienta a un canal oficial (app), sin pedir datos/pago.',
+              },
+              {
+                id: 'm3',
+                from: 'Banco',
+                text: 'Cargo no reconocido. Llama al número oficial o revisa tu app.',
+                correcto: 'seguro',
+                explicacion: 'Recomienda verificación por canales oficiales.',
+              },
+              {
+                id: 'm4',
+                from: 'Soporte',
+                text: 'Tu sesión caducó. Reingresa con tus datos para evitar suspensión.',
+                correcto: 'estafa',
+                explicacion: 'Presión + “reingresa” suele ser phishing.',
+              },
+            ]
+          : [
+              {
+                id: 'm1',
+                from: 'Seguridad',
+                text: 'Se detectó un cambio de dispositivo. Si no fuiste tú, confirma ahora.',
+                correcto: 'estafa',
+                explicacion: 'Mensaje realista, pero te empuja a “confirmar” ya.',
+              },
+              {
+                id: 'm2',
+                from: 'Servicio',
+                text: 'Tu pago fue rechazado. Revisa tu app y vuelve a intentar desde allí.',
+                correcto: 'seguro',
+                explicacion: 'No pide datos ni te manda a “enlaces”.',
+              },
+              {
+                id: 'm3',
+                from: 'Atención',
+                text: 'Para liberar tu envío, envía comprobante y tu nombre completo.',
+                correcto: 'estafa',
+                explicacion: 'Pide datos + comprobante: intento de manipulación.',
+              },
+              {
+                id: 'm4',
+                from: 'Recibo',
+                text: 'Gracias por tu compra. Si no la hiciste, entra a tu app y reporta.',
+                correcto: 'seguro',
+                explicacion: 'Te lleva a tu app, no a un link del SMS.',
+              },
+            ];
+
+    const hunt =
+      modNivel === 'basico'
+        ? {
+            mensaje: 'Último aviso: tu cuenta será suspendida. Entra a confirmar hoy.',
+            senales: [
+              { id: 's1', label: 'Urgencia', correcta: true, explicacion: 'Te presiona a actuar rápido.' },
+              { id: 's2', label: 'Amenaza', correcta: true, explicacion: 'Usa miedo para que no verifiques.' },
+              { id: 's3', label: 'Pide “confirmar”', correcta: true, explicacion: 'Suele llevar a phishing.' },
+              { id: 's4', label: 'Mensaje corto', correcta: false, explicacion: 'No es señal por sí sola.' },
+            ],
+          }
+        : modNivel === 'refuerzo'
+          ? {
+              mensaje: 'Actividad inusual. Para evitar bloqueo, confirma acceso cuanto antes.',
+              senales: [
+                { id: 's1', label: 'Presión de tiempo', correcta: true, explicacion: 'Reduce tu revisión.' },
+                { id: 's2', label: '“Evitar bloqueo”', correcta: true, explicacion: 'Amenaza disfrazada.' },
+                { id: 's3', label: 'Canal no oficial', correcta: true, explicacion: 'No sugiere app o número oficial.' },
+                { id: 's4', label: 'Tono formal', correcta: false, explicacion: 'Puede ser copiado.' },
+              ],
+            }
+          : {
+              mensaje: 'Tu seguridad requiere verificación. Si no respondes, la operación se cancelará.',
+              senales: [
+                { id: 's1', label: '“Verificación” sin contexto', correcta: true, explicacion: 'No da forma de validar.' },
+                { id: 's2', label: 'Consecuencia inmediata', correcta: true, explicacion: 'Presión para apurarte.' },
+                { id: 's3', label: 'Pide respuesta por SMS', correcta: true, explicacion: 'Canal inseguro para datos.' },
+                { id: 's4', label: 'Buena ortografía', correcta: false, explicacion: 'Las estafas pueden verse bien.' },
+              ],
+            };
+
     return {
-      titulo: 'Reto Abierto: Tu Regla',
-      prompt: 'Escribe tu “regla personal” (una frase) para no caer por prisa.',
-      pistas: ['pausa', 'verifico', 'canal oficial'],
+      id: modId,
+      titulo: 'SMS: Detecta Mensajes Falsos',
+      descripcion: `Entrenamiento ${levelHint} para identificar SMS fraudulentos ${toneNote}.`,
+      categoria: cat,
+      nivel: modNivel,
+      actividades: [
+        mk(1, {
+          tipo: 'concepto',
+          titulo: 'Regla de Oro en SMS',
+          contenido:
+            'No uses links de SMS para “confirmar” cuentas o pagos. Si el mensaje es real, podrás verificar desde tu app o escribiendo tú el sitio. ' +
+            'La urgencia y las amenazas son señales clásicas.',
+          peso: 0.9,
+        }),
+        mk(2, {
+          tipo: 'inbox',
+          titulo: 'Bandeja Simulada',
+          kind: 'sms',
+          intro: 'Clasifica cada SMS como Seguro o Estafa.',
+          mensajes: inbox,
+          peso: 1.4,
+        }),
+        mk(3, {
+          tipo: 'signal_hunt',
+          titulo: 'Señales Dentro del SMS',
+          ...hunt,
+          peso: 1.1,
+        }),
+        mk(4, {
+          tipo: 'compare_domains',
+          titulo: 'Dominio en el Enlace',
+          prompt: 'Si un SMS trae un link, ¿qué dominio se ve más legítimo?',
+          dominios: ['servicio.com.mx', 'servicio-seguridad.com-mx.site'],
+          correcta: 0,
+          explicacion: 'Los dominios falsos suelen agregar palabras o cambiar el final.',
+          tip: 'Mejor entra escribiendo tú el dominio o desde tu app.',
+          peso: 1.0,
+        }),
+        mk(5, {
+          tipo: 'quiz',
+          titulo: 'Qué Hacer Primero',
+          escenario: 'Te llega un SMS “del banco” con un link. ¿Cuál es tu primer paso?',
+          opciones: [
+            'Abrir el link para ver.',
+            'Entrar a la app oficial y revisar ahí.',
+            'Responder con mis datos.',
+            'Reenviar a un amigo para preguntar.',
+          ],
+          correcta: 1,
+          explicacion: 'Verifica por la app/canal oficial, no por el link del SMS.',
+          peso: 1.0,
+        }),
+        mk(6, {
+          tipo: 'checklist',
+          titulo: 'Checklist de SMS',
+          intro: 'Antes de actuar:',
+          items: [
+            '¿Esperaba este SMS?',
+            '¿Mete urgencia o miedo?',
+            '¿Pide datos, dinero o link?',
+            'Verifico en app o canal oficial.',
+          ],
+          peso: 1.0,
+        }),
+      ],
     };
-  };
+  }
 
-  const pickChat = () => {
-    if (base.sim_chat) return base.sim_chat;
-    if (cat === 'web') {
-      return {
-        titulo: 'Simulación Chat: Vendedor Presiona',
-        escenario: 'Un “vendedor” te presiona para pagar por transferencia.',
-        inicio:
-          'Hola! Si transfieres hoy te guardo el descuento. Solo manda comprobante.',
-        turnos_max: 6,
-      };
-    }
-    if (cat === 'whatsapp') {
-      return {
-        titulo: 'Simulación Chat: Familiar Urgente',
-        escenario: 'Alguien finge ser un familiar y pide dinero urgente.',
-        inicio:
-          'Soy yo, cambié de número. Me urge un depósito ahorita, por favor.',
-        turnos_max: 6,
-      };
-    }
-    if (cat === 'llamadas') {
-      return {
-        titulo: 'Simulación: “Agente” Insistente',
-        escenario: 'Un “agente” te presiona para que le des un código.',
-        inicio:
-          'Hablo del banco. Necesito el código que te llegó para cancelar un cargo ya.',
-        turnos_max: 6,
-      };
-    }
+  if (cat === 'correo_redes') {
+    const inbox =
+      modNivel === 'basico'
+        ? [
+            {
+              id: 'c1',
+              from: 'Soporte',
+              subject: 'Tu cuenta será suspendida',
+              text: 'Necesitamos que confirmes tus datos hoy para evitar bloqueo.',
+              correcto: 'estafa',
+              explicacion: 'Urgencia + “confirma datos” es phishing típico.',
+            },
+            {
+              id: 'c2',
+              from: 'Paquetería',
+              subject: 'Estatus de envío',
+              text: 'Revisa el estatus desde la web/app oficial con tu guía.',
+              correcto: 'seguro',
+              explicacion: 'Te manda a un canal oficial, sin pedir pago/datos.',
+            },
+            {
+              id: 'c3',
+              from: 'Factura',
+              subject: 'Comprobante adjunto',
+              text: 'Adjunto factura. Si no lo esperabas, no abras archivos.',
+              correcto: 'estafa',
+              explicacion: 'Adjunto inesperado puede traer malware o phishing.',
+            },
+            {
+              id: 'c4',
+              from: 'Red social',
+              subject: '',
+              text: '“Tu cuenta tiene un problema, entra a verificar.”',
+              correcto: 'estafa',
+              explicacion: 'Mensaje genérico con presión a “verificar”.',
+            },
+          ]
+        : modNivel === 'refuerzo'
+          ? [
+              {
+                id: 'c1',
+                from: 'Atención',
+                subject: 'Actividad inusual',
+                text: 'Detectamos un intento de acceso. Verifica desde tu app.',
+                correcto: 'seguro',
+                explicacion: 'Menciona un canal oficial (app) sin links.',
+              },
+              {
+                id: 'c2',
+                from: 'Pagos',
+                subject: 'Reembolso pendiente',
+                text: 'Para liberar tu reembolso, confirma tus datos de pago.',
+                correcto: 'estafa',
+                explicacion: 'Reembolso “pendiente” + datos = gancho común.',
+              },
+              {
+                id: 'c3',
+                from: 'Soporte',
+                subject: 'Actualiza seguridad',
+                text: 'Tu contraseña expira. Reingresa con tus datos.',
+                correcto: 'estafa',
+                explicacion: 'Te empuja a reingresar: típico phishing.',
+              },
+              {
+                id: 'c4',
+                from: 'Comunidad',
+                subject: 'Aviso',
+                text: 'No compartas códigos. Si dudas, revisa ajustes de seguridad.',
+                correcto: 'seguro',
+                explicacion: 'Mensaje preventivo sin pedir acción peligrosa.',
+              },
+            ]
+          : [
+              {
+                id: 'c1',
+                from: 'Soporte',
+                subject: 'Cambio de dispositivo',
+                text: 'Si no reconoces el cambio, entra a tu cuenta por tu app.',
+                correcto: 'seguro',
+                explicacion: 'Canal oficial, sin pedir datos por correo.',
+              },
+              {
+                id: 'c2',
+                from: 'Cobranza',
+                subject: 'Pago rechazado',
+                text: 'Para reactivar tu servicio, confirma datos y adjunta comprobante.',
+                correcto: 'estafa',
+                explicacion: 'Pide comprobante/datos: señal roja.',
+              },
+              {
+                id: 'c3',
+                from: 'Promoción',
+                subject: 'Oferta exclusiva',
+                text: 'Oferta limitada. Entra a “apartar” hoy con depósito.',
+                correcto: 'estafa',
+                explicacion: 'Depósito + urgencia es riesgo alto.',
+              },
+              {
+                id: 'c4',
+                from: 'Red social',
+                subject: '',
+                text: 'Alguien reportó tu cuenta. Verifica identidad en 1 hora.',
+                correcto: 'estafa',
+                explicacion: 'Presión de tiempo para evitar que verifiques.',
+              },
+            ];
+
     return {
-      titulo: 'Simulación Chat: Mensaje Urgente',
-      escenario: 'Te presionan con urgencia para que abras un link o des un código.',
-      inicio:
-        'Último aviso: si no confirmas ahora, tu cuenta se bloquea hoy.',
-      turnos_max: 6,
+      id: modId,
+      titulo: 'Correo/Redes: Phishing',
+      descripcion: `Entrenamiento ${levelHint} para detectar phishing ${toneNote}.`,
+      categoria: cat,
+      nivel: modNivel,
+      actividades: [
+        mk(1, {
+          tipo: 'concepto',
+          titulo: '3 Cosas que Se Revisan',
+          contenido:
+            'En correos y DMs, lo más importante es: remitente/dominio, urgencia y petición de datos/pagos. ' +
+            'Si no lo esperabas, no abras adjuntos ni “verifiques” desde el mensaje: entra tú a la app o web oficial.',
+          peso: 0.9,
+        }),
+        mk(2, {
+          tipo: 'inbox',
+          titulo: 'Inbox Simulada',
+          kind: 'correo',
+          intro: 'Clasifica cada mensaje como Seguro o Estafa.',
+          mensajes: inbox,
+          peso: 1.4,
+        }),
+        mk(3, {
+          tipo: 'signal_hunt',
+          titulo: 'Señales en un Correo',
+          mensaje:
+            '“Tu reembolso está pendiente. Para liberarlo, confirma tus datos de pago y responde este correo hoy.”',
+          senales: [
+            { id: 's1', label: 'Reembolso como gancho', correcta: true, explicacion: 'Te atrae con dinero.' },
+            { id: 's2', label: 'Pide datos de pago', correcta: true, explicacion: 'Es información sensible.' },
+            { id: 's3', label: 'Urgencia (“hoy”)', correcta: true, explicacion: 'Presión para actuar sin revisar.' },
+            { id: 's4', label: 'Tiene asunto', correcta: false, explicacion: 'No es señal.' },
+          ],
+          peso: 1.1,
+        }),
+        mk(4, {
+          tipo: 'quiz',
+          titulo: 'Adjuntos Inesperados',
+          escenario: 'Si recibes un adjunto que no esperabas, ¿qué haces?',
+          opciones: [
+            'Lo abro para ver “qué es”.',
+            'Pido verificación por un canal oficial antes de abrir.',
+            'Lo reenvío a alguien.',
+            'Respondo con mis datos.',
+          ],
+          correcta: 1,
+          explicacion: 'Primero verifica por un canal oficial. Adjuntos pueden ser peligrosos.',
+          peso: 1.0,
+        }),
+        mk(5, {
+          tipo: 'abierta',
+          titulo: 'Respuesta Segura (Sin Caer)',
+          prompt:
+            'Escribe una respuesta corta para no caer en phishing y decir que verificarás por canales oficiales.',
+          pistas: ['no dar datos', 'verificar en app/web oficial', 'no abrir adjuntos'],
+          peso: 1.1,
+        }),
+        mk(6, {
+          tipo: 'checklist',
+          titulo: 'Checklist Anti-Phishing',
+          intro: 'Antes de confiar:',
+          items: [
+            '¿Lo esperaba?',
+            '¿Pide datos, pago o link?',
+            '¿Mete urgencia o amenaza?',
+            'Verifico en canal oficial.',
+          ],
+          peso: 1.0,
+        }),
+      ],
     };
-  };
+  }
 
-  const quiz = pickQuiz();
-  const abierta = pickAbierta();
-  const simChat = pickChat();
+  if (cat === 'whatsapp') {
+    const signal =
+      modNivel === 'basico'
+        ? {
+            mensaje: '“Soy tu familiar. Cambié de número. Me urge un depósito ahorita.”',
+            senales: [
+              { id: 's1', label: 'Cambio de número', correcta: true, explicacion: 'Técnica típica de suplantación.' },
+              { id: 's2', label: 'Urgencia', correcta: true, explicacion: 'Busca que no verifiques.' },
+              { id: 's3', label: 'Pide dinero', correcta: true, explicacion: 'Red flag principal.' },
+              { id: 's4', label: 'Saluda por tu nombre', correcta: false, explicacion: 'Pueden saberlo.' },
+            ],
+          }
+        : modNivel === 'refuerzo'
+          ? {
+              mensaje: '“Soy yo. Estoy en una reunión y no puedo hablar. ¿Me transfieres y te explico después?”',
+              senales: [
+                { id: 's1', label: 'Evita llamada', correcta: true, explicacion: 'Quiere impedir verificación.' },
+                { id: 's2', label: 'Presión a transferir', correcta: true, explicacion: 'Busca cerrar rápido.' },
+                { id: 's3', label: 'Excusa creíble', correcta: true, explicacion: 'Hace la estafa más realista.' },
+                { id: 's4', label: 'Mensaje corto', correcta: false, explicacion: 'No es señal por sí sola.' },
+              ],
+            }
+          : {
+              mensaje:
+                '“Soy tu familiar. Me robaron el celular y este es temporal. Necesito que me ayudes, pero no se lo digas a nadie.”',
+              senales: [
+                { id: 's1', label: 'Secreto/aislamiento', correcta: true, explicacion: 'Te aísla para que no verifiques.' },
+                { id: 's2', label: 'Historia creíble', correcta: true, explicacion: 'Baja tus defensas.' },
+                { id: 's3', label: 'Pide ayuda rápida', correcta: true, explicacion: 'Te empuja a actuar.' },
+                { id: 's4', label: 'Usa buen tono', correcta: false, explicacion: 'No garantiza nada.' },
+              ],
+            };
+
+    return {
+      id: modId,
+      titulo: 'WhatsApp: Suplantación y Enlaces',
+      descripcion: `Entrenamiento ${levelHint} para detectar engaños en WhatsApp ${toneNote}.`,
+      categoria: cat,
+      nivel: modNivel,
+      actividades: [
+        mk(1, {
+          tipo: 'concepto',
+          titulo: 'Regla Rápida en WhatsApp',
+          contenido:
+            'En WhatsApp, la estafa suele usar urgencia + dinero + evitar verificación. ' +
+            'La defensa es simple: pausa, verifica por otro canal (llamada al número guardado) y no compartas códigos.',
+          peso: 0.9,
+        }),
+        mk(2, {
+          tipo: 'signal_hunt',
+          titulo: 'Detecta Señales en el Mensaje',
+          ...signal,
+          peso: 1.1,
+        }),
+        mk(3, {
+          tipo: 'sim_chat',
+          titulo: 'Simulación de Chat (Suplantación)',
+          escenario:
+            modNivel === 'avanzado'
+              ? 'Alguien finge ser alguien cercano y mezcla urgencia con una historia creíble.'
+              : 'Alguien finge ser alguien cercano y pide dinero urgente.',
+          inicio:
+            modNivel === 'basico'
+              ? 'Soy yo, cambié de número. Me urge un depósito ahorita, por favor.'
+              : modNivel === 'refuerzo'
+                ? 'Estoy en una situación. No puedo hablar. ¿Me transfieres y te explico después?'
+                : 'Me robaron el celular, este número es temporal. Ayúdame rápido, por favor.',
+          turnos_max: 6,
+          peso: 1.6,
+        }),
+        mk(4, {
+          tipo: 'quiz',
+          titulo: 'Qué Harías',
+          escenario: 'Te piden dinero por WhatsApp y dicen que “no pueden hablar”. ¿Qué haces?',
+          opciones: [
+            'Transfiero para ayudar.',
+            'Verifico llamando al número de siempre o por otra vía.',
+            'Pido que me manden una foto.',
+            'Les comparto un código para “confirmar”.',
+          ],
+          correcta: 1,
+          explicacion: 'La verificación por otro canal es la clave.',
+          peso: 1.0,
+        }),
+        mk(5, {
+          tipo: 'abierta',
+          titulo: 'Tu Mensaje Seguro',
+          prompt:
+            'Escribe una respuesta corta que frene la urgencia y exija verificación (sin discutir).',
+          pistas: ['“Te llamo al número de siempre”', 'no transferir', 'pausar'],
+          peso: 1.1,
+        }),
+        mk(6, {
+          tipo: 'checklist',
+          titulo: 'Checklist WhatsApp',
+          intro: 'Si hay urgencia o dinero:',
+          items: [
+            'Pausa 30 segundos.',
+            'Verifica por llamada/otro canal.',
+            'No abras links sin validar.',
+            'Nunca compartas códigos o NIP.',
+          ],
+          peso: 1.0,
+        }),
+      ],
+    };
+  }
+
+  if (cat === 'llamadas') {
+    const flow =
+      modNivel === 'basico'
+        ? {
+            intro: 'Simula una llamada. Elige cómo actuar en cada paso.',
+            pasos: [
+              {
+                texto: 'Te llaman diciendo: “Soy del banco, detectamos un cargo. Necesito tu código SMS para cancelarlo”.',
+                opciones: [
+                  { texto: 'Dar el código para cancelar', puntaje: 0.1, feedback: 'Riesgoso: el código es la llave de acceso.' },
+                  { texto: 'Colgar y llamar tú al número oficial', puntaje: 1, feedback: 'Correcto: verificas por canal oficial.' },
+                  { texto: 'Pedir que te lo repitan', puntaje: 0.3, feedback: 'No resuelve: siguen controlando la llamada.' },
+                ],
+              },
+              {
+                texto: 'Insisten: “Si cuelgas, perderás tu dinero”.',
+                opciones: [
+                  { texto: 'Seguir en la llamada', puntaje: 0.2, feedback: 'Riesgoso: la presión es señal de estafa.' },
+                  { texto: 'Mantenerte firme y verificar por tu app', puntaje: 1, feedback: 'Bien: no te dejas presionar.' },
+                ],
+              },
+            ],
+          }
+        : modNivel === 'refuerzo'
+          ? {
+              intro: 'La llamada es más ambigua: decide con calma.',
+              pasos: [
+                {
+                  texto: 'Te llaman: “Hay un problema con tu cuenta. ¿Me confirmas tu nombre completo y los 16 dígitos?”',
+                  opciones: [
+                    { texto: 'Confirmar para “resolver rápido”', puntaje: 0.2, feedback: 'Riesgoso: no des datos sensibles.' },
+                    { texto: 'Colgar y revisar en app / número oficial', puntaje: 1, feedback: 'Bien: verificas sin dar datos.' },
+                    { texto: 'Pedir un folio y colgar', puntaje: 0.8, feedback: 'Mejor: pide folio y verifica por canal oficial.' },
+                  ],
+                },
+                {
+                  texto: 'Te ofrecen “pasarte” a otro departamento sin colgar.',
+                  opciones: [
+                    { texto: 'Aceptar y seguir', puntaje: 0.4, feedback: 'Puede ser parte del engaño. Mejor corta tú.' },
+                    { texto: 'Cortar y llamar tú al oficial', puntaje: 1, feedback: 'Correcto: tú inicias el contacto.' },
+                  ],
+                },
+              ],
+            }
+          : {
+              intro: 'Escenario avanzado: suena profesional pero busca controlarte.',
+              pasos: [
+                {
+                  texto: 'Te llaman: “Detectamos fraude. Para protegerte, necesitamos que instales una app y sigas pasos”.',
+                  opciones: [
+                    { texto: 'Instalar la app para “asegurar”', puntaje: 0.1, feedback: 'Muy riesgoso: podría ser control remoto.' },
+                    { texto: 'Cortar y contactar al banco por tu app', puntaje: 1, feedback: 'Correcto: verificación oficial.' },
+                    { texto: 'Pedir que te manden un correo', puntaje: 0.5, feedback: 'Mejor verifica tú: no sigas instrucciones.' },
+                  ],
+                },
+                {
+                  texto: 'Dicen: “No cuelgues o se pierde la protección”.',
+                  opciones: [
+                    { texto: 'Ignorar presión y verificar por tu cuenta', puntaje: 1, feedback: 'Bien: la urgencia es la trampa.' },
+                    { texto: 'Seguir porque suena serio', puntaje: 0.3, feedback: 'Riesgoso: la seriedad puede ser actuada.' },
+                  ],
+                },
+              ],
+            };
+
+    return {
+      id: modId,
+      titulo: 'Llamadas Fraudulentas',
+      descripcion: `Entrenamiento ${levelHint} para protegerte en llamadas ${toneNote}.`,
+      categoria: cat,
+      nivel: modNivel,
+      actividades: [
+        mk(1, {
+          tipo: 'concepto',
+          titulo: 'Qué Nunca se Comparte',
+          contenido:
+            'Por llamada no se comparten NIP, contraseñas ni códigos SMS. Si hay presión o urgencia, cuelga. ' +
+            'La regla es: tú llamas al número oficial (app, tarjeta o sitio que escribes tú).',
+          peso: 0.9,
+        }),
+        mk(2, {
+          tipo: 'scenario_flow',
+          titulo: 'Simulación de Llamada',
+          ...flow,
+          peso: 1.5,
+        }),
+        mk(3, {
+          tipo: 'signal_hunt',
+          titulo: 'Señales Durante la Llamada',
+          mensaje: '“No cuelgues, dame el código y lo resolvemos hoy mismo. Si no, se bloquea tu cuenta”.',
+          senales: [
+            { id: 's1', label: 'Presión por no colgar', correcta: true, explicacion: 'Buscan controlar la conversación.' },
+            { id: 's2', label: 'Pide código', correcta: true, explicacion: 'El código abre acceso a tu cuenta.' },
+            { id: 's3', label: 'Amenaza de bloqueo', correcta: true, explicacion: 'Miedo para apresurarte.' },
+            { id: 's4', label: 'Tono serio', correcta: false, explicacion: 'No garantiza legitimidad.' },
+          ],
+          peso: 1.1,
+        }),
+        mk(4, {
+          tipo: 'abierta',
+          titulo: 'Tu Guión para Colgar',
+          prompt: 'Escribe una frase corta para colgar con seguridad y decir que verificarás por el canal oficial.',
+          pistas: ['“Voy a llamar al número oficial”', 'no dar datos', 'cortar la llamada'],
+          peso: 1.1,
+        }),
+        mk(5, {
+          tipo: 'checklist',
+          titulo: 'Checklist de Llamadas',
+          intro: 'Si te llaman “del banco/empresa”:',
+          items: [
+            'No confirmo códigos, NIP ni contraseñas.',
+            'Cuelgo si hay urgencia o presión.',
+            'Verifico en mi app o llamo yo al oficial.',
+            'No instalo apps por instrucciones de una llamada.',
+          ],
+          peso: 1.0,
+        }),
+      ],
+    };
+  }
+
+  // habitos (default)
+  const habitFlow =
+    modNivel === 'basico'
+      ? {
+          intro: 'Elige tu rutina en escenarios reales (sin complicarlo).',
+          pasos: [
+            {
+              texto: 'Te llega un mensaje inesperado con “último aviso” y te pide acción rápida.',
+              opciones: [
+                { texto: 'Actuar rápido para “evitar problemas”', puntaje: 0.2, feedback: 'Riesgoso: la prisa es el gancho.' },
+                { texto: 'Pausar, respirar y verificar por canal oficial', puntaje: 1, feedback: 'Bien: reduces errores.' },
+              ],
+            },
+            {
+              texto: 'No estás seguro si es real. ¿Qué haces?',
+              opciones: [
+                { texto: 'Pedir datos por el mismo chat', puntaje: 0.4, feedback: 'Mejor usa otro canal; el chat puede ser falso.' },
+                { texto: 'Buscar el canal oficial (app/web que escribes tú)', puntaje: 1, feedback: 'Correcto: tú controlas el canal.' },
+                { texto: 'Compartir el mensaje y preguntar', puntaje: 0.6, feedback: 'Puede ayudar, pero no es verificación oficial.' },
+              ],
+            },
+          ],
+        }
+      : modNivel === 'refuerzo'
+        ? {
+            intro: 'Ahora es más ambiguo: hay señales mezcladas.',
+            pasos: [
+              {
+                texto: 'Te escribe alguien conocido y manda un link “para confirmar” algo que no esperabas.',
+                opciones: [
+                  { texto: 'Abrir el link por confianza', puntaje: 0.3, feedback: 'Regular: “conocido” no garantiza; pudo ser hackeo.' },
+                  { texto: 'Pedir verificación por otro canal (llamada)', puntaje: 1, feedback: 'Bien: verificas identidad antes de abrir.' },
+                  { texto: 'Reenviar el link a otros', puntaje: 0.4, feedback: 'Riesgoso: amplificas el fraude.' },
+                ],
+              },
+              {
+                texto: 'La “oferta” se ve buena pero no absurda. ¿Cómo decides?',
+                opciones: [
+                  { texto: 'Comprar si el sitio “se ve bonito”', puntaje: 0.4, feedback: 'Regular: el diseño no prueba que sea real.' },
+                  { texto: 'Verificar dominio/contacto/pago con calma', puntaje: 1, feedback: 'Correcto: verificas por pasos.' },
+                ],
+              },
+            ],
+          }
+        : {
+            intro: 'Escenario avanzado: el mensaje suena profesional, pero puede ser fraude.',
+            pasos: [
+              {
+                texto: 'Te llega un aviso “muy formal” y te pide que confirmes datos para “proteger” tu cuenta.',
+                opciones: [
+                  { texto: 'Responder con mis datos “para cerrar el tema”', puntaje: 0.2, feedback: 'Riesgoso: datos por mensaje = phishing.' },
+                  { texto: 'Ignorar el mensaje y verificar en app/canal oficial', puntaje: 1, feedback: 'Bien: tú controlas el canal.' },
+                  { texto: 'Pedir que te lo manden por otro medio', puntaje: 0.6, feedback: 'Mejor verifica tú: no sigas su flujo.' },
+                ],
+              },
+              {
+                texto: 'Te meten urgencia con consecuencias (“se cancela”, “se bloquea”). ¿Qué haces?',
+                opciones: [
+                  { texto: 'Acelerar y hacer lo que piden', puntaje: 0.2, feedback: 'Riesgoso: la urgencia es la trampa.' },
+                  { texto: 'Pausar y validar 2 señales clave antes de actuar', puntaje: 1, feedback: 'Correcto: verificas antes de mover dinero/datos.' },
+                ],
+              },
+            ],
+          };
 
   return {
     id: modId,
-    titulo: base.titulo,
-    descripcion: base.descripcion,
-    categoria: cat,
+    titulo: 'Hábitos de Verificación',
+    descripcion: `Construye una rutina ${levelHint} para evitar fraudes ${toneNote}.`,
+    categoria: 'habitos',
+    nivel: modNivel,
     actividades: [
-      {
-        id: `${modId}_a1`,
+      mk(1, {
         tipo: 'concepto',
-        titulo: base.concepto.titulo,
-        contenido: base.concepto.contenido,
-        peso: pesoConcepto,
-      },
-      {
-        id: `${modId}_a2`,
+        titulo: 'Tu Pausa de 10 Segundos',
+        contenido:
+          'La mayoría de estafas funcionan por prisa. Antes de actuar: pausa, revisa señales y verifica por un canal oficial. ' +
+          'No necesitas ser experto: necesitas una rutina simple.',
+        peso: 0.9,
+      }),
+      mk(2, {
+        tipo: 'scenario_flow',
+        titulo: 'Rutina en Acción',
+        ...habitFlow,
+        peso: 1.3,
+      }),
+      mk(3, {
         tipo: 'quiz',
-        titulo: quiz.titulo,
-        escenario: quiz.escenario,
-        opciones: quiz.opciones,
-        correcta: quiz.correcta,
-        explicacion: quiz.explicacion,
-        peso: pesoQuiz,
-      },
-      {
-        id: `${modId}_a3`,
-        tipo: 'simulacion',
-        titulo: base.simulacion.titulo,
-        escenario: base.simulacion.escenario,
-        opciones: base.simulacion.opciones,
-        correcta: base.simulacion.correcta,
-        explicacion: base.simulacion.explicacion,
-        peso: pesoSim,
-      },
-      {
-        id: `${modId}_a4`,
+        titulo: 'Prioridad Correcta',
+        escenario: '¿Qué va primero cuando algo te mete urgencia?',
+        opciones: ['Actuar', 'Pausar y verificar', 'Compartir datos', 'Pagar para “resolver”'],
+        correcta: 1,
+        explicacion: 'Primero pausa y verifica por un canal oficial.',
+        peso: 1.0,
+      }),
+      mk(4, {
         tipo: 'abierta',
-        titulo: abierta.titulo,
-        prompt: abierta.prompt,
-        pistas: Array.isArray(abierta.pistas) ? abierta.pistas : [],
-        peso: pesoAbierta,
-      },
-      {
-        id: `${modId}_a5`,
-        tipo: 'sim_chat',
-        titulo: simChat.titulo,
-        escenario: simChat.escenario,
-        inicio: simChat.inicio,
-        turnos_max: clampNumber(simChat.turnos_max, 5, 8),
-        peso: pesoChat,
-      },
-      {
-        id: `${modId}_a6`,
+        titulo: 'Tu Regla Personal',
+        prompt: 'Escribe tu regla personal (1 frase) para no caer por prisa.',
+        pistas: ['pausa', 'verifico', 'canal oficial'],
+        peso: 1.0,
+      }),
+      mk(5, {
         tipo: 'checklist',
-        titulo: base.checklist.titulo,
-        intro: base.checklist.intro,
-        items: base.checklist.items,
-        peso: pesoChecklist,
-      },
+        titulo: 'Checklist de Rutina',
+        intro: 'Antes de actuar:',
+        items: [
+          '¿Lo esperaba?',
+          '¿Hay urgencia/miedo?',
+          '¿Pide datos/dinero?',
+          'Verifico por canal oficial.',
+        ],
+        peso: 1.0,
+      }),
     ],
   };
 };
@@ -1202,8 +1801,9 @@ const buildFallbackCoursePlan = ({ answers, assessment, prefs }) => {
   const signals = detectSignals(answers);
 
   const categories = chooseCourseCategories({ answers, assessment, prefs });
+  const levels = computeModuleLevels(categories, { answers, assessment, prefs });
   const ruta = categories.map((cat, idx) =>
-    buildModuleTemplate({ categoria: cat, index: idx, answers, assessment })
+    buildModuleTemplate({ categoria: cat, index: idx, answers, assessment, nivel: levels[idx] })
   );
 
   const base =
@@ -1256,147 +1856,294 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
   };
 
   // competencias
-  const rawComp = plan?.competencias && typeof plan.competencias === 'object' ? plan.competencias : {};
+  const rawComp =
+    plan?.competencias && typeof plan.competencias === 'object' ? plan.competencias : {};
   const keys = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
   keys.forEach((key) => {
-    safe.competencias[key] = clampNumber(rawComp[key], 0, 100);
-    if (!Number.isFinite(Number(rawComp[key]))) {
-      safe.competencias[key] = fallback.competencias[key];
-    }
+    const raw = Number(rawComp[key]);
+    safe.competencias[key] = Number.isFinite(raw) ? clampNumber(raw, 0, 100) : fallback.competencias[key];
   });
-
   if (!Number.isFinite(Number(plan?.score_total))) {
-    safe.score_total = Math.round(
-      keys.reduce((acc, key) => acc + safe.competencias[key], 0) / keys.length
-    );
+    safe.score_total = Math.round(keys.reduce((acc, k) => acc + safe.competencias[k], 0) / keys.length);
   }
 
-  // ruta
-  const route = Array.isArray(plan?.ruta) ? plan.ruta : [];
-  const modules = route
-    .map((mod, idx) => {
-      if (!mod || typeof mod !== 'object') return null;
-      const categoria = normalizeCourseCategory(mod.categoria);
-      const id = toText(mod.id) || `mod_${categoria}_${idx + 1}`;
-      const titulo = toText(mod.titulo) || `Módulo ${idx + 1}`;
-      const descripcion = toText(mod.descripcion) || '';
-      const actividadesRaw = Array.isArray(mod.actividades) ? mod.actividades : [];
-      const actividades = actividadesRaw
-        .map((act, aIdx) => {
-          if (!act || typeof act !== 'object') return null;
-          const tipo = String(act.tipo || '').toLowerCase();
-          const allowed = ['concepto', 'simulacion', 'checklist', 'quiz', 'abierta', 'sim_chat'];
-          const safeTipo = allowed.includes(tipo) ? tipo : 'concepto';
-          const actId = toText(act.id) || `${id}_a${aIdx + 1}`;
-          const actTitle = toText(act.titulo) || `Actividad ${aIdx + 1}`;
-          const peso = clampNumber(act.peso ?? act.puntos, 0.5, 3);
+  const allowedTypes = new Set([
+    'concepto',
+    'quiz',
+    'simulacion',
+    'abierta',
+    'sim_chat',
+    'checklist',
+    'compare_domains',
+    'signal_hunt',
+    'inbox',
+    'web_lab',
+    'scenario_flow',
+  ]);
 
-          const base = { id: actId, tipo: safeTipo, titulo: actTitle, peso };
-          if (safeTipo === 'concepto') {
-            return { ...base, contenido: toText(act.contenido) };
-          }
-          if (safeTipo === 'checklist') {
-            const items = asStringArray(act.items).slice(0, 8);
-            return { ...base, intro: toText(act.intro), items };
-          }
-          if (safeTipo === 'abierta') {
-            const pistas = asStringArray(act.pistas).slice(0, 3);
-            return { ...base, prompt: toText(act.prompt || act.pregunta), pistas };
-          }
-          if (safeTipo === 'sim_chat') {
-            return {
-              ...base,
-              escenario: toText(act.escenario),
-              inicio: toText(act.inicio),
-              turnos_max: clampNumber(act.turnos_max, 5, 8),
-            };
-          }
-          // simulacion/quiz
-          const opciones = asStringArray(act.opciones).slice(0, 5);
-          const correcta = clampNumber(act.correcta, 0, Math.max(0, opciones.length - 1));
-          return {
-            ...base,
-            escenario: toText(act.escenario),
-            opciones,
-            correcta,
-            explicacion: toText(act.explicacion),
-          };
+  const typeRank = (t) => {
+    const order = {
+      concepto: 0,
+      web_lab: 1,
+      inbox: 1,
+      scenario_flow: 1,
+      signal_hunt: 2,
+      compare_domains: 2,
+      quiz: 3,
+      simulacion: 3,
+      sim_chat: 4,
+      abierta: 5,
+      checklist: 6,
+    };
+    return Number.isFinite(Number(order[t])) ? order[t] : 9;
+  };
+
+  const sanitizeActivity = (act, { baseId, aIdx }) => {
+    if (!act || typeof act !== 'object') return null;
+    const tipoRaw = String(act.tipo || act.type || '').toLowerCase().trim();
+    const tipo = allowedTypes.has(tipoRaw) ? tipoRaw : 'concepto';
+    const id = toText(act.id) || `${baseId}_a${aIdx + 1}`;
+    const titulo = toText(act.titulo) || `Actividad ${aIdx + 1}`;
+    const peso = clampNumber(act.peso ?? act.puntos ?? 1, 0.5, 3);
+
+    const base = { id, tipo, titulo, peso };
+
+    if (tipo === 'concepto') {
+      return { ...base, contenido: toText(act.contenido || act.texto || act.descripcion).slice(0, 900) };
+    }
+
+    if (tipo === 'checklist') {
+      const items = asStringArray(act.items || act.lista).slice(0, 9);
+      return { ...base, intro: toText(act.intro).slice(0, 220), items };
+    }
+
+    if (tipo === 'abierta') {
+      const pistas = asStringArray(act.pistas).slice(0, 3);
+      return { ...base, prompt: toText(act.prompt || act.pregunta).slice(0, 260), pistas };
+    }
+
+    if (tipo === 'sim_chat') {
+      return {
+        ...base,
+        escenario: toText(act.escenario).slice(0, 400),
+        inicio: toText(act.inicio).slice(0, 220),
+        turnos_max: clampNumber(act.turnos_max, 3, 10),
+      };
+    }
+
+    if (tipo === 'quiz' || tipo === 'simulacion') {
+      const opciones = asStringArray(act.opciones).slice(0, 5);
+      const correcta = clampNumber(act.correcta, 0, Math.max(0, opciones.length - 1));
+      return {
+        ...base,
+        escenario: toText(act.escenario).slice(0, 520),
+        opciones,
+        correcta,
+        explicacion: toText(act.explicacion).slice(0, 380),
+      };
+    }
+
+    if (tipo === 'compare_domains') {
+      const dominios = asStringArray(act.dominios || act.opciones).slice(0, 4);
+      const correcta = clampNumber(act.correcta, 0, Math.max(0, dominios.length - 1));
+      return {
+        ...base,
+        prompt: toText(act.prompt || act.pregunta).slice(0, 220),
+        dominios,
+        correcta,
+        explicacion: toText(act.explicacion).slice(0, 380),
+        tip: toText(act.tip || act.consejo).slice(0, 220),
+      };
+    }
+
+    if (tipo === 'signal_hunt') {
+      const mensaje = toText(act.mensaje || act.texto || act.escenario).slice(0, 600);
+      const raw = Array.isArray(act.senales) ? act.senales : Array.isArray(act.opciones) ? act.opciones : [];
+      const senales = raw
+        .map((s, idx) => {
+          if (!s || typeof s !== 'object') return null;
+          const id = toText(s.id) || `s${idx + 1}`;
+          const label = toText(s.label || s.texto || s.senal).slice(0, 120);
+          if (!label) return null;
+          const correcta = Boolean(s.correcta ?? s.es_correcta ?? s.correcto);
+          const explicacion = toText(s.explicacion || s.razon).slice(0, 220);
+          return { id, label, correcta, explicacion };
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .slice(0, 10);
+      if (senales.length < 4) return null;
+      return { ...base, mensaje, senales };
+    }
 
-      const pickType = (t) => actividades.find((a) => a.tipo === t);
-      const ordered = [
-        pickType('concepto'),
-        pickType('quiz'),
-        pickType('simulacion'),
-        pickType('abierta'),
-        pickType('sim_chat'),
-        pickType('checklist'),
-      ].filter(Boolean);
+    if (tipo === 'inbox') {
+      const kindRaw = String(act.kind || act.canal || '').toLowerCase();
+      const kind = kindRaw.includes('sms') ? 'sms' : 'correo';
+      const intro = toText(act.intro).slice(0, 220);
+      const raw = Array.isArray(act.mensajes) ? act.mensajes : Array.isArray(act.items) ? act.items : [];
+      const mensajes = raw
+        .map((m, idx) => {
+          if (!m || typeof m !== 'object') return null;
+          const id = toText(m.id) || `m${idx + 1}`;
+          const from = toText(m.from || m.de || m.remitente).slice(0, 120);
+          const subject = toText(m.subject || m.asunto).slice(0, 160);
+          const text = toText(m.text || m.mensaje || m.cuerpo).slice(0, 320);
+          const cls = String(m.correcto || m.clasificacion || m.tipo || '').toLowerCase();
+          const correcto = cls.includes('estafa') || cls.includes('fraud') || cls.includes('phish') ? 'estafa' : 'seguro';
+          const explicacion = toText(m.explicacion || m.razon).slice(0, 220);
+          if (!text) return null;
+          return { id, from, subject, text, correcto, explicacion };
+        })
+        .filter(Boolean)
+        .slice(0, 8);
+      if (mensajes.length < 3) return null;
+      return { ...base, kind, intro, mensajes };
+    }
 
-      // Ensure required activity set. If missing, take from fallback template.
-      if (ordered.length < 6) {
-        return buildModuleTemplate({ categoria, index: idx, answers, assessment });
-      }
+    if (tipo === 'web_lab') {
+      const intro = toText(act.intro).slice(0, 220);
+      const p = act.pagina && typeof act.pagina === 'object' ? act.pagina : {};
+      const pagina = {
+        marca: toText(p.marca || p.brand).slice(0, 50) || 'NovaTienda',
+        dominio: toText(p.dominio || p.url).slice(0, 80) || 'novatienda-mx.shop',
+        banner: toText(p.banner || p.hero).slice(0, 90),
+        sub: toText(p.sub || p.subtitulo || p.copy).slice(0, 120),
+        contacto: toText(p.contacto || p.contact).slice(0, 160),
+        pagos: asStringArray(p.pagos).slice(0, 5),
+        productos: Array.isArray(p.productos)
+          ? p.productos
+              .map((x) => ({
+                nombre: toText(x?.nombre || x?.name).slice(0, 70),
+                antes: toText(x?.antes || x?.old_price).slice(0, 30),
+                precio: toText(x?.precio || x?.price).slice(0, 30),
+              }))
+              .filter((x) => x.nombre)
+              .slice(0, 6)
+          : [],
+      };
+      const raw = Array.isArray(act.hotspots) ? act.hotspots : [];
+      const hotspots = raw
+        .map((h, idx) => {
+          if (!h || typeof h !== 'object') return null;
+          const id = toText(h.id) || `h${idx + 1}`;
+          const target = String(h.target || h.objetivo || '').toLowerCase().trim();
+          const allowedTargets = ['domain', 'banner', 'contacto', 'pago'];
+          const safeTarget = allowedTargets.includes(target) ? target : '';
+          const label = toText(h.label || h.titulo || h.senal).slice(0, 120);
+          const correcta = Boolean(h.correcta ?? h.es_correcta ?? h.correcto);
+          const explicacion = toText(h.explicacion || h.razon).slice(0, 220);
+          if (!safeTarget || !label) return null;
+          return { id, target: safeTarget, label, correcta, explicacion };
+        })
+        .filter(Boolean)
+        .slice(0, 8);
+      if (!pagina.dominio || hotspots.length < 2) return null;
+      return { ...base, intro, pagina, hotspots };
+    }
 
-      return { id, titulo, descripcion, categoria, actividades: ordered };
-    })
+    if (tipo === 'scenario_flow') {
+      const intro = toText(act.intro).slice(0, 220);
+      const raw = Array.isArray(act.pasos) ? act.pasos : Array.isArray(act.steps) ? act.steps : [];
+      const pasos = raw
+        .map((st, idx) => {
+          if (!st || typeof st !== 'object') return null;
+          const texto = toText(st.texto || st.text).slice(0, 360);
+          const rawOpts = Array.isArray(st.opciones) ? st.opciones : Array.isArray(st.options) ? st.options : [];
+          const opciones = rawOpts
+            .map((opt, oIdx) => {
+              if (!opt || typeof opt !== 'object') return null;
+              const texto = toText(opt.texto || opt.label || opt.text).slice(0, 220);
+              if (!texto) return null;
+              const puntaje = clampNumber(opt.puntaje ?? opt.score ?? 0.6, 0, 1);
+              const feedback = toText(opt.feedback || opt.retro).slice(0, 260);
+              const siguienteRaw = opt.siguiente ?? opt.next;
+              const siguiente =
+                Number.isFinite(Number(siguienteRaw)) ? clampNumber(siguienteRaw, 0, 50) : null;
+              return { id: toText(opt.id) || `o${oIdx + 1}`, texto, puntaje, feedback, siguiente };
+            })
+            .filter(Boolean)
+            .slice(0, 5);
+          if (!texto || opciones.length < 2) return null;
+          return { id: toText(st.id) || `p${idx + 1}`, texto, opciones };
+        })
+        .filter(Boolean)
+        .slice(0, 8);
+      if (pasos.length < 2) return null;
+      return { ...base, intro, pasos };
+    }
+
+    return null;
+  };
+
+  const sanitizeModule = (mod, idx) => {
+    if (!mod || typeof mod !== 'object') return null;
+    const categoria = normalizeCourseCategory(mod.categoria || mod.category);
+    const id = toText(mod.id) || `mod_${categoria}_${idx + 1}`;
+    const titulo = toText(mod.titulo) || `Módulo ${idx + 1}`;
+    const descripcion = toText(mod.descripcion) || '';
+    const nivel = normalizeModuleLevel(mod.nivel || mod.level || mod.dificultad);
+    const actsRaw = Array.isArray(mod.actividades) ? mod.actividades : [];
+    const actividades = actsRaw
+      .map((act, aIdx) => sanitizeActivity(act, { baseId: id, aIdx }))
+      .filter(Boolean)
+      .sort((a, b) => typeRank(a.tipo) - typeRank(b.tipo));
+
+    if (actividades.length < 5) return null;
+    return { id, titulo, descripcion, categoria, nivel, actividades };
+  };
+
+  const pool = (Array.isArray(plan?.ruta) ? plan.ruta : [])
+    .map((m, idx) => sanitizeModule(m, idx))
     .filter(Boolean);
 
-  safe.ruta = modules.length ? modules.slice(0, COURSE_MODULE_COUNT) : fallback.ruta;
+  const expectedCats = chooseCourseCategories({ answers, assessment, prefs });
+  const expectedLevels = computeModuleLevels(expectedCats, { answers, assessment, prefs });
 
-  // Enforce coverage for "todo": web + messaging + calls.
-  const priority = String(answers?.priority || '').toLowerCase();
-  if (priority === 'todo') {
-    const hasWeb = safe.ruta.some((m) => m.categoria === 'web');
-    const hasCalls = safe.ruta.some((m) => m.categoria === 'llamadas');
-    const hasMessaging = safe.ruta.some((m) => m.categoria === 'sms' || m.categoria === 'whatsapp');
+  const moduleMeetsRequirements = (module) => {
+    const acts = Array.isArray(module?.actividades) ? module.actividades : [];
+    const types = new Set(acts.map((a) => a.tipo));
+    if (acts.length < 5) return false;
+    const cat = normalizeCourseCategory(module?.categoria);
+    if (cat === 'web') return types.has('web_lab') && types.has('compare_domains');
+    if (cat === 'sms') return types.has('inbox') && types.has('signal_hunt') && acts.find((a) => a.tipo === 'inbox')?.kind === 'sms';
+    if (cat === 'correo_redes') return types.has('inbox') && types.has('signal_hunt') && acts.find((a) => a.tipo === 'inbox')?.kind === 'correo';
+    if (cat === 'whatsapp') return types.has('sim_chat') && types.has('signal_hunt');
+    if (cat === 'llamadas') return types.has('scenario_flow') && types.has('abierta');
+    return types.has('scenario_flow') && types.has('checklist');
+  };
 
-    const needed = [];
-    if (!hasWeb) needed.push('web');
-    if (!hasMessaging) needed.push('sms');
-    if (!hasCalls) needed.push('llamadas');
+  const used = new Set();
+  const finalRoute = Array.isArray(expectedCats) && expectedCats.length === COURSE_MODULE_COUNT
+    ? expectedCats.map((cat, idx) => {
+        const normalized = normalizeCourseCategory(cat);
+        const found = pool.findIndex((m, mIdx) => !used.has(mIdx) && m.categoria === normalized);
+        const nivel = expectedLevels[idx] || 'basico';
+        let mod =
+          found !== -1
+            ? { ...pool[found], categoria: normalized, nivel }
+            : buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment, nivel });
+        if (found !== -1) used.add(found);
 
-    needed.forEach((cat, i) => {
-      const pos = Math.max(0, safe.ruta.length - 1 - i);
-      safe.ruta[pos] = buildModuleTemplate({ categoria: cat, index: pos, answers, assessment });
-    });
-  }
-
-  // Ensure exactly COURSE_MODULE_COUNT modules.
-  while (safe.ruta.length < COURSE_MODULE_COUNT) {
-    safe.ruta.push(fallback.ruta[safe.ruta.length] || buildModuleTemplate({ categoria: 'habitos', index: safe.ruta.length, answers, assessment }));
-  }
-  safe.ruta = safe.ruta.slice(0, COURSE_MODULE_COUNT);
-
-  // Force the final route to respect our suggested categories/order.
-  const expected = chooseCourseCategories({ answers, assessment, prefs });
-  if (Array.isArray(expected) && expected.length === COURSE_MODULE_COUNT) {
-    const pool = safe.ruta.slice();
-    const used = new Set();
-    safe.ruta = expected.map((cat, idx) => {
-      const normalized = normalizeCourseCategory(cat);
-      const found = pool.findIndex((m, mIdx) => !used.has(mIdx) && m.categoria === normalized);
-      if (found !== -1) {
-        used.add(found);
-        return pool[found];
-      }
-      return buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment });
-    });
-  }
+        if (!moduleMeetsRequirements(mod)) {
+          mod = buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment, nivel });
+        }
+        return mod;
+      })
+    : fallback.ruta;
 
   // Avoid duplicate module titles by adding a level suffix when needed.
   const titleCounts = {};
-  safe.ruta = safe.ruta.map((mod, idx) => {
+  safe.ruta = finalRoute.map((mod, idx) => {
     const baseTitle = String(mod?.titulo || `Módulo ${idx + 1}`).trim();
     const key = baseTitle.toLowerCase();
     titleCounts[key] = (titleCounts[key] || 0) + 1;
-    if (titleCounts[key] === 1) {
-      return { ...mod, titulo: baseTitle };
-    }
-    const suffixes = ['Refuerzo', 'Avanzado', 'Práctica'];
-    const suffix = suffixes[(titleCounts[key] - 2) % suffixes.length];
-    return { ...mod, titulo: `${baseTitle} — ${suffix}` };
+    const levelLabel =
+      normalizeModuleLevel(mod?.nivel) === 'avanzado'
+        ? 'Avanzado'
+        : normalizeModuleLevel(mod?.nivel) === 'refuerzo'
+          ? 'Refuerzo'
+          : 'Básico';
+    if (titleCounts[key] === 1) return { ...mod, titulo: baseTitle };
+    return { ...mod, titulo: `${baseTitle} — ${levelLabel}` };
   });
 
   return safe;
@@ -1446,13 +2193,14 @@ app.post('/api/course', async (req, res) => {
     const progress = req.body?.progress || null;
 
     const categories = chooseCourseCategories({ answers, assessment, prefs });
-    const input = buildCoursePrompt({ answers, assessment, prefs, progress, categories });
+    const levels = computeModuleLevels(categories, { answers, assessment, prefs });
+    const input = buildCoursePrompt({ answers, assessment, prefs, progress, categories, levels });
 
     const data = await callOpenAI({
       model: OPENAI_MODEL,
       input,
       temperature: 0.25,
-      max_output_tokens: 1800,
+      max_output_tokens: 2400,
     });
 
     const text = extractText(data);

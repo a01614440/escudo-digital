@@ -56,6 +56,7 @@ const els = {
   lessonTitle: $('lessonTitle'),
   lessonDesc: $('lessonDesc'),
   lessonBadge: $('lessonBadge'),
+  lessonLevelBadge: $('lessonLevelBadge'),
   lessonProgressText: $('lessonProgressText'),
   lessonActivity: $('lessonActivity'),
 
@@ -75,8 +76,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const STORAGE_KEYS = {
   assessment: 'escudo_assessment_v1',
   answers: 'escudo_answers_v1',
-  coursePlan: 'escudo_course_plan_v2',
-  courseProgress: 'escudo_course_progress_v2',
+  coursePlan: 'escudo_course_plan_v3',
+  courseProgress: 'escudo_course_progress_v3',
 };
 
 const CATEGORY_LABELS = {
@@ -86,6 +87,26 @@ const CATEGORY_LABELS = {
   llamadas: 'Llamadas',
   correo_redes: 'Correo/Redes',
   habitos: 'Hábitos',
+};
+
+const LEVEL_LABELS = {
+  basico: 'Básico',
+  refuerzo: 'Refuerzo',
+  avanzado: 'Avanzado',
+};
+
+const ACTIVITY_LABELS = {
+  concepto: 'Concepto',
+  quiz: 'Quiz',
+  simulacion: 'Simulación',
+  abierta: 'Respuesta abierta',
+  sim_chat: 'Simulación (chat)',
+  checklist: 'Checklist',
+  compare_domains: 'Comparación',
+  signal_hunt: 'Modo detective',
+  inbox: 'Inbox',
+  web_lab: 'Laboratorio web',
+  scenario_flow: 'Escenario',
 };
 
 const COMP_KEYS = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
@@ -308,6 +329,15 @@ const normalizeCategory = (value) => {
   if (raw.includes('correo') || raw.includes('redes')) return 'correo_redes';
   if (raw.includes('hab')) return 'habitos';
   return COMP_KEYS.includes(raw) ? raw : 'habitos';
+};
+
+const normalizeModuleLevel = (value) => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw.startsWith('ava')) return 'avanzado';
+  if (raw.startsWith('ref')) return 'refuerzo';
+  if (raw.startsWith('bas')) return 'basico';
+  if (raw.startsWith('int') || raw.startsWith('med')) return 'refuerzo';
+  return LEVEL_LABELS[raw] ? raw : 'basico';
 };
 
 const computeTotalScore = (competencias) => {
@@ -787,6 +817,7 @@ const ensureCourseState = (plan) => {
       if (!mod || typeof mod !== 'object') return null;
       const id = String(mod.id || `m${mIdx + 1}`).trim() || `m${mIdx + 1}`;
       const categoria = normalizeCategory(mod.categoria || mod.category || 'habitos');
+      const nivel = normalizeModuleLevel(mod.nivel || mod.level || mod.dificultad || '');
       const titulo = String(mod.titulo || `Módulo ${mIdx + 1}`).trim();
       const descripcion = String(mod.descripcion || '').trim();
       const acts = Array.isArray(mod.actividades) ? mod.actividades : [];
@@ -839,6 +870,171 @@ const ensureCourseState = (plan) => {
             };
           }
 
+          if (tipo === 'compare_domains') {
+            const dominios = Array.isArray(act.dominios)
+              ? act.dominios.map((x) => String(x).trim()).filter(Boolean)
+              : Array.isArray(act.opciones)
+                ? act.opciones.map((x) => String(x).trim()).filter(Boolean)
+                : [];
+            const correcta = clamp(Number(act.correcta) || 0, 0, Math.max(0, dominios.length - 1));
+            return {
+              ...base,
+              prompt: String(act.prompt || act.pregunta || '').trim(),
+              dominios: dominios.slice(0, 4),
+              correcta,
+              explicacion: String(act.explicacion || '').trim(),
+              tip: String(act.tip || act.consejo || '').trim(),
+            };
+          }
+
+          if (tipo === 'signal_hunt') {
+            const mensaje = String(act.mensaje || act.texto || act.escenario || '').trim();
+            const rawSignals = Array.isArray(act.senales)
+              ? act.senales
+              : Array.isArray(act.opciones)
+                ? act.opciones
+                : [];
+            const senales = rawSignals
+              .map((sig, sIdx) => {
+                if (!sig) return null;
+                if (typeof sig === 'string') {
+                  const label = sig.trim();
+                  if (!label) return null;
+                  return { id: `s${sIdx + 1}`, label, correcta: false, explicacion: '' };
+                }
+                if (typeof sig !== 'object') return null;
+                const label = String(sig.label || sig.texto || sig.senal || '').trim();
+                if (!label) return null;
+                const correcta = Boolean(sig.correcta ?? sig.es_correcta ?? sig.correcto);
+                const explicacion = String(sig.explicacion || sig.razon || '').trim();
+                const id = String(sig.id || `s${sIdx + 1}`).trim() || `s${sIdx + 1}`;
+                return { id, label, correcta, explicacion };
+              })
+              .filter(Boolean)
+              .slice(0, 10);
+
+            return {
+              ...base,
+              mensaje,
+              senales,
+            };
+          }
+
+          if (tipo === 'inbox') {
+            const kindRaw = String(act.kind || act.canal || act.tipo_inbox || '').toLowerCase();
+            const kind = kindRaw.includes('sms') ? 'sms' : 'correo';
+            const intro = String(act.intro || '').trim();
+            const rawMsgs = Array.isArray(act.mensajes)
+              ? act.mensajes
+              : Array.isArray(act.items)
+                ? act.items
+                : [];
+            const mensajes = rawMsgs
+              .map((msg, m2Idx) => {
+                if (!msg || typeof msg !== 'object') return null;
+                const id = String(msg.id || `m${m2Idx + 1}`).trim() || `m${m2Idx + 1}`;
+                const from = String(msg.from || msg.de || msg.remitente || '').trim();
+                const subject = String(msg.subject || msg.asunto || '').trim();
+                const text = String(msg.text || msg.mensaje || msg.cuerpo || '').trim();
+                const clsRaw = String(msg.correcto || msg.clasificacion || msg.tipo || msg.clase || '').toLowerCase();
+                const correcto = clsRaw.includes('estafa') || clsRaw.includes('fraud') || clsRaw.includes('phish') ? 'estafa' : 'seguro';
+                const explicacion = String(msg.explicacion || msg.razon || '').trim();
+                if (!text) return null;
+                return { id, from, subject, text, correcto, explicacion };
+              })
+              .filter(Boolean)
+              .slice(0, 8);
+
+            return {
+              ...base,
+              kind,
+              intro,
+              mensajes,
+            };
+          }
+
+          if (tipo === 'web_lab') {
+            const intro = String(act.intro || '').trim();
+            const page = act.pagina && typeof act.pagina === 'object' ? act.pagina : act.page && typeof act.page === 'object' ? act.page : {};
+            const marca = String(page.marca || page.brand || '').trim() || 'NovaTienda';
+            const dominio = String(page.dominio || page.url || '').trim() || 'novatienda-mx.shop';
+            const banner = String(page.banner || page.hero || '').trim();
+            const sub = String(page.sub || page.subtitulo || page.copy || '').trim();
+            const contacto = String(page.contacto || page.contact || '').trim();
+            const pagos = Array.isArray(page.pagos)
+              ? page.pagos.map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
+              : [];
+            const productosRaw = Array.isArray(page.productos) ? page.productos : [];
+            const productos = productosRaw
+              .map((p, pIdx) => {
+                if (!p || typeof p !== 'object') return null;
+                const nombre = String(p.nombre || p.name || '').trim();
+                const precio = String(p.precio || p.price || '').trim();
+                const antes = String(p.antes || p.old_price || '').trim();
+                if (!nombre) return null;
+                return { id: String(p.id || `p${pIdx + 1}`).trim() || `p${pIdx + 1}`, nombre, precio, antes };
+              })
+              .filter(Boolean)
+              .slice(0, 6);
+
+            const rawHotspots = Array.isArray(act.hotspots) ? act.hotspots : Array.isArray(act.senales) ? act.senales : [];
+            const hotspots = rawHotspots
+              .map((h, hIdx) => {
+                if (!h || typeof h !== 'object') return null;
+                const id = String(h.id || `h${hIdx + 1}`).trim() || `h${hIdx + 1}`;
+                const target = String(h.target || h.objetivo || '').trim() || id;
+                const label = String(h.label || h.titulo || h.senal || '').trim();
+                const correcta = Boolean(h.correcta ?? h.es_correcta ?? h.correcto);
+                const explicacion = String(h.explicacion || h.razon || '').trim();
+                if (!label) return null;
+                return { id, target, label, correcta, explicacion };
+              })
+              .filter(Boolean)
+              .slice(0, 10);
+
+            return {
+              ...base,
+              intro,
+              pagina: { marca, dominio, banner, sub, contacto, pagos, productos },
+              hotspots,
+            };
+          }
+
+          if (tipo === 'scenario_flow') {
+            const intro = String(act.intro || '').trim();
+            const rawSteps = Array.isArray(act.pasos) ? act.pasos : Array.isArray(act.steps) ? act.steps : [];
+            const pasos = rawSteps
+              .map((st, sIdx) => {
+                if (!st || typeof st !== 'object') return null;
+                const texto = String(st.texto || st.text || '').trim();
+                const rawOpts = Array.isArray(st.opciones) ? st.opciones : Array.isArray(st.options) ? st.options : [];
+                const opciones = rawOpts
+                  .map((opt, oIdx) => {
+                    if (!opt || typeof opt !== 'object') return null;
+                    const texto = String(opt.texto || opt.label || opt.text || '').trim();
+                    if (!texto) return null;
+                    const puntaje = clamp(Number(opt.puntaje ?? opt.score ?? 0.6) || 0.6, 0, 1);
+                    const feedback = String(opt.feedback || opt.retro || '').trim();
+                    const siguienteRaw = opt.siguiente ?? opt.next;
+                    const siguiente =
+                      Number.isFinite(Number(siguienteRaw)) ? clamp(Number(siguienteRaw), 0, 50) : null;
+                    return { id: String(opt.id || `o${oIdx + 1}`).trim() || `o${oIdx + 1}`, texto, puntaje, feedback, siguiente };
+                  })
+                  .filter(Boolean)
+                  .slice(0, 5);
+                if (!texto || !opciones.length) return null;
+                return { id: String(st.id || `p${sIdx + 1}`).trim() || `p${sIdx + 1}`, texto, opciones };
+              })
+              .filter(Boolean)
+              .slice(0, 8);
+
+            return {
+              ...base,
+              intro,
+              pasos,
+            };
+          }
+
           // concepto u otros -> contenido
           return {
             ...base,
@@ -847,7 +1043,7 @@ const ensureCourseState = (plan) => {
         })
         .filter(Boolean);
 
-      return { id, categoria, titulo, descripcion, actividades };
+      return { id, categoria, nivel, titulo, descripcion, actividades };
     })
     .filter(Boolean);
 
@@ -934,12 +1130,23 @@ const renderCoursePlan = () => {
     left.appendChild(title);
     left.appendChild(desc);
 
+    const badges = document.createElement('div');
+    badges.className = 'badges';
+
     const badge = document.createElement('span');
     badge.className = 'badge';
     badge.textContent = CATEGORY_LABELS[module.categoria] || module.categoria || 'Curso';
 
+    const lvlKey = normalizeModuleLevel(module.nivel);
+    const lvl = document.createElement('span');
+    lvl.className = `badge level ${lvlKey}`;
+    lvl.textContent = LEVEL_LABELS[lvlKey] || 'Básico';
+
+    badges.appendChild(badge);
+    badges.appendChild(lvl);
+
     head.appendChild(left);
-    head.appendChild(badge);
+    head.appendChild(badges);
 
     const activities = Array.isArray(module.actividades) ? module.actividades : [];
     const completed = activities.filter((act) => Boolean(courseProgress?.completed?.[act.id])).length;
@@ -1145,8 +1352,13 @@ const setLessonMeta = (moduleIndex, activityIndex) => {
   if (els.lessonTitle) els.lessonTitle.textContent = module.titulo || `Módulo ${moduleIndex + 1}`;
   if (els.lessonDesc) els.lessonDesc.textContent = module.descripcion || '';
   if (els.lessonBadge) els.lessonBadge.textContent = CATEGORY_LABELS[module.categoria] || module.categoria || 'Curso';
+  if (els.lessonLevelBadge) {
+    const lvlKey = normalizeModuleLevel(module.nivel);
+    els.lessonLevelBadge.className = `badge level ${lvlKey}`;
+    els.lessonLevelBadge.textContent = LEVEL_LABELS[lvlKey] || 'Básico';
+  }
   if (els.lessonProgressText) {
-    const typeLabel = activity.tipo ? ` • ${activity.tipo}` : '';
+    const typeLabel = activity.tipo ? ` • ${ACTIVITY_LABELS[activity.tipo] || activity.tipo}` : '';
     els.lessonProgressText.textContent = `Actividad ${current} de ${total} (${pct}%)${typeLabel}`;
   }
 };
@@ -1241,7 +1453,7 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
 
   const type = document.createElement('span');
   type.className = 'activity-type';
-  type.textContent = activity.tipo || 'actividad';
+  type.textContent = ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad';
 
   head.appendChild(title);
   head.appendChild(type);
@@ -1550,6 +1762,535 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         setBusy(false);
       }
     });
+  } else if (activity.tipo === 'compare_domains') {
+    renderParagraphs(body, activity.prompt || 'Elige el dominio legítimo.');
+    const domains = Array.isArray(activity.dominios) ? activity.dominios : [];
+    const correctIndex = clamp(Number(activity.correcta) || 0, 0, Math.max(0, domains.length - 1));
+
+    let answered = false;
+    const buttons = [];
+    domains.forEach((domain, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'domain-btn';
+      btn.type = 'button';
+      btn.textContent = domain;
+      btn.addEventListener('click', () => {
+        if (answered) return;
+        answered = true;
+        const isCorrect = idx === correctIndex;
+        btn.classList.add(isCorrect ? 'correct' : 'wrong');
+        buttons.forEach((b, bIdx) => {
+          if (bIdx === correctIndex) b.classList.add('correct');
+          b.disabled = true;
+        });
+
+        const expl =
+          activity.explicacion ||
+          (isCorrect
+            ? 'Bien: elegiste el dominio más consistente.'
+            : 'Ojo: en estafas, cambian letras o agregan palabras al dominio.');
+        const tip = activity.tip ? `Tip: ${activity.tip}` : '';
+        showFeedback(`${expl}${tip ? `\n\n${tip}` : ''}`.trim());
+
+        const continueBtn = document.createElement('button');
+        continueBtn.className = 'btn primary';
+        continueBtn.textContent = 'Continuar';
+        continueBtn.addEventListener('click', () => {
+          completeAndNext(isCorrect ? 1 : 0.6, expl);
+        });
+
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn ghost';
+        retryBtn.textContent = 'Reintentar';
+        retryBtn.addEventListener('click', () => renderLessonActivity(moduleIndex, activityIndex));
+
+        replacePrimaryActions(continueBtn, isCorrect ? null : retryBtn);
+      });
+      buttons.push(btn);
+      body.appendChild(btn);
+    });
+  } else if (activity.tipo === 'signal_hunt') {
+    const msg = document.createElement('div');
+    msg.className = 'message-box';
+    msg.textContent = activity.mensaje || '';
+    body.appendChild(msg);
+
+    const optionsWrap = document.createElement('div');
+    optionsWrap.className = 'signal-list';
+
+    const senales = Array.isArray(activity.senales) ? activity.senales : [];
+    const chosen = new Set();
+    const rows = new Map();
+
+    senales.forEach((sig) => {
+      const row = document.createElement('label');
+      row.className = 'signal-row';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      const text = document.createElement('span');
+      text.textContent = sig.label;
+      row.appendChild(input);
+      row.appendChild(text);
+      input.addEventListener('change', () => {
+        if (input.checked) chosen.add(sig.id);
+        else chosen.delete(sig.id);
+      });
+      rows.set(sig.id, row);
+      optionsWrap.appendChild(row);
+    });
+
+    body.appendChild(optionsWrap);
+
+    const evalBtn = document.createElement('button');
+    evalBtn.className = 'btn primary';
+    evalBtn.textContent = 'Evaluar';
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn ghost';
+    retryBtn.textContent = 'Reintentar';
+    retryBtn.addEventListener('click', () => renderLessonActivity(moduleIndex, activityIndex));
+
+    const computeF1 = (tp, fp, fn) => {
+      const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+      const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+      if (precision + recall === 0) return 0;
+      return (2 * precision * recall) / (precision + recall);
+    };
+
+    evalBtn.addEventListener('click', () => {
+      const correctIds = new Set(senales.filter((s) => s.correcta).map((s) => s.id));
+      let tp = 0;
+      let fp = 0;
+      let fn = 0;
+      chosen.forEach((id) => {
+        if (correctIds.has(id)) tp += 1;
+        else fp += 1;
+      });
+      correctIds.forEach((id) => {
+        if (!chosen.has(id)) fn += 1;
+      });
+
+      const score = clamp(computeF1(tp, fp, fn), 0, 1);
+      const totalCorrect = correctIds.size || 1;
+      const found = tp;
+
+      senales.forEach((sig) => {
+        const row = rows.get(sig.id);
+        if (!row) return;
+        row.classList.add('done');
+        if (chosen.has(sig.id) && sig.correcta) row.classList.add('correct');
+        if (chosen.has(sig.id) && !sig.correcta) row.classList.add('wrong');
+        if (!chosen.has(sig.id) && sig.correcta) row.classList.add('missed');
+      });
+
+      const rating = score >= 0.85 ? 'Buena' : score >= 0.6 ? 'Regular' : 'Riesgosa';
+      const missed = senales.filter((s) => s.correcta && !chosen.has(s.id)).map((s) => s.label);
+      const extra = missed.length ? `Te faltó detectar: ${missed.slice(0, 3).join(', ')}.` : 'Detectaste las señales clave.';
+      const fb = `Resultado: ${rating}. Encontraste ${found}/${totalCorrect} señales.\n${extra}`.trim();
+      showFeedback(fb);
+
+      const continueBtn = document.createElement('button');
+      continueBtn.className = 'btn primary';
+      continueBtn.textContent = 'Continuar';
+      continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+
+      replacePrimaryActions(continueBtn, retryBtn);
+    });
+
+    addPrimaryActions(evalBtn);
+  } else if (activity.tipo === 'inbox') {
+    if (activity.intro) renderParagraphs(body, activity.intro);
+    const kind = activity.kind === 'sms' ? 'SMS' : 'Correo';
+
+    const list = document.createElement('div');
+    list.className = 'inbox';
+
+    const msgs = Array.isArray(activity.mensajes) ? activity.mensajes : [];
+    const selections = new Map();
+    const cards = new Map();
+
+    const updateEval = (btn) => {
+      btn.disabled = selections.size !== msgs.length;
+    };
+
+    const makeChoiceBtn = (label, choice, msgId, btnGroup) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'inbox-choice';
+      b.textContent = label;
+      b.addEventListener('click', () => {
+        selections.set(msgId, choice);
+        btnGroup.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+      return b;
+    };
+
+    msgs.forEach((m) => {
+      const card = document.createElement('div');
+      card.className = 'inbox-item';
+
+      const top = document.createElement('div');
+      top.className = 'inbox-top';
+
+      const left = document.createElement('div');
+      const from = document.createElement('p');
+      from.className = 'inbox-from';
+      from.textContent = m.from || (kind === 'SMS' ? 'Remitente desconocido' : 'Correo desconocido');
+      left.appendChild(from);
+
+      if (m.subject) {
+        const subject = document.createElement('p');
+        subject.className = 'inbox-subject';
+        subject.textContent = m.subject;
+        left.appendChild(subject);
+      }
+
+      const tag = document.createElement('span');
+      tag.className = 'inbox-tag';
+      tag.textContent = kind;
+
+      top.appendChild(left);
+      top.appendChild(tag);
+
+      const text = document.createElement('p');
+      text.className = 'inbox-text';
+      text.textContent = m.text;
+
+      const choices = document.createElement('div');
+      choices.className = 'inbox-choices';
+      const safeBtn = makeChoiceBtn('Seguro', 'seguro', m.id, choices);
+      const scamBtn = makeChoiceBtn('Estafa', 'estafa', m.id, choices);
+      choices.appendChild(safeBtn);
+      choices.appendChild(scamBtn);
+
+      card.appendChild(top);
+      card.appendChild(text);
+      card.appendChild(choices);
+
+      list.appendChild(card);
+      cards.set(m.id, card);
+    });
+
+    body.appendChild(list);
+
+    const evalBtn = document.createElement('button');
+    evalBtn.className = 'btn primary';
+    evalBtn.textContent = 'Evaluar';
+    evalBtn.disabled = true;
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn ghost';
+    retryBtn.textContent = 'Reintentar';
+    retryBtn.addEventListener('click', () => renderLessonActivity(moduleIndex, activityIndex));
+
+    // enable eval when all selected
+    const obs = new MutationObserver(() => updateEval(evalBtn));
+    obs.observe(body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
+    evalBtn.addEventListener('click', () => {
+      obs.disconnect();
+      let ok = 0;
+      msgs.forEach((m) => {
+        const picked = selections.get(m.id);
+        const correct = m.correcto === 'estafa' ? 'estafa' : 'seguro';
+        const card = cards.get(m.id);
+        if (!card) return;
+        if (picked === correct) {
+          ok += 1;
+          card.classList.add('correct');
+        } else {
+          card.classList.add('wrong');
+        }
+        if (m.explicacion) {
+          const expl = document.createElement('p');
+          expl.className = 'inbox-expl';
+          expl.textContent = m.explicacion;
+          card.appendChild(expl);
+        }
+      });
+
+      const score = msgs.length ? clamp(ok / msgs.length, 0, 1) : 1;
+      const rating = score >= 0.85 ? 'Buena' : score >= 0.6 ? 'Regular' : 'Riesgosa';
+      const fb = `Resultado: ${rating}. Acertaste ${ok}/${msgs.length}.`;
+      showFeedback(fb);
+
+      const continueBtn = document.createElement('button');
+      continueBtn.className = 'btn primary';
+      continueBtn.textContent = 'Continuar';
+      continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+
+      replacePrimaryActions(continueBtn, retryBtn);
+    });
+
+    // Hook selection updates
+    body.addEventListener('click', () => updateEval(evalBtn));
+    addPrimaryActions(evalBtn);
+  } else if (activity.tipo === 'web_lab') {
+    if (activity.intro) renderParagraphs(body, activity.intro);
+
+    const page = activity.pagina || {};
+    const hotspots = Array.isArray(activity.hotspots) ? activity.hotspots : [];
+    const hotspotByTarget = new Map(hotspots.map((h) => [h.target, h]));
+    const flagged = new Set();
+    const elements = new Map();
+
+    const lab = document.createElement('div');
+    lab.className = 'web-lab';
+
+    const bar = document.createElement('div');
+    bar.className = 'web-lab-bar hotspot';
+    bar.dataset.hotspot = 'domain';
+    bar.textContent = `https://${page.dominio || 'tienda-promos.shop'}`;
+    lab.appendChild(bar);
+    elements.set('domain', bar);
+
+    const hero = document.createElement('div');
+    hero.className = 'web-lab-hero';
+    const brand = document.createElement('p');
+    brand.className = 'web-lab-brand';
+    brand.textContent = page.marca || 'NovaTienda';
+    const banner = document.createElement('p');
+    banner.className = 'web-lab-banner hotspot';
+    banner.dataset.hotspot = 'banner';
+    banner.textContent = page.banner || 'OFERTA ESPECIAL HOY';
+    const sub = document.createElement('p');
+    sub.className = 'web-lab-sub';
+    sub.textContent = page.sub || 'Compra segura y envío rápido.';
+    hero.appendChild(brand);
+    hero.appendChild(banner);
+    hero.appendChild(sub);
+    lab.appendChild(hero);
+    elements.set('banner', banner);
+
+    const grid = document.createElement('div');
+    grid.className = 'web-lab-grid';
+    const cart = { count: 0 };
+    const cartPill = document.createElement('span');
+    cartPill.className = 'web-lab-cart';
+    cartPill.textContent = 'Carrito: 0';
+
+    (Array.isArray(page.productos) ? page.productos : []).forEach((p) => {
+      const card = document.createElement('div');
+      card.className = 'web-lab-product';
+      const name = document.createElement('p');
+      name.className = 'web-lab-product-name';
+      name.textContent = p.nombre;
+      const price = document.createElement('p');
+      price.className = 'web-lab-product-price';
+      price.textContent = p.antes ? `${p.antes} → ${p.precio}` : p.precio;
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'btn ghost web-lab-add';
+      add.textContent = 'Agregar';
+      add.addEventListener('click', () => {
+        cart.count += 1;
+        cartPill.textContent = `Carrito: ${cart.count}`;
+      });
+      card.appendChild(name);
+      card.appendChild(price);
+      card.appendChild(add);
+      grid.appendChild(card);
+    });
+    lab.appendChild(cartPill);
+    lab.appendChild(grid);
+
+    const footer = document.createElement('div');
+    footer.className = 'web-lab-footer hotspot';
+    footer.dataset.hotspot = 'contacto';
+    footer.textContent = page.contacto || 'Contacto: solo por mensaje (sin dirección).';
+    lab.appendChild(footer);
+    elements.set('contacto', footer);
+
+    const checkout = document.createElement('div');
+    checkout.className = 'web-lab-checkout hotspot';
+    checkout.dataset.hotspot = 'pago';
+    const payTitle = document.createElement('p');
+    payTitle.className = 'web-lab-pay-title';
+    payTitle.textContent = 'Pago';
+    const payText = document.createElement('p');
+    payText.className = 'web-lab-pay-text';
+    const payments = Array.isArray(page.pagos) && page.pagos.length ? page.pagos.join(' • ') : 'Transferencia bancaria (único método)';
+    payText.textContent = payments;
+    const payBtn = document.createElement('button');
+    payBtn.type = 'button';
+    payBtn.className = 'btn primary web-lab-pay';
+    payBtn.textContent = 'Pagar';
+    payBtn.addEventListener('click', () => {
+      showFeedback('Antes de pagar, revisa bien el dominio, el contacto y el método de pago.');
+    });
+    checkout.appendChild(payTitle);
+    checkout.appendChild(payText);
+    checkout.appendChild(payBtn);
+    lab.appendChild(checkout);
+    elements.set('pago', checkout);
+
+    const hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.textContent = 'Modo detective: haz click en lo que te parezca sospechoso.';
+
+    const hud = document.createElement('div');
+    hud.className = 'web-lab-hud';
+    const counter = document.createElement('span');
+    counter.className = 'web-lab-counter';
+    counter.textContent = 'Señales marcadas: 0';
+    hud.appendChild(counter);
+
+    const updateCounter = () => {
+      counter.textContent = `Señales marcadas: ${flagged.size}`;
+    };
+
+    const toggleFlag = (target) => {
+      const el = elements.get(target);
+      if (!el) return;
+      if (flagged.has(target)) {
+        flagged.delete(target);
+        el.classList.remove('flagged');
+      } else {
+        flagged.add(target);
+        el.classList.add('flagged');
+      }
+      updateCounter();
+    };
+
+    lab.addEventListener('click', (e) => {
+      const t = e.target instanceof HTMLElement ? e.target.closest('[data-hotspot]') : null;
+      if (!t) return;
+      const target = String(t.dataset.hotspot || '').trim();
+      if (!target) return;
+      toggleFlag(target);
+    });
+
+    body.appendChild(hint);
+    body.appendChild(lab);
+    body.appendChild(hud);
+
+    const evalBtn = document.createElement('button');
+    evalBtn.className = 'btn primary';
+    evalBtn.textContent = 'Evaluar';
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn ghost';
+    retryBtn.textContent = 'Reintentar';
+    retryBtn.addEventListener('click', () => renderLessonActivity(moduleIndex, activityIndex));
+
+    const computeF1 = (tp, fp, fn) => {
+      const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+      const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+      if (precision + recall === 0) return 0;
+      return (2 * precision * recall) / (precision + recall);
+    };
+
+    evalBtn.addEventListener('click', () => {
+      const correctTargets = new Set(hotspots.filter((h) => h.correcta).map((h) => h.target));
+      let tp = 0;
+      let fp = 0;
+      let fn = 0;
+      flagged.forEach((t) => {
+        if (correctTargets.has(t)) tp += 1;
+        else fp += 1;
+      });
+      correctTargets.forEach((t) => {
+        if (!flagged.has(t)) fn += 1;
+      });
+      const score = clamp(computeF1(tp, fp, fn), 0, 1);
+
+      // annotate elements
+      correctTargets.forEach((t) => {
+        const el = elements.get(t);
+        if (!el) return;
+        if (flagged.has(t)) el.classList.add('correct');
+        else el.classList.add('missed');
+      });
+      flagged.forEach((t) => {
+        if (correctTargets.has(t)) return;
+        const el = elements.get(t);
+        if (el) el.classList.add('wrong');
+      });
+
+      const missed = Array.from(correctTargets).filter((t) => !flagged.has(t));
+      const fb = missed.length
+        ? `Te faltó marcar ${missed.length} señal(es). En tiendas falsas, esos detalles son claves.`
+        : 'Bien: marcaste las señales principales de riesgo.';
+      showFeedback(fb);
+
+      const continueBtn = document.createElement('button');
+      continueBtn.className = 'btn primary';
+      continueBtn.textContent = 'Continuar';
+      continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+
+      replacePrimaryActions(continueBtn, retryBtn);
+    });
+
+    addPrimaryActions(evalBtn);
+  } else if (activity.tipo === 'scenario_flow') {
+    if (activity.intro) renderParagraphs(body, activity.intro);
+    const pasos = Array.isArray(activity.pasos) ? activity.pasos : [];
+    let step = 0;
+    const scores = [];
+
+    const stepWrap = document.createElement('div');
+    stepWrap.className = 'flow';
+    body.appendChild(stepWrap);
+
+    const renderStep = () => {
+      stepWrap.innerHTML = '';
+      feedback.classList.add('hidden');
+
+      const st = pasos[step];
+      if (!st) {
+        const final = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 1;
+        const fb = 'Simulación terminada.';
+        showFeedback(fb);
+        const doneBtn = document.createElement('button');
+        doneBtn.className = 'btn primary';
+        doneBtn.textContent = 'Continuar';
+        doneBtn.addEventListener('click', () => completeAndNext(final, fb));
+        replacePrimaryActions(doneBtn);
+        return;
+      }
+
+      const text = document.createElement('p');
+      text.className = 'flow-text';
+      text.textContent = st.texto;
+      stepWrap.appendChild(text);
+
+      (Array.isArray(st.opciones) ? st.opciones : []).forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'option-btn';
+        btn.textContent = opt.texto;
+        btn.addEventListener('click', () => {
+          // lock options
+          stepWrap.querySelectorAll('button').forEach((b) => (b.disabled = true));
+          const score = clamp(Number(opt.puntaje) || 0.6, 0, 1);
+          scores.push(score);
+          const fb = opt.feedback || 'Listo. En una situación real, verifica por un canal oficial.';
+          showFeedback(fb);
+
+          const nextIndex =
+            Number.isFinite(Number(opt.siguiente)) ? Number(opt.siguiente) : step + 1;
+          const continueBtn = document.createElement('button');
+          continueBtn.className = 'btn primary';
+          continueBtn.textContent = nextIndex < pasos.length ? 'Siguiente' : 'Finalizar';
+          continueBtn.addEventListener('click', () => {
+            if (nextIndex < pasos.length) {
+              step = nextIndex;
+              renderStep();
+              replacePrimaryActions();
+              return;
+            }
+            const final = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 1;
+            completeAndNext(final, fb);
+          });
+
+          replacePrimaryActions(continueBtn);
+        });
+        stepWrap.appendChild(btn);
+      });
+    };
+
+    renderStep();
   } else {
     renderParagraphs(body, activity.contenido);
     const doneBtn = document.createElement('button');
