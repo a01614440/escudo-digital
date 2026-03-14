@@ -8,130 +8,177 @@
   </head>
   <body>
     <main class="page">
-      <header class="hero">
-        <p class="eyebrow">México • Prevención de estafas digitales</p>
-        <h1>Escudo Digital</h1>
-        <p class="lead">
-          Una encuesta rápida y dinámica para entender tu nivel de riesgo y
-          recomendarte el aprendizaje ideal.
-        </p>
-      </header>
+      <div id="surveyView">
+        <header id="hero" class="hero">
+          <p class="eyebrow">México • Prevención de estafas digitales</p>
+          <h1>Escudo Digital</h1>
+          <p class="lead">
+            Una encuesta rápida y dinámica para entender tu nivel de riesgo y
+            recomendarte el aprendizaje ideal.
+          </p>
+        </header>
 
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Encuesta inicial</p>
-          <h2>Conozcamos tu situación</h2>
-            <p class="hint">
-              Tus respuestas se analizan con IA para ajustar el contenido. No
-              pedimos datos personales sensibles.
-            </p>
-          </div>
-          <div class="progress">
-            <span id="progressText">Paso 1 de 1</span>
-            <div class="progress-track">
-              <div class="progress-bar" id="progressBar"></div>
+        <section class="panel" id="surveySection">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Encuesta inicial</p>
+              <h2>Conozcamos tu situación</h2>
+              <p class="hint">
+                Tus respuestas se analizan con IA para ajustar el contenido. No
+                pedimos datos personales sensibles.
+              </p>
+            </div>
+            <div class="progress">
+              <span id="progressText">Paso 1 de 1</span>
+              <div class="progress-track">
+                <div class="progress-bar" id="progressBar"></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div id="questionCard" class="question-card">
-          <p id="questionEyebrow" class="question-eyebrow">Pregunta</p>
-          <h3 id="questionTitle">Titulo</h3>
-          <p id="questionHelper" class="hint"></p>
+          <div id="questionCard" class="question-card">
+            <p id="questionEyebrow" class="question-eyebrow">Pregunta</p>
+            <h3 id="questionTitle">Título</h3>
+            <p id="questionHelper" class="hint"></p>
 
-          <div id="questionBody" class="question-body"></div>
+            <div id="questionBody" class="question-body"></div>
 
-          <div id="questionAlert" class="alert hidden">
-            Por favor selecciona una opción para continuar.
-          </div>
+            <div id="questionAlert" class="alert hidden">
+              Por favor selecciona una opción para continuar.
+            </div>
 
-          <div class="actions">
-            <button id="prevBtn" class="btn ghost">Atrás</button>
-            <button id="nextBtn" class="btn primary">Siguiente</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="loadingSection" class="panel hidden">
-        <p class="eyebrow">Análisis en curso</p>
-        <h2>Estamos revisando tus respuestas</h2>
-        <p class="lead">
-          La IA está evaluando tu perfil para darte un resultado más preciso.
-          Esto puede tardar unos segundos.
-        </p>
-        <div class="loader">
-          <div class="loader-bar"></div>
-        </div>
-        <p class="hint">No cierres la página.</p>
-      </section>
-
-      <section id="resultSection" class="panel hidden">
-        <p class="eyebrow">Resultado preliminar</p>
-        <h2>Tu perfil de riesgo</h2>
-        <p class="lead" id="resultLead"></p>
-
-        <div class="result-grid">
-          <div class="result-card">
-            <h3>Nivel estimado</h3>
-            <p id="riskLevel" class="risk-level">Medio</p>
-            <p id="riskSummary" class="hint"></p>
-            <div class="result-reco">
-              <h4>Recomendaciones IA</h4>
-              <ul id="riskRecs" class="result-list"></ul>
+            <div class="actions">
+              <button id="prevBtn" class="btn ghost">Atrás</button>
+              <button id="nextBtn" class="btn primary">Siguiente</button>
             </div>
           </div>
-          <div class="result-card">
-            <h3>Próximos pasos</h3>
-            <div id="nextStepsGrid" class="steps-grid"></div>
+        </section>
+
+        <section id="loadingSection" class="panel hidden">
+          <p class="eyebrow">Análisis en curso</p>
+          <h2>Estamos revisando tus respuestas</h2>
+          <p class="lead">
+            La IA está evaluando tu perfil para darte un resultado más preciso.
+            Esto puede tardar unos segundos.
+          </p>
+          <div class="loader">
+            <div class="loader-bar"></div>
           </div>
-        </div>
+          <p class="hint">No cierres la página.</p>
+        </section>
 
-        <div class="row">
-          <button id="goToCoursesBtn" class="btn primary">Tomar cursos</button>
-          <button id="restartBtn" class="btn ghost">Reiniciar encuesta</button>
-        </div>
-      </section>
+        <section id="resultSection" class="panel hidden">
+          <p class="eyebrow">Resultado preliminar</p>
+          <h2>Tu perfil de riesgo</h2>
+          <p class="lead" id="resultLead"></p>
 
-      <section id="coursesSection" class="panel hidden">
-        <div class="courses-header">
+          <div class="result-grid">
+            <div class="result-card">
+              <h3>Nivel estimado</h3>
+              <p id="riskLevel" class="risk-level">Medio</p>
+              <p id="riskSummary" class="hint"></p>
+              <div class="result-reco">
+                <h4>Recomendaciones IA</h4>
+                <ul id="riskRecs" class="result-list"></ul>
+              </div>
+            </div>
+            <div class="result-card">
+              <h3>Próximos pasos</h3>
+              <div id="nextStepsGrid" class="steps-grid"></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <button id="goToCoursesBtn" class="btn primary">Tomar cursos</button>
+            <button id="restartBtn" class="btn ghost">Reiniciar encuesta</button>
+          </div>
+        </section>
+
+        <section class="panel info-panel" id="infoSection">
           <div>
-            <p class="eyebrow">Cursos personalizados</p>
-            <h2>Tu Ruta de Blindaje</h2>
+            <h3>Tipos de estafa que cubrimos</h3>
+            <div class="pill-row">
+              <span class="pill">SMS con enlaces falsos</span>
+              <span class="pill">WhatsApp y suplantación</span>
+              <span class="pill">Páginas web clonadas</span>
+              <span class="pill">Llamadas fraudulentas</span>
+              <span class="pill">Correos y phishing</span>
+            </div>
+          </div>
+          <div>
+            <h3>Cómo funciona la IA</h3>
             <p class="hint">
-              La IA crea cursos a tu medida para cerrar tus “grietas” de seguridad.
+              Analizamos hábitos, exposición y experiencia previa para estimar tu
+              probabilidad de ser víctima. Con eso adaptamos el contenido a lo que
+              más necesitas.
             </p>
           </div>
-          <div class="row inline">
-            <button id="backToResultsBtn" class="btn ghost">Volver</button>
-            <button id="scrollToChatBtn" class="btn ghost">Chat</button>
-          </div>
-        </div>
+        </section>
+      </div>
 
-        <div class="course-grid">
-          <div class="course-panel">
-            <div class="donut-wrap">
-              <div id="shieldDonut" class="donut" style="--p: 0">
-                <div class="donut-inner">
-                  <p id="shieldScoreLabel" class="donut-label">0%</p>
-                  <p id="shieldScoreName" class="donut-sub">Blindaje Digital</p>
+      <div id="coursesView" class="hidden">
+        <section id="coursesSection" class="panel">
+          <div class="courses-header">
+            <div>
+              <p class="eyebrow">Cursos personalizados</p>
+              <h2>Tu Ruta de Blindaje</h2>
+              <p class="hint">
+                La IA crea retos y simulaciones para cerrar tus grietas.
+              </p>
+            </div>
+            <div class="row inline">
+              <button id="backToResultsBtn" class="btn ghost">Volver</button>
+              <button id="openCourseSettingsBtn" class="btn ghost">Opciones</button>
+            </div>
+          </div>
+
+          <div class="course-grid">
+            <div class="course-panel">
+              <div class="donut-wrap">
+                <div id="shieldDonut" class="donut" style="--p: 0">
+                  <div class="donut-inner">
+                    <p id="shieldScoreLabel" class="donut-label">0%</p>
+                    <p id="shieldScoreName" class="donut-sub">Blindaje Digital</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="course-title">Tu mapa de fortalezas</h3>
+                  <p class="hint">
+                    Entre más completas, más sube tu blindaje.
+                  </p>
                 </div>
               </div>
-              <div>
-                <h3 class="course-title">Tu mapa de fortalezas</h3>
-                <p class="hint">
-                  Esto se actualiza mientras avanzas en los cursos.
-                </p>
-              </div>
+              <div id="competencyList" class="competencies"></div>
             </div>
 
-            <div id="competencyList" class="competencies"></div>
+            <div class="course-panel">
+              <div class="course-topbar">
+                <h3 class="course-title">Tu ruta</h3>
+                <span class="badge" id="routeHint">Hecha para ti</span>
+              </div>
+              <div id="modulesList" class="modules"></div>
+
+              <div id="courseLoading" class="course-loading hidden">
+                <p class="eyebrow">IA trabajando</p>
+                <h3>Creando tu ruta</h3>
+                <p class="hint">
+                  Esto toma un momento: ejemplos, simulaciones y retos a tu medida.
+                </p>
+                <div class="loader">
+                  <div class="loader-bar"></div>
+                </div>
+              </div>
+
+              <div id="courseReadyHint" class="hint">
+                Abre un módulo para empezar.
+              </div>
+            </div>
           </div>
 
-          <div class="course-panel">
-            <h3 class="course-title">Antes de empezar</h3>
+          <div id="courseSettings" class="course-settings hidden">
+            <h3 class="course-title">Opciones del curso</h3>
             <p class="hint">
-              Personaliza el estilo del curso. Puedes regenerarlo cuando quieras.
+              Esto es opcional. La IA ya lo adapta por ti.
             </p>
 
             <div class="pref-grid">
@@ -139,9 +186,9 @@
                 <label for="prefStyle">Estilo</label>
                 <select id="prefStyle">
                   <option value="mix">Mixto (recomendado)</option>
-                  <option value="simulaciones">Muchas simulaciones</option>
-                  <option value="ejemplos">Muchos ejemplos</option>
-                  <option value="checklists">Checklists y pasos rápidos</option>
+                  <option value="simulaciones">Más simulaciones</option>
+                  <option value="ejemplos">Más ejemplos</option>
+                  <option value="checklists">Más checklists</option>
                 </select>
               </div>
               <div class="pref">
@@ -187,79 +234,60 @@
               </label>
             </div>
 
-            <button id="generateCourseBtn" class="btn primary">
-              Generar mi curso con IA
-            </button>
-            <p class="hint">
-              Tardará unos segundos. No compartas datos sensibles.
-            </p>
-          </div>
-        </div>
-
-        <div id="courseLoading" class="course-loading hidden">
-          <p class="eyebrow">IA trabajando</p>
-          <h3>Creando tu curso</h3>
-          <p class="hint">
-            Estamos preparando ejemplos y simulaciones según tu perfil.
-          </p>
-          <div class="loader">
-            <div class="loader-bar"></div>
-          </div>
-        </div>
-
-        <div id="courseContent" class="course-content hidden">
-          <div class="course-topbar">
-            <h3 class="course-title">Tu ruta</h3>
-            <div class="row inline">
-              <button id="regenerateCourseBtn" class="btn ghost">Regenerar</button>
+            <div class="row">
+              <button id="closeCourseSettingsBtn" class="btn ghost">Cerrar</button>
+              <button id="applyCoursePrefsBtn" class="btn primary">Actualizar ruta</button>
             </div>
           </div>
-          <div id="modulesList" class="modules"></div>
-          <div id="activityPanel" class="activity-panel hidden"></div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section id="chatSection" class="panel hidden">
-        <p class="eyebrow">Chatbot</p>
-        <h2>Pregúntale a Escudo Digital</h2>
-        <p class="hint">
-          Este chat usa IA real para resolver dudas sobre estafas digitales.
-        </p>
-
-        <div id="chatMessages" class="chat-messages"></div>
-
-        <form id="chatForm" class="chat-form">
-          <input
-            id="chatInput"
-            type="text"
-            placeholder="Escribe tu pregunta..."
-            autocomplete="off"
-          />
-          <button class="btn primary" type="submit">Enviar</button>
-        </form>
-      </section>
-
-      <section class="panel info-panel">
-        <div>
-          <h3>Tipos de estafa que cubrimos</h3>
-          <div class="pill-row">
-            <span class="pill">SMS con enlaces falsos</span>
-            <span class="pill">WhatsApp y suplantación</span>
-            <span class="pill">Páginas web clonadas</span>
-            <span class="pill">Llamadas fraudulentas</span>
-            <span class="pill">Correos y phishing</span>
+      <div id="lessonView" class="hidden">
+        <section id="lessonSection" class="panel">
+          <div class="lesson-header">
+            <button id="lessonBackBtn" class="btn ghost">Volver a cursos</button>
+            <div>
+              <p class="eyebrow" id="lessonEyebrow">Módulo</p>
+              <h2 id="lessonTitle">Lección</h2>
+              <p class="hint" id="lessonDesc"></p>
+            </div>
+            <div class="lesson-meta">
+              <span class="badge" id="lessonBadge">Curso</span>
+              <p class="hint" id="lessonProgressText"></p>
+            </div>
           </div>
-        </div>
-        <div>
-            <h3>Cómo funciona la IA</h3>
-            <p class="hint">
-            Analizamos hábitos, exposición y experiencia previa para estimar tu
-            probabilidad de ser víctima. Con eso adaptamos el contenido a lo que
-            más necesitas.
-            </p>
-        </div>
-      </section>
+
+          <div id="lessonActivity" class="activity-panel"></div>
+        </section>
+      </div>
     </main>
+
+    <button id="chatFab" class="chat-fab" aria-label="Abrir chat">
+      Chat
+    </button>
+    <div id="chatBackdrop" class="backdrop hidden"></div>
+    <aside id="chatDrawer" class="chat-drawer hidden" aria-label="Chat">
+      <div class="chat-drawer-head">
+        <div>
+          <p class="eyebrow">Asistente</p>
+          <h3 class="chat-drawer-title">Escudo Digital</h3>
+          <p class="hint">Pregunta lo que quieras, sin pena.</p>
+        </div>
+        <button id="chatClose" class="btn ghost">Cerrar</button>
+      </div>
+
+      <div id="chatMessages" class="chat-messages"></div>
+
+      <form id="chatForm" class="chat-form">
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Escribe tu pregunta..."
+          autocomplete="off"
+        />
+        <button class="btn primary" type="submit">Enviar</button>
+      </form>
+    </aside>
 
     <script src="app.js"></script>
   </body>
