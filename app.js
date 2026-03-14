@@ -418,11 +418,13 @@ const isChatOpen = () => !els.chatDrawer?.classList.contains('hidden');
 const openChat = () => {
   els.chatDrawer?.classList.remove('hidden');
   els.chatBackdrop?.classList.remove('hidden');
+  els.chatFab?.classList.add('hidden');
 };
 
 const closeChat = () => {
   els.chatDrawer?.classList.add('hidden');
   els.chatBackdrop?.classList.add('hidden');
+  els.chatFab?.classList.remove('hidden');
 };
 
 const toggleChat = () => {
