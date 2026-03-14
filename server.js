@@ -30,10 +30,14 @@ const buildAssessmentPrompt = (answers) => {
       role: 'system',
       content:
         'Eres un analista de riesgos de estafas digitales en México. ' +
-        'Debes evaluar el nivel de riesgo (bajo, medio, alto) y dar un resumen MUY breve, ' +
-        'además de 3 recomendaciones personalizadas (máximo 7 palabras cada una). ' +
+        'Debes evaluar el nivel de riesgo (bajo, medio, alto) con base en las respuestas. ' +
+        'Da un resumen breve y específico (1–2 frases) que cite los factores clave del usuario. ' +
+        'Incluye 3 recomendaciones personalizadas (máximo 8 palabras cada una) y ' +
+        '3 próximos pasos (temas de aprendizaje) ajustados a su nivel y respuestas. ' +
+        'Si hay anécdota, úsala para personalizar. ' +
         'Responde en español. Devuelve SOLO JSON válido con las llaves: ' +
-        'nivel, resumen, recomendaciones (array). No agregues texto extra.',
+        'nivel, resumen, recomendaciones (array), proximos_pasos (array). ' +
+        'No agregues texto extra.',
     },
     {
       role: 'user',

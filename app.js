@@ -12,6 +12,7 @@ const resultLead = document.getElementById('resultLead');
 const riskLevel = document.getElementById('riskLevel');
 const riskSummary = document.getElementById('riskSummary');
 const riskRecs = document.getElementById('riskRecs');
+const nextStepsList = document.getElementById('nextStepsList');
 const restartBtn = document.getElementById('restartBtn');
 const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
@@ -418,6 +419,7 @@ const showResults = async () => {
   riskLevel.textContent = level;
   riskSummary.textContent = summary;
   riskRecs.innerHTML = '';
+  nextStepsList.innerHTML = '';
 
   document.getElementById('questionCard').classList.add('hidden');
   resultSection.classList.add('hidden');
@@ -433,6 +435,13 @@ const showResults = async () => {
         const li = document.createElement('li');
         li.textContent = item;
         riskRecs.appendChild(li);
+      });
+    }
+    if (Array.isArray(data.proximos_pasos)) {
+      data.proximos_pasos.forEach((item) => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        nextStepsList.appendChild(li);
       });
     }
     resultLead.textContent =
