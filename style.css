@@ -259,6 +259,34 @@ textarea {
   background: #f3f7ff;
 }
 
+.loader {
+  height: 12px;
+  background: var(--primary-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.loader-bar {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: inherit;
+  animation: loader-move 1.2s ease-in-out infinite;
+}
+
+@keyframes loader-move {
+  0% {
+    transform: translateX(-60%);
+  }
+  50% {
+    transform: translateX(30%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
 .pill-row {
   display: flex;
   flex-wrap: wrap;

@@ -17,6 +17,7 @@ const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
+const loadingSection = document.getElementById('loadingSection');
 
 const chatHistory = [];
 
@@ -419,8 +420,9 @@ const showResults = async () => {
   riskRecs.innerHTML = '';
 
   document.getElementById('questionCard').classList.add('hidden');
-  resultSection.classList.remove('hidden');
-  chatSection.classList.remove('hidden');
+  resultSection.classList.add('hidden');
+  chatSection.classList.add('hidden');
+  loadingSection.classList.remove('hidden');
 
   try {
     const data = await callBackend('/api/assess', { answers });
@@ -438,6 +440,10 @@ const showResults = async () => {
   } catch (error) {
     resultLead.textContent =
       `No se pudo conectar con la IA. ${error.message || ''}`.trim();
+  } finally {
+    loadingSection.classList.add('hidden');
+    resultSection.classList.remove('hidden');
+    chatSection.classList.remove('hidden');
   }
 };
 
@@ -446,6 +452,7 @@ const resetSurvey = () => {
   currentIndex = 0;
   resultSection.classList.add('hidden');
   chatSection.classList.add('hidden');
+  loadingSection.classList.add('hidden');
   chatMessages.innerHTML = '';
   chatHistory.length = 0;
   document.getElementById('questionCard').classList.remove('hidden');
