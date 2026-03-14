@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Escudo Digital | Encuesta Inicial</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">México • Prevención de estafas digitales</p>
+        <h1>Escudo Digital</h1>
+        <p class="lead">
+          Una encuesta rápida y dinámica para entender tu nivel de riesgo y
+          recomendarte el aprendizaje ideal.
+        </p>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Encuesta inicial</p>
+          <h2>Conozcamos tu situación</h2>
+            <p class="hint">
+              Tus respuestas se analizan con IA para ajustar el contenido. No
+              pedimos datos personales sensibles.
+            </p>
+          </div>
+          <div class="progress">
+            <span id="progressText">Paso 1 de 1</span>
+            <div class="progress-track">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="questionCard" class="question-card">
+          <p id="questionEyebrow" class="question-eyebrow">Pregunta</p>
+          <h3 id="questionTitle">Titulo</h3>
+          <p id="questionHelper" class="hint"></p>
+
+          <div id="questionBody" class="question-body"></div>
+
+          <div id="questionAlert" class="alert hidden">
+            Por favor selecciona una opción para continuar.
+          </div>
+
+          <div class="actions">
+            <button id="prevBtn" class="btn ghost">Atrás</button>
+            <button id="nextBtn" class="btn primary">Siguiente</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="resultSection" class="panel hidden">
+        <p class="eyebrow">Resultado preliminar</p>
+        <h2>Tu perfil de riesgo</h2>
+        <p class="lead" id="resultLead"></p>
+
+        <div class="result-grid">
+          <div class="result-card">
+            <h3>Nivel estimado</h3>
+            <p id="riskLevel" class="risk-level">Medio</p>
+            <p id="riskSummary" class="hint"></p>
+            <div class="result-reco">
+              <h4>Recomendaciones IA</h4>
+              <ul id="riskRecs" class="result-list"></ul>
+            </div>
+          </div>
+          <div class="result-card">
+            <h3>Proximos pasos</h3>
+            <ul class="result-list">
+              <li>Contenido personalizado según tu nivel.</li>
+              <li>Alertas sobre fraudes en SMS, WhatsApp, llamadas y web falsa.</li>
+              <li>Ejercicios prácticos para detectar señales de riesgo.</li>
+            </ul>
+          </div>
+        </div>
+
+        <button id="restartBtn" class="btn primary">Reiniciar encuesta</button>
+      </section>
+
+      <section id="chatSection" class="panel hidden">
+        <p class="eyebrow">Chatbot</p>
+        <h2>Pregúntale a Escudo Digital</h2>
+        <p class="hint">
+          Este chat usa IA real para resolver dudas sobre estafas digitales.
+        </p>
+
+        <div id="chatMessages" class="chat-messages"></div>
+
+        <form id="chatForm" class="chat-form">
+          <input
+            id="chatInput"
+            type="text"
+            placeholder="Escribe tu pregunta..."
+            autocomplete="off"
+          />
+          <button class="btn primary" type="submit">Enviar</button>
+        </form>
+      </section>
+
+      <section class="panel info-panel">
+        <div>
+          <h3>Tipos de estafa que cubrimos</h3>
+          <div class="pill-row">
+            <span class="pill">SMS con enlaces falsos</span>
+            <span class="pill">WhatsApp y suplantacion</span>
+            <span class="pill">Paginas web clonadas</span>
+            <span class="pill">Llamadas fraudulentas</span>
+            <span class="pill">Correos y phishing</span>
+          </div>
+        </div>
+        <div>
+            <h3>Cómo funciona la IA</h3>
+            <p class="hint">
+            Analizamos hábitos, exposición y experiencia previa para estimar tu
+            probabilidad de ser víctima. Con eso adaptamos el contenido a lo que
+            más necesitas.
+            </p>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
