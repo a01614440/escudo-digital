@@ -186,8 +186,8 @@ app.post('/api/chat', async (req, res) => {
     const data = await callOpenAI({
       model: OPENAI_MODEL,
       input,
-      temperature: 0.5,
-      max_output_tokens: 600,
+      temperature: 0.2,
+      max_output_tokens: 300,
     });
 
     const text = extractText(data);

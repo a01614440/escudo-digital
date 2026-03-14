@@ -343,18 +343,24 @@ const applyInlineFormatting = (value) =>
   value.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
 const formatMessage = (text) => {
-  const safe = applyInlineFormatting(escapeHtml(text || ''));
+  const raw = text || '';
+  const safe = applyInlineFormatting(escapeHtml(raw));
   const lines = safe.split('\n').map((line) => line.trim()).filter(Boolean);
   const bulletLines = lines.filter(
     (line) => line.startsWith('- ') || line.startsWith('• ')
   );
   if (bulletLines.length >= 2) {
+    const hasIntro = lines[0] && !lines[0].startsWith('- ') && !lines[0].startsWith('• ');
+    const intro = hasIntro
+      ? `<p class="chat-intro">${lines[0]}</p>`
+      : `<p class="chat-intro">Es buena idea revisar algunos detalles antes de comprar en un sitio nuevo.</p>`;
     const items = bulletLines
       .map((line) =>
         `<li>${line.replace(/^(-|•)\\s*/, '')}</li>`
       )
       .join('');
-    return `<ul>${items}</ul>`;
+    const outro = `<p class="chat-outro">Si algo se ve raro o demasiado bueno para ser verdad, mejor toma precauciones.</p>`;
+    return `${intro}<ul>${items}</ul>${outro}`;
   }
   const numbered = lines.filter((line) => /^\\d+\\.\\s/.test(line));
   if (numbered.length >= 2) {

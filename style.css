@@ -307,6 +307,27 @@ textarea {
   justify-self: start;
 }
 
+.chat-intro,
+.chat-outro {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.chat-outro {
+  margin-top: 10px;
+}
+
+.chat-bubble ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink);
+}
+
+.chat-bubble li {
+  margin: 6px 0;
+}
+
 .chat-form {
   margin-top: 14px;
   display: flex;
