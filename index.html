@@ -8,7 +8,84 @@
   </head>
   <body>
     <main class="page">
-      <div id="surveyView">
+      <section id="authView" class="auth-shell">
+        <div class="auth-hero">
+          <p class="eyebrow">México • Prevención de estafas digitales</p>
+          <h1>Escudo Digital</h1>
+          <p class="lead">
+            Inicia sesión para guardar tu avance, retomar tus módulos y seguir
+            fortaleciendo tu seguridad digital.
+          </p>
+        </div>
+
+        <section class="panel auth-panel">
+          <div class="auth-toggle">
+            <button id="showLoginBtn" class="btn ghost active" type="button">
+              Iniciar sesión
+            </button>
+            <button id="showRegisterBtn" class="btn ghost" type="button">
+              Crear cuenta
+            </button>
+          </div>
+
+          <div class="auth-copy">
+            <p class="eyebrow">Acceso</p>
+            <h2 id="authTitle">Bienvenido de vuelta</h2>
+            <p id="authSubtitle" class="hint">
+              Entra con tu correo para continuar exactamente donde te quedaste.
+            </p>
+          </div>
+
+          <form id="authForm" class="auth-form">
+            <label for="authEmail">Correo electrónico</label>
+            <input
+              id="authEmail"
+              type="email"
+              autocomplete="email"
+              placeholder="tucorreo@ejemplo.com"
+              required
+            />
+
+            <label for="authPassword">Contraseña</label>
+            <input
+              id="authPassword"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Mínimo 6 caracteres"
+              required
+            />
+
+            <div id="authError" class="alert hidden"></div>
+            <button id="authSubmitBtn" class="btn primary" type="submit">
+              Entrar
+            </button>
+          </form>
+        </section>
+      </section>
+
+      <div id="appShell" class="hidden">
+        <section class="panel session-bar">
+          <div>
+            <p class="eyebrow">Sesión activa</p>
+            <h2 id="userEmail">usuario@correo.com</h2>
+            <p id="userLastAccess" class="hint">
+              Tu avance se guarda automáticamente.
+            </p>
+          </div>
+
+          <div class="row inline">
+            <button id="goSurveyBtn" class="btn ghost" type="button">Encuesta</button>
+            <button id="goCoursesBtn" class="btn ghost" type="button">Cursos</button>
+            <button id="openAdminBtn" class="btn ghost hidden" type="button">
+              Panel interno
+            </button>
+            <button id="logoutBtn" class="btn primary" type="button">
+              Cerrar sesión
+            </button>
+          </div>
+        </section>
+
+        <div id="surveyView">
         <header id="hero" class="hero">
           <p class="eyebrow">México • Prevención de estafas digitales</p>
           <h1>Escudo Digital</h1>
@@ -239,6 +316,47 @@
               <button id="applyCoursePrefsBtn" class="btn primary">Actualizar ruta</button>
             </div>
           </div>
+
+          <div class="course-grid course-extras">
+            <div class="course-panel">
+              <div class="course-topbar">
+                <h3 class="course-title">Tu perfil resumido</h3>
+                <span class="badge">IA</span>
+              </div>
+              <div id="profileSummaryList" class="summary-list"></div>
+            </div>
+
+            <div class="course-panel">
+              <div class="course-topbar">
+                <h3 class="course-title">Historial de avance</h3>
+                <span class="badge">Seguimiento</span>
+              </div>
+              <div id="historyList" class="history-list"></div>
+            </div>
+          </div>
+
+          <div class="course-grid course-extras">
+            <div class="course-panel">
+              <div class="course-topbar">
+                <h3 class="course-title">Señales a reforzar</h3>
+                <span class="badge">Prioridad</span>
+              </div>
+              <div id="mistakeList" class="summary-list"></div>
+            </div>
+
+            <div class="course-panel">
+              <div class="course-topbar">
+                <h3 class="course-title">Si ya caí en una estafa</h3>
+                <span class="badge">Acción rápida</span>
+              </div>
+              <ul class="result-list">
+                <li>Cambia contraseñas y cierra sesiones activas cuanto antes.</li>
+                <li>Contacta al banco o servicio oficial desde sus canales reales.</li>
+                <li>Guarda capturas, comprobantes y mensajes para el reporte.</li>
+                <li>No sigas la conversación si te piden más dinero o códigos.</li>
+              </ul>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -261,6 +379,110 @@
           <div id="lessonActivity" class="activity-panel"></div>
         </section>
       </div>
+
+      <div id="adminView" class="hidden">
+        <section class="panel">
+          <div class="courses-header">
+            <div>
+              <p class="eyebrow">Panel interno</p>
+              <h2>Analítica del proyecto</h2>
+              <p class="hint">
+                Esta vista no se muestra a usuarios normales. Sirve para medir
+                impacto, avance y áreas de oportunidad.
+              </p>
+            </div>
+            <div class="row inline">
+              <button id="adminBackBtn" class="btn ghost" type="button">
+                Volver
+              </button>
+              <button id="adminRefreshBtn" class="btn ghost" type="button">
+                Actualizar
+              </button>
+              <button id="adminExportBtn" class="btn primary" type="button">
+                Exportar métricas
+              </button>
+            </div>
+          </div>
+
+          <div id="adminOverview" class="stats-grid"></div>
+
+          <div class="course-grid course-extras">
+            <div class="course-panel">
+              <h3 class="course-title">Usuarios por edad</h3>
+              <div id="ageChart" class="analytics-bars"></div>
+            </div>
+
+            <div class="course-panel">
+              <h3 class="course-title">Temas con más vulnerabilidad</h3>
+              <div id="vulnerabilityChart" class="analytics-bars"></div>
+            </div>
+          </div>
+
+          <div class="course-grid course-extras">
+            <div class="course-panel">
+              <h3 class="course-title">Desempeño por tema</h3>
+              <div id="topicPerformanceChart" class="analytics-bars"></div>
+            </div>
+
+            <div class="course-panel">
+              <h3 class="course-title">Decisiones observadas</h3>
+              <div id="decisionChart" class="analytics-bars"></div>
+            </div>
+          </div>
+
+          <div class="course-grid course-extras">
+            <div class="course-panel">
+              <h3 class="course-title">Evolución del aprendizaje</h3>
+              <div id="trendList" class="history-list"></div>
+            </div>
+
+            <div class="course-panel">
+              <h3 class="course-title">Mejora segmentada por edad</h3>
+              <div id="improvementAgeChart" class="analytics-bars"></div>
+            </div>
+          </div>
+
+          <div class="course-panel">
+            <h3 class="course-title">Módulos con mejor y peor desempeño</h3>
+            <div class="table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Módulo</th>
+                    <th>Tema</th>
+                    <th>Nivel</th>
+                    <th>Score</th>
+                    <th>Finalización</th>
+                    <th>Tiempo prom.</th>
+                  </tr>
+                </thead>
+                <tbody id="moduleTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="course-panel">
+            <h3 class="course-title">Progreso agregado por usuario</h3>
+            <div class="table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Edad</th>
+                    <th>Nivel inicial</th>
+                    <th>Blindaje actual</th>
+                    <th>Mejora</th>
+                    <th>Avance</th>
+                    <th>Último acceso</th>
+                  </tr>
+                </thead>
+                <tbody id="userTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+      </div>
     </main>
 
     <button id="chatFab" class="chat-fab" aria-label="Abrir chat">
@@ -277,6 +499,14 @@
         <button id="chatClose" class="btn ghost" type="button" data-chat-close>
           Cerrar
         </button>
+      </div>
+
+      <div class="chat-guide">
+        Este asistente puede ayudarte con estafas digitales, mensajes
+        sospechosos, páginas web falsas y seguridad en internet. Su enfoque es
+        orientarte con recomendaciones prácticas dentro de ese tema; no depende
+        de hechos en tiempo real ni está pensado para preguntas generales fuera
+        de seguridad digital.
       </div>
 
       <div id="chatMessages" class="chat-messages"></div>

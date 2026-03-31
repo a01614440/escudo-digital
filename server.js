@@ -1,5 +1,9 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import { promises as fs } from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { promisify } from 'util';
 
 dotenv.config();
 
@@ -7,6 +11,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const ADMIN_EMAILS = new Set(
+  String(process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+);
+const DATA_DIR = path.join(process.cwd(), 'data');
+const STORE_PATH = path.join(DATA_DIR, 'escudo-store.json');
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 45;
+const MIN_PASSWORD_LENGTH = 6;
+const scryptAsync = promisify(crypto.scrypt);
+
+let storeCache = null;
+let storeLoaded = false;
+let storeSaveQueue = Promise.resolve();
 
 if (!OPENAI_API_KEY) {
   console.warn('Falta OPENAI_API_KEY en el entorno.');
@@ -23,6 +42,207 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static('.'));
+
+const nowIso = () => new Date().toISOString();
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+
+const deepCopy = (value) => JSON.parse(JSON.stringify(value ?? null));
+
+const emptyStore = () => ({
+  meta: { createdAt: nowIso() },
+  users: {},
+  sessions: {},
+});
+
+const sanitizeStoreShape = (store) => {
+  const safe = store && typeof store === 'object' ? store : {};
+  safe.meta = safe.meta && typeof safe.meta === 'object' ? safe.meta : { createdAt: nowIso() };
+  safe.users = safe.users && typeof safe.users === 'object' ? safe.users : {};
+  safe.sessions = safe.sessions && typeof safe.sessions === 'object' ? safe.sessions : {};
+  return safe;
+};
+
+const loadStore = async () => {
+  if (storeLoaded && storeCache) return storeCache;
+
+  await fs.mkdir(DATA_DIR, { recursive: true });
+
+  try {
+    const raw = await fs.readFile(STORE_PATH, 'utf8');
+    storeCache = sanitizeStoreShape(JSON.parse(raw));
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('No se pudo leer el store:', error);
+    }
+    storeCache = emptyStore();
+    await fs.writeFile(STORE_PATH, JSON.stringify(storeCache, null, 2), 'utf8');
+  }
+
+  storeLoaded = true;
+  return storeCache;
+};
+
+const saveStore = async (store) => {
+  const safe = sanitizeStoreShape(store);
+  storeCache = safe;
+  storeSaveQueue = storeSaveQueue.then(async () => {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(STORE_PATH, JSON.stringify(safe, null, 2), 'utf8');
+  });
+  return storeSaveQueue;
+};
+
+const findUserByEmail = (store, email) => {
+  const normalized = normalizeEmail(email);
+  return Object.values(store.users || {}).find((user) => user?.email === normalized) || null;
+};
+
+const getAdminCount = (store) =>
+  Object.values(store.users || {}).filter((user) => user?.role === 'admin').length;
+
+const pickRoleForEmail = (store, email) => {
+  const normalized = normalizeEmail(email);
+  if (ADMIN_EMAILS.has(normalized)) return 'admin';
+  if (!ADMIN_EMAILS.size && getAdminCount(store) === 0) return 'admin';
+  return 'user';
+};
+
+const createEmptyUserState = () => ({
+  answers: {},
+  assessment: null,
+  coursePlan: null,
+  courseProgress: null,
+  currentView: 'survey',
+  surveyIndex: 0,
+  surveyStage: 'survey',
+  currentLesson: { moduleIndex: 0, activityIndex: 0 },
+  updatedAt: nowIso(),
+});
+
+const sanitizeUserForClient = (user) => ({
+  id: user.id,
+  email: user.email,
+  role: user.role || 'user',
+  createdAt: user.createdAt,
+  lastAccessAt: user.lastAccessAt || user.createdAt,
+});
+
+const sanitizeClientStatePayload = (payload) => {
+  const safe = payload && typeof payload === 'object' ? payload : {};
+  return {
+    answers: safe.answers && typeof safe.answers === 'object' ? deepCopy(safe.answers) : {},
+    assessment: safe.assessment && typeof safe.assessment === 'object' ? deepCopy(safe.assessment) : null,
+    coursePlan: safe.coursePlan && typeof safe.coursePlan === 'object' ? deepCopy(safe.coursePlan) : null,
+    courseProgress: safe.courseProgress && typeof safe.courseProgress === 'object' ? deepCopy(safe.courseProgress) : null,
+    currentView: ['survey', 'courses', 'lesson', 'admin'].includes(String(safe.currentView))
+      ? String(safe.currentView)
+      : 'survey',
+    surveyIndex: Number.isFinite(Number(safe.surveyIndex)) ? Math.max(0, Number(safe.surveyIndex)) : 0,
+    surveyStage: ['survey', 'loading', 'results'].includes(String(safe.surveyStage))
+      ? String(safe.surveyStage)
+      : 'survey',
+    currentLesson:
+      safe.currentLesson && typeof safe.currentLesson === 'object'
+        ? {
+            moduleIndex: Number.isFinite(Number(safe.currentLesson.moduleIndex))
+              ? Math.max(0, Number(safe.currentLesson.moduleIndex))
+              : 0,
+            activityIndex: Number.isFinite(Number(safe.currentLesson.activityIndex))
+              ? Math.max(0, Number(safe.currentLesson.activityIndex))
+              : 0,
+          }
+        : { moduleIndex: 0, activityIndex: 0 },
+    updatedAt: nowIso(),
+  };
+};
+
+const createPasswordHash = async (password) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = await scryptAsync(password, salt, 64);
+  return `${salt}:${Buffer.from(derived).toString('hex')}`;
+};
+
+const verifyPassword = async (password, stored) => {
+  const [salt, hashed] = String(stored || '').split(':');
+  if (!salt || !hashed) return false;
+  const derived = await scryptAsync(password, salt, 64);
+  const left = Buffer.from(hashed, 'hex');
+  const right = Buffer.from(derived);
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+};
+
+const cleanupExpiredSessions = (store) => {
+  const now = Date.now();
+  Object.entries(store.sessions || {}).forEach(([token, session]) => {
+    const expiresAt = Date.parse(session?.expiresAt || '');
+    if (!session?.userId || !store.users?.[session.userId] || !Number.isFinite(expiresAt) || expiresAt <= now) {
+      delete store.sessions[token];
+    }
+  });
+};
+
+const createSession = (store, userId) => {
+  const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
+  store.sessions[token] = {
+    userId,
+    createdAt: new Date(now).toISOString(),
+    lastSeenAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + SESSION_TTL_MS).toISOString(),
+  };
+  return token;
+};
+
+const getBearerToken = (req) => {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Bearer ')) return '';
+  return header.slice('Bearer '.length).trim();
+};
+
+const requireAuth = async (req, res, next) => {
+  try {
+    const token = getBearerToken(req);
+    if (!token) {
+      return res.status(401).json({ error: 'Sesión no válida.', status: 401 });
+    }
+
+    const store = await loadStore();
+    cleanupExpiredSessions(store);
+    const session = store.sessions[token];
+    const user = session ? store.users?.[session.userId] : null;
+
+    if (!session || !user) {
+      await saveStore(store);
+      return res.status(401).json({ error: 'Sesión expirada.', status: 401 });
+    }
+
+    session.lastSeenAt = nowIso();
+    session.expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+    user.lastAccessAt = nowIso();
+    user.state = user.state && typeof user.state === 'object' ? user.state : createEmptyUserState();
+    user.state.updatedAt = nowIso();
+    await saveStore(store);
+
+    req.auth = { token, store, session, user };
+    next();
+  } catch (error) {
+    console.error('Error de autenticación:', error);
+    res.status(500).json({ error: 'No se pudo validar la sesión.', status: 500 });
+  }
+};
+
+const requireAdmin = async (req, res, next) => {
+  await requireAuth(req, res, () => {
+    if (req.auth?.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso restringido.', status: 403 });
+    }
+    next();
+  });
+};
 
 const buildAssessmentPrompt = (answers) => {
   return [
@@ -2148,6 +2368,495 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
 
   return safe;
 };
+
+const COURSE_TOPICS = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
+
+const average = (values) => {
+  const safe = values.filter((value) => Number.isFinite(value));
+  if (!safe.length) return 0;
+  return safe.reduce((acc, value) => acc + value, 0) / safe.length;
+};
+
+const bucketDecision = (score) => {
+  if (score >= 0.85) return 'acierto';
+  if (score >= 0.6) return 'regular';
+  return 'riesgo';
+};
+
+const getUserState = (user) => {
+  const state = user?.state && typeof user.state === 'object' ? user.state : createEmptyUserState();
+  return sanitizeClientStatePayload(state);
+};
+
+const computePlanSnapshot = (state) => {
+  const plan = state?.coursePlan && typeof state.coursePlan === 'object' ? state.coursePlan : null;
+  const progress = state?.courseProgress && typeof state.courseProgress === 'object' ? state.courseProgress : null;
+  const route = Array.isArray(plan?.ruta) ? plan.ruta : [];
+  const completedMap = progress?.completed && typeof progress.completed === 'object' ? progress.completed : {};
+  const moduleMap = progress?.modules && typeof progress.modules === 'object' ? progress.modules : {};
+  const totalsByTopic = {};
+  const totalsByModule = [];
+  const decisionMix = { acierto: 0, regular: 0, riesgo: 0 };
+  const activityRows = [];
+
+  COURSE_TOPICS.forEach((topic) => {
+    totalsByTopic[topic] = {
+      scoreSum: 0,
+      scoreCount: 0,
+      risky: 0,
+      regular: 0,
+      correct: 0,
+      timeSum: 0,
+      timeCount: 0,
+    };
+  });
+
+  route.forEach((module, index) => {
+    const category = normalizeCourseCategory(module?.categoria);
+    const level = normalizeModuleLevel(module?.nivel);
+    const activities = Array.isArray(module?.actividades) ? module.actividades : [];
+    const completedActivities = activities
+      .map((activity) => ({ activity, entry: completedMap[activity.id] || null }))
+      .filter(({ entry }) => Boolean(entry));
+
+    const started = Boolean(moduleMap?.[module.id]?.startedAt) || completedActivities.length > 0;
+    const moduleScores = completedActivities.map(({ entry }) => clampNumber(entry?.score ?? 0, 0, 1));
+    const moduleTimes = completedActivities
+      .map(({ entry }) => Number(entry?.durationMs))
+      .filter((value) => Number.isFinite(value) && value > 0);
+
+    completedActivities.forEach(({ activity, entry }) => {
+      const score = clampNumber(entry?.score ?? 0, 0, 1);
+      const topic = totalsByTopic[category] || totalsByTopic.habitos;
+      const bucket = bucketDecision(score);
+      topic.scoreSum += score;
+      topic.scoreCount += 1;
+      topic.timeSum += Number(entry?.durationMs) || 0;
+      topic.timeCount += Number(entry?.durationMs) ? 1 : 0;
+      topic.correct += bucket === 'acierto' ? 1 : 0;
+      topic.regular += bucket === 'regular' ? 1 : 0;
+      topic.risky += bucket === 'riesgo' ? 1 : 0;
+      decisionMix[bucket] += 1;
+
+      activityRows.push({
+        moduleId: module.id,
+        moduleTitle: module.titulo || `Módulo ${index + 1}`,
+        category,
+        level,
+        activityId: activity.id,
+        activityType: activity.tipo,
+        score,
+        durationMs: Number(entry?.durationMs) || 0,
+        attempts: Number(entry?.attempts) || 1,
+        completedAt: entry?.at || null,
+        decision: entry?.details || null,
+      });
+    });
+
+    const totalActivities = activities.length || 1;
+    const completionRate = completedActivities.length / totalActivities;
+    const avgScore = average(moduleScores);
+    const completedModule =
+      Boolean(moduleMap?.[module.id]?.completedAt) || (activities.length > 0 && completedActivities.length === activities.length);
+
+    totalsByModule.push({
+      id: module.id || `module-${index + 1}`,
+      title: module.titulo || `Módulo ${index + 1}`,
+      category,
+      level,
+      started,
+      completed: completedModule,
+      completionRate,
+      avgScore,
+      avgTimeMs: average(moduleTimes),
+      durationMs: Number(moduleMap?.[module.id]?.durationMs) || average(moduleTimes) * completedActivities.length || 0,
+    });
+  });
+
+  const completedActivitiesCount = activityRows.length;
+  const totalActivities = route.reduce(
+    (acc, module) => acc + (Array.isArray(module?.actividades) ? module.actividades.length : 0),
+    0
+  );
+
+  const snapshots = Array.isArray(progress?.snapshots) ? progress.snapshots : [];
+  const baseline =
+    Number.isFinite(Number(snapshots[0]?.scoreTotal))
+      ? Number(snapshots[0].scoreTotal)
+      : average(
+          COURSE_TOPICS.map((topic) => Number(plan?.competencias?.[topic])).filter((value) =>
+            Number.isFinite(value)
+          )
+        );
+  const currentTotal =
+    Number.isFinite(Number(snapshots.at(-1)?.scoreTotal))
+      ? Number(snapshots.at(-1).scoreTotal)
+      : average(
+          COURSE_TOPICS.map((topic) => {
+            const stat = totalsByTopic[topic];
+            if (!stat?.scoreCount) return Number(plan?.competencias?.[topic]) || 0;
+            const baseTopic = clampNumber(plan?.competencias?.[topic] ?? 0, 0, 100);
+            return clampNumber(baseTopic + (100 - baseTopic) * (stat.scoreSum / stat.scoreCount), 0, 100);
+          })
+        );
+
+  return {
+    totalActivities,
+    completedActivities: completedActivitiesCount,
+    modules: totalsByModule,
+    topics: totalsByTopic,
+    decisionMix,
+    activityRows,
+    snapshots,
+    baseline,
+    currentTotal,
+    improvement: currentTotal - baseline,
+  };
+};
+
+const summarizeUserForAnalytics = (user) => {
+  const state = getUserState(user);
+  const metrics = computePlanSnapshot(state);
+  const age = state.answers?.age || 'Sin dato';
+  const startedModules = metrics.modules.filter((module) => module.started).length;
+  const completedModules = metrics.modules.filter((module) => module.completed).length;
+  const avgModuleTimeMs = average(metrics.modules.map((module) => module.durationMs).filter(Boolean));
+  const targetSnapshot = metrics.snapshots.find(
+    (snapshot) => Number(snapshot?.scoreTotal) >= metrics.baseline + 5
+  );
+  const createdAtMs = Date.parse(user?.createdAt || '') || Date.now();
+  const targetMs = Date.parse(targetSnapshot?.at || '') || null;
+  const daysToImprove =
+    targetMs && Number.isFinite(createdAtMs)
+      ? Math.max(0, Math.round((targetMs - createdAtMs) / (1000 * 60 * 60 * 24)))
+      : null;
+
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role || 'user',
+    createdAt: user.createdAt,
+    lastAccessAt: user.lastAccessAt || user.createdAt,
+    age,
+    initialLevel: state.assessment?.nivel || 'Sin evaluar',
+    progressPercent: metrics.totalActivities
+      ? Math.round((metrics.completedActivities / metrics.totalActivities) * 100)
+      : 0,
+    baseline: Math.round(metrics.baseline || 0),
+    currentTotal: Math.round(metrics.currentTotal || 0),
+    improvement: Math.round(metrics.improvement || 0),
+    daysToImprove,
+    startedModules,
+    completedModules,
+    avgModuleTimeMs,
+    metrics,
+  };
+};
+
+const aggregateAnalytics = (store) => {
+  const users = Object.values(store.users || {});
+  const learners = users.map(summarizeUserForAnalytics);
+  const ageMap = new Map();
+  const topicMap = new Map();
+  const moduleMap = new Map();
+  const trendMap = new Map();
+  const ageImprovement = new Map();
+  const decisionTotals = { acierto: 0, regular: 0, riesgo: 0 };
+
+  COURSE_TOPICS.forEach((topic) => {
+    topicMap.set(topic, {
+      topic,
+      scoreSum: 0,
+      scoreCount: 0,
+      risky: 0,
+      regular: 0,
+      correct: 0,
+    });
+  });
+
+  learners.forEach((learner) => {
+    ageMap.set(learner.age, (ageMap.get(learner.age) || 0) + 1);
+
+    const ageRow = ageImprovement.get(learner.age) || {
+      age: learner.age,
+      improvementSum: 0,
+      count: 0,
+    };
+    ageRow.improvementSum += learner.improvement || 0;
+    ageRow.count += 1;
+    ageImprovement.set(learner.age, ageRow);
+
+    Object.entries(learner.metrics?.topics || {}).forEach(([topic, stat]) => {
+      const row = topicMap.get(topic);
+      if (!row) return;
+      row.scoreSum += stat.scoreSum;
+      row.scoreCount += stat.scoreCount;
+      row.risky += stat.risky;
+      row.regular += stat.regular;
+      row.correct += stat.correct;
+    });
+
+    (learner.metrics?.modules || []).forEach((module) => {
+      const key = module.id || `${module.title}:${module.category}`;
+      const row = moduleMap.get(key) || {
+        title: module.title,
+        category: module.category,
+        level: module.level,
+        completionRateSum: 0,
+        avgScoreSum: 0,
+        avgTimeMsSum: 0,
+        count: 0,
+      };
+      row.completionRateSum += module.completionRate || 0;
+      row.avgScoreSum += module.avgScore || 0;
+      row.avgTimeMsSum += module.avgTimeMs || 0;
+      row.count += 1;
+      moduleMap.set(key, row);
+    });
+
+    Object.entries(learner.metrics?.decisionMix || {}).forEach(([bucket, value]) => {
+      decisionTotals[bucket] = (decisionTotals[bucket] || 0) + (Number(value) || 0);
+    });
+
+    (learner.metrics?.snapshots || []).forEach((snapshot) => {
+      const day = String(snapshot?.at || '').slice(0, 10);
+      if (!day) return;
+      const row = trendMap.get(day) || { day, totalSum: 0, count: 0 };
+      row.totalSum += Number(snapshot?.scoreTotal) || 0;
+      row.count += 1;
+      trendMap.set(day, row);
+    });
+  });
+
+  const totalActivities = learners.reduce((acc, learner) => acc + learner.metrics.totalActivities, 0);
+  const completedActivities = learners.reduce((acc, learner) => acc + learner.metrics.completedActivities, 0);
+  const startedModules = learners.reduce((acc, learner) => acc + learner.startedModules, 0);
+  const completedModules = learners.reduce((acc, learner) => acc + learner.completedModules, 0);
+  const averageShield = Math.round(average(learners.map((learner) => learner.currentTotal)));
+  const averageImprovement = Math.round(average(learners.map((learner) => learner.improvement)));
+  const daysToImproveAverage = average(
+    learners.map((learner) => learner.daysToImprove).filter((value) => Number.isFinite(value))
+  );
+  const activeUsers7d = learners.filter((learner) => {
+    const lastAccess = Date.parse(learner.lastAccessAt || '');
+    return Number.isFinite(lastAccess) && Date.now() - lastAccess <= 1000 * 60 * 60 * 24 * 7;
+  }).length;
+
+  return {
+    generatedAt: nowIso(),
+    overview: {
+      totalUsers: learners.length,
+      activeUsers7d,
+      averageShield,
+      averageImprovement,
+      activityCompletionRate: totalActivities ? Math.round((completedActivities / totalActivities) * 100) : 0,
+      moduleCompletionRate: startedModules ? Math.round((completedModules / startedModules) * 100) : 0,
+      avgDaysToImprove: Number.isFinite(daysToImproveAverage) ? Math.round(daysToImproveAverage * 10) / 10 : null,
+    },
+    ageBuckets: Array.from(ageMap.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    topicPerformance: Array.from(topicMap.values()).map((row) => ({
+      topic: row.topic,
+      label:
+        row.topic === 'correo_redes'
+          ? 'Correo/Redes'
+          : row.topic.charAt(0).toUpperCase() + row.topic.slice(1),
+      avgScore: row.scoreCount ? Math.round((row.scoreSum / row.scoreCount) * 100) : 0,
+      riskRate:
+        row.correct + row.regular + row.risky
+          ? Math.round((row.risky / (row.correct + row.regular + row.risky)) * 100)
+          : 0,
+      correct: row.correct,
+      regular: row.regular,
+      risky: row.risky,
+    })),
+    vulnerabilityByTopic: Array.from(topicMap.values())
+      .map((row) => ({
+        topic: row.topic,
+        label:
+          row.topic === 'correo_redes'
+            ? 'Correo/Redes'
+            : row.topic.charAt(0).toUpperCase() + row.topic.slice(1),
+        vulnerableCount: row.risky,
+      }))
+      .sort((a, b) => b.vulnerableCount - a.vulnerableCount),
+    modulePerformance: Array.from(moduleMap.values())
+      .map((row) => ({
+        title: row.title,
+        category: row.category,
+        level: row.level,
+        avgScore: row.count ? Math.round((row.avgScoreSum / row.count) * 100) : 0,
+        completionRate: row.count ? Math.round((row.completionRateSum / row.count) * 100) : 0,
+        avgTimeMin: row.count ? Math.round((row.avgTimeMsSum / row.count / 60000) * 10) / 10 : 0,
+      }))
+      .sort((a, b) => a.avgScore - b.avgScore),
+    improvementByAge: Array.from(ageImprovement.values()).map((row) => ({
+      age: row.age,
+      avgImprovement: row.count ? Math.round(row.improvementSum / row.count) : 0,
+    })),
+    learningTrend: Array.from(trendMap.values())
+      .map((row) => ({
+        day: row.day,
+        avgScore: row.count ? Math.round(row.totalSum / row.count) : 0,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day)),
+    decisionMix: [
+      { label: 'Aciertos', value: decisionTotals.acierto || 0 },
+      { label: 'Dudas', value: decisionTotals.regular || 0 },
+      { label: 'Decisiones de riesgo', value: decisionTotals.riesgo || 0 },
+    ],
+    timeByModule: Array.from(moduleMap.values())
+      .map((row) => ({
+        title: row.title,
+        avgTimeMin: row.count ? Math.round((row.avgTimeMsSum / row.count / 60000) * 10) / 10 : 0,
+      }))
+      .sort((a, b) => b.avgTimeMin - a.avgTimeMin),
+    users: learners.map((learner) => ({
+      email: learner.email,
+      age: learner.age,
+      initialLevel: learner.initialLevel,
+      currentShield: learner.currentTotal,
+      improvement: learner.improvement,
+      progressPercent: learner.progressPercent,
+      lastAccessAt: learner.lastAccessAt,
+    })),
+  };
+};
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || '');
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Correo inválido.', status: 400 });
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`,
+        status: 400,
+      });
+    }
+
+    const store = await loadStore();
+    cleanupExpiredSessions(store);
+    if (findUserByEmail(store, email)) {
+      return res.status(409).json({ error: 'Ese correo ya está registrado.', status: 409 });
+    }
+
+    const userId = crypto.randomUUID();
+    const user = {
+      id: userId,
+      email,
+      passwordHash: await createPasswordHash(password),
+      role: pickRoleForEmail(store, email),
+      createdAt: nowIso(),
+      lastAccessAt: nowIso(),
+      state: createEmptyUserState(),
+    };
+
+    store.users[userId] = user;
+    const token = createSession(store, userId);
+    await saveStore(store);
+
+    return res.json({
+      token,
+      user: sanitizeUserForClient(user),
+      state: getUserState(user),
+    });
+  } catch (error) {
+    console.error('Error /api/auth/register:', error);
+    return res.status(500).json({ error: 'No se pudo crear la cuenta.', status: 500 });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || '');
+    const store = await loadStore();
+    cleanupExpiredSessions(store);
+    const user = findUserByEmail(store, email);
+
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      return res.status(401).json({ error: 'Correo o contraseña incorrectos.', status: 401 });
+    }
+
+    user.lastAccessAt = nowIso();
+    user.state = user.state && typeof user.state === 'object' ? user.state : createEmptyUserState();
+    user.state.updatedAt = nowIso();
+    const token = createSession(store, user.id);
+    await saveStore(store);
+
+    return res.json({
+      token,
+      user: sanitizeUserForClient(user),
+      state: getUserState(user),
+    });
+  } catch (error) {
+    console.error('Error /api/auth/login:', error);
+    return res.status(500).json({ error: 'No se pudo iniciar sesión.', status: 500 });
+  }
+});
+
+app.get('/api/auth/session', requireAuth, async (req, res) => {
+  return res.json({
+    user: sanitizeUserForClient(req.auth.user),
+    state: getUserState(req.auth.user),
+  });
+});
+
+app.post('/api/auth/logout', requireAuth, async (req, res) => {
+  try {
+    const { store, token } = req.auth;
+    delete store.sessions[token];
+    await saveStore(store);
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('Error /api/auth/logout:', error);
+    return res.status(500).json({ error: 'No se pudo cerrar la sesión.', status: 500 });
+  }
+});
+
+app.get('/api/user/state', requireAuth, async (req, res) => {
+  return res.json({
+    user: sanitizeUserForClient(req.auth.user),
+    state: getUserState(req.auth.user),
+  });
+});
+
+app.post('/api/user/state', requireAuth, async (req, res) => {
+  try {
+    const { store, user } = req.auth;
+    user.state = sanitizeClientStatePayload({
+      ...getUserState(user),
+      ...req.body,
+    });
+    user.lastAccessAt = nowIso();
+    await saveStore(store);
+    return res.json({
+      ok: true,
+      user: sanitizeUserForClient(user),
+      state: getUserState(user),
+    });
+  } catch (error) {
+    console.error('Error /api/user/state:', error);
+    return res.status(500).json({ error: 'No se pudo guardar el progreso.', status: 500 });
+  }
+});
+
+app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
+  try {
+    const store = await loadStore();
+    cleanupExpiredSessions(store);
+    await saveStore(store);
+    return res.json(aggregateAnalytics(store));
+  } catch (error) {
+    console.error('Error /api/admin/analytics:', error);
+    return res.status(500).json({ error: 'No se pudieron generar las métricas.', status: 500 });
+  }
+});
 
 app.post('/api/assess', async (req, res) => {
   try {

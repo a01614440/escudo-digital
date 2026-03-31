@@ -6,6 +6,25 @@
 const $ = (id) => document.getElementById(id);
 
 const els = {
+  // Auth / shell
+  authView: $('authView'),
+  appShell: $('appShell'),
+  showLoginBtn: $('showLoginBtn'),
+  showRegisterBtn: $('showRegisterBtn'),
+  authForm: $('authForm'),
+  authTitle: $('authTitle'),
+  authSubtitle: $('authSubtitle'),
+  authEmail: $('authEmail'),
+  authPassword: $('authPassword'),
+  authSubmitBtn: $('authSubmitBtn'),
+  authError: $('authError'),
+  userEmail: $('userEmail'),
+  userLastAccess: $('userLastAccess'),
+  logoutBtn: $('logoutBtn'),
+  goSurveyBtn: $('goSurveyBtn'),
+  goCoursesBtn: $('goCoursesBtn'),
+  openAdminBtn: $('openAdminBtn'),
+
   // Survey
   questionTitle: $('questionTitle'),
   questionHelper: $('questionHelper'),
@@ -49,6 +68,9 @@ const els = {
   prefDifficulty: $('prefDifficulty'),
   prefSession: $('prefSession'),
   prefTopics: $('prefTopics'),
+  profileSummaryList: $('profileSummaryList'),
+  historyList: $('historyList'),
+  mistakeList: $('mistakeList'),
 
   // Lesson view
   lessonBackBtn: $('lessonBackBtn'),
@@ -68,12 +90,28 @@ const els = {
   chatMessages: $('chatMessages'),
   chatForm: $('chatForm'),
   chatInput: $('chatInput'),
+
+  // Admin
+  adminView: $('adminView'),
+  adminBackBtn: $('adminBackBtn'),
+  adminRefreshBtn: $('adminRefreshBtn'),
+  adminExportBtn: $('adminExportBtn'),
+  adminOverview: $('adminOverview'),
+  ageChart: $('ageChart'),
+  vulnerabilityChart: $('vulnerabilityChart'),
+  topicPerformanceChart: $('topicPerformanceChart'),
+  decisionChart: $('decisionChart'),
+  trendList: $('trendList'),
+  improvementAgeChart: $('improvementAgeChart'),
+  moduleTableBody: $('moduleTableBody'),
+  userTableBody: $('userTableBody'),
 };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const STORAGE_KEYS = {
+  session: 'escudo_session_v1',
   assessment: 'escudo_assessment_v1',
   answers: 'escudo_answers_v1',
   coursePlan: 'escudo_course_plan_v3',
@@ -270,6 +308,17 @@ let latestAssessment = null;
 let latestCoursePlan = null;
 let courseProgress = null;
 let currentLesson = { moduleIndex: 0, activityIndex: 0 };
+let currentUser = null;
+let authMode = 'login';
+let latestAnalytics = null;
+let surveyStage = 'survey';
+let activeView = 'survey';
+let authToken = localStorage.getItem(STORAGE_KEYS.session) || '';
+let remoteSyncTimer = null;
+let remoteSyncInFlight = false;
+let remoteSyncQueued = false;
+let suspendRemoteSync = false;
+let lessonActivityStartedAt = 0;
 
 const chatHistory = [];
 const simSessions = new Map(); // activityId -> { history, done, bestScore }
@@ -283,21 +332,53 @@ const safeJsonParse = (value) => {
   }
 };
 
-const persistState = () => {
+const clearLocalState = () => {
+  try {
+    [
+      STORAGE_KEYS.answers,
+      STORAGE_KEYS.assessment,
+      STORAGE_KEYS.coursePlan,
+      STORAGE_KEYS.courseProgress,
+    ].forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+};
+
+const buildClientStatePayload = () => ({
+  answers,
+  assessment: latestAssessment,
+  coursePlan: latestCoursePlan,
+  courseProgress,
+  currentView: activeView,
+  surveyStage,
+  surveyIndex: currentIndex,
+  currentLesson,
+});
+
+const persistState = ({ remote = true } = {}) => {
   try {
     localStorage.setItem(STORAGE_KEYS.answers, JSON.stringify(answers));
     if (latestAssessment) {
       localStorage.setItem(STORAGE_KEYS.assessment, JSON.stringify(latestAssessment));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.assessment);
     }
     if (latestCoursePlan) {
       localStorage.setItem(STORAGE_KEYS.coursePlan, JSON.stringify(latestCoursePlan));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.coursePlan);
     }
     if (courseProgress) {
       localStorage.setItem(STORAGE_KEYS.courseProgress, JSON.stringify(courseProgress));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.courseProgress);
     }
   } catch {
     // ignore
   }
+
+  if (remote) scheduleRemoteSync();
 };
 
 const hydrateState = () => {
@@ -308,6 +389,44 @@ const hydrateState = () => {
   latestAssessment = safeJsonParse(localStorage.getItem(STORAGE_KEYS.assessment));
   latestCoursePlan = safeJsonParse(localStorage.getItem(STORAGE_KEYS.coursePlan));
   courseProgress = safeJsonParse(localStorage.getItem(STORAGE_KEYS.courseProgress));
+};
+
+const applyStateSnapshot = (state) => {
+  suspendRemoteSync = true;
+
+  Object.keys(answers).forEach((key) => delete answers[key]);
+  const safe = state && typeof state === 'object' ? state : {};
+  if (safe.answers && typeof safe.answers === 'object') {
+    Object.assign(answers, safe.answers);
+  }
+
+  latestAssessment = safe.assessment || null;
+  latestCoursePlan = safe.coursePlan ? ensureCourseState(safe.coursePlan) : null;
+  courseProgress = safe.courseProgress || null;
+  if (latestCoursePlan) {
+    courseProgress = ensureCourseProgress(latestCoursePlan, { reset: false, seed: courseProgress });
+  }
+
+  surveyStage = ['survey', 'loading', 'results'].includes(safe.surveyStage)
+    ? safe.surveyStage
+    : latestAssessment
+      ? 'results'
+      : 'survey';
+  currentIndex = Number.isFinite(Number(safe.surveyIndex)) ? Math.max(0, Number(safe.surveyIndex)) : 0;
+  currentLesson =
+    safe.currentLesson && typeof safe.currentLesson === 'object'
+      ? {
+          moduleIndex: Number.isFinite(Number(safe.currentLesson.moduleIndex))
+            ? Math.max(0, Number(safe.currentLesson.moduleIndex))
+            : 0,
+          activityIndex: Number.isFinite(Number(safe.currentLesson.activityIndex))
+            ? Math.max(0, Number(safe.currentLesson.activityIndex))
+            : 0,
+        }
+      : { moduleIndex: 0, activityIndex: 0 };
+
+  persistState({ remote: false });
+  suspendRemoteSync = false;
 };
 
 const normalizeRiskLevel = (value) => {
@@ -354,25 +473,35 @@ const categoryNote = (value) => {
   return 'Prioridad alta';
 };
 
-const setSurveyStage = (stage) => {
+const setSurveyStage = (stage, { sync = true } = {}) => {
+  surveyStage = stage;
   if (els.surveySection) els.surveySection.classList.toggle('hidden', stage !== 'survey');
   if (els.loadingSection) els.loadingSection.classList.toggle('hidden', stage !== 'loading');
   if (els.resultSection) els.resultSection.classList.toggle('hidden', stage !== 'results');
+  if (sync) persistState();
 };
 
-const showView = (view) => {
+const showView = (view, { sync = true } = {}) => {
   const views = {
     survey: els.surveyView,
     courses: els.coursesView,
     lesson: els.lessonView,
+    admin: els.adminView,
   };
 
+  activeView = view;
   Object.values(views).forEach((node) => node?.classList.add('hidden'));
   views[view]?.classList.remove('hidden');
 
   if (view === 'survey') document.title = 'Escudo Digital | Encuesta';
   if (view === 'courses') document.title = 'Escudo Digital | Cursos';
   if (view === 'lesson') document.title = 'Escudo Digital | Lección';
+  if (view === 'admin') document.title = 'Escudo Digital | Panel interno';
+
+  const showChat = Boolean(currentUser) && view !== 'admin';
+  if (!showChat) closeChat();
+  else els.chatFab?.classList.toggle('hidden', isChatOpen());
+  if (sync) persistState();
 };
 
 const escapeHtml = (value) =>
@@ -428,24 +557,245 @@ const appendChat = (text, role) => {
   els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
 };
 
-const callBackend = async (path, payload) => {
+const apiRequest = async (path, { method = 'POST', payload, includeAuth = true } = {}) => {
+  const headers = {};
+  if (payload !== undefined) headers['Content-Type'] = 'application/json';
+  if (includeAuth && authToken) headers.Authorization = `Bearer ${authToken}`;
+
   const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    method,
+    headers,
+    body: payload !== undefined ? JSON.stringify(payload) : undefined,
   });
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    const message = error.error || 'Error al conectar con la IA.';
+    const message = error.error || 'Error al conectar con el servidor.';
     const status = error.status ? ` (status ${error.status})` : '';
     throw new Error(`${message}${status}`);
   }
-  return response.json();
+  return response.json().catch(() => ({}));
+};
+
+const callBackend = async (path, payload) => apiRequest(path, { method: 'POST', payload });
+
+const formatDate = (value) => {
+  if (!value) return 'Sin registro';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Sin registro';
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+const updateUserBar = () => {
+  if (!currentUser) return;
+  if (els.userEmail) els.userEmail.textContent = currentUser.email;
+  if (els.userLastAccess) {
+    els.userLastAccess.textContent = `Último acceso: ${formatDate(currentUser.lastAccessAt)} · Tu avance se guarda automáticamente.`;
+  }
+  els.openAdminBtn?.classList.toggle('hidden', currentUser.role !== 'admin');
+};
+
+const showAuth = () => {
+  els.authView?.classList.remove('hidden');
+  els.appShell?.classList.add('hidden');
+  closeChat();
+  els.chatFab?.classList.add('hidden');
+};
+
+const showAppShell = () => {
+  els.authView?.classList.add('hidden');
+  els.appShell?.classList.remove('hidden');
+  updateUserBar();
+  if (activeView !== 'admin') {
+    els.chatFab?.classList.remove('hidden');
+  }
+};
+
+const setAuthMode = (mode) => {
+  authMode = mode === 'register' ? 'register' : 'login';
+  els.showLoginBtn?.classList.toggle('active', authMode === 'login');
+  els.showRegisterBtn?.classList.toggle('active', authMode === 'register');
+  if (els.authTitle) {
+    els.authTitle.textContent =
+      authMode === 'login' ? 'Bienvenido de vuelta' : 'Crea tu cuenta';
+  }
+  if (els.authSubtitle) {
+    els.authSubtitle.textContent =
+      authMode === 'login'
+        ? 'Entra con tu correo para continuar exactamente donde te quedaste.'
+        : 'Solo te pediremos correo y contraseña para guardar tu progreso.';
+  }
+  if (els.authSubmitBtn) {
+    els.authSubmitBtn.textContent =
+      authMode === 'login' ? 'Entrar' : 'Crear cuenta';
+  }
+  els.authPassword?.setAttribute(
+    'autocomplete',
+    authMode === 'login' ? 'current-password' : 'new-password'
+  );
+  els.authError?.classList.add('hidden');
+  if (els.authError) els.authError.textContent = '';
+};
+
+const setSession = (token, user) => {
+  authToken = token || '';
+  currentUser = user || null;
+  if (authToken) {
+    localStorage.setItem(STORAGE_KEYS.session, authToken);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.session);
+  }
+  updateUserBar();
+};
+
+const resetAppState = () => {
+  if (remoteSyncTimer) {
+    window.clearTimeout(remoteSyncTimer);
+    remoteSyncTimer = null;
+  }
+  remoteSyncInFlight = false;
+  remoteSyncQueued = false;
+  Object.keys(answers).forEach((key) => delete answers[key]);
+  currentIndex = 0;
+  latestAssessment = null;
+  latestCoursePlan = null;
+  courseProgress = null;
+  currentLesson = { moduleIndex: 0, activityIndex: 0 };
+  surveyStage = 'survey';
+  activeView = 'survey';
+  latestAnalytics = null;
+  chatHistory.length = 0;
+  simSessions.clear();
+  if (els.chatMessages) els.chatMessages.innerHTML = '';
+  clearLocalState();
+};
+
+const scheduleRemoteSync = () => {
+  if (!currentUser || !authToken || suspendRemoteSync) return;
+  if (remoteSyncTimer) window.clearTimeout(remoteSyncTimer);
+  remoteSyncTimer = window.setTimeout(() => {
+    syncRemoteState();
+  }, 350);
+};
+
+const syncRemoteState = async () => {
+  if (!currentUser || !authToken || suspendRemoteSync) return;
+  if (remoteSyncInFlight) {
+    remoteSyncQueued = true;
+    return;
+  }
+
+  remoteSyncInFlight = true;
+  try {
+    const data = await apiRequest('/api/user/state', {
+      method: 'POST',
+      payload: buildClientStatePayload(),
+    });
+    if (data?.user) {
+      currentUser = data.user;
+      updateUserBar();
+    }
+  } catch (error) {
+    console.warn('No se pudo sincronizar el progreso:', error.message);
+  } finally {
+    remoteSyncInFlight = false;
+    if (remoteSyncQueued) {
+      remoteSyncQueued = false;
+      scheduleRemoteSync();
+    }
+  }
+};
+
+const restoreAppAfterLogin = () => {
+  showAppShell();
+
+  if (
+    latestCoursePlan &&
+    courseProgress &&
+    activeView === 'lesson' &&
+    getModuleAndActivity(currentLesson.moduleIndex || 0, currentLesson.activityIndex || 0)
+  ) {
+    showView('lesson', { sync: false });
+    renderLessonActivity(currentLesson.moduleIndex || 0, currentLesson.activityIndex || 0);
+    return;
+  }
+
+  if (activeView === 'admin' && currentUser?.role === 'admin') {
+    showView('admin', { sync: false });
+    loadAdminAnalytics();
+    return;
+  }
+
+  if (latestCoursePlan && courseProgress) {
+    showView('courses', { sync: false });
+    renderCoursesDashboard();
+    return;
+  }
+
+  showView('survey', { sync: false });
+  setSurveyStage(latestAssessment ? 'results' : 'survey', { sync: false });
+  if (latestAssessment) {
+    renderAssessment(latestAssessment);
+  } else {
+    const visible = getVisibleQuestions();
+    currentIndex = clamp(currentIndex, 0, Math.max(visible.length - 1, 0));
+    renderQuestion();
+  }
+};
+
+const handleAuthSuccess = (data) => {
+  setSession(data.token, data.user);
+  applyStateSnapshot(data.state || {});
+  activeView = (data.state && typeof data.state.currentView === 'string') ? data.state.currentView : 'survey';
+  restoreAppAfterLogin();
+};
+
+const loadSession = async () => {
+  if (!authToken) {
+    showAuth();
+    setAuthMode('login');
+    return;
+  }
+
+  try {
+    const data = await apiRequest('/api/auth/session', { method: 'GET' });
+    setSession(authToken, data.user);
+    applyStateSnapshot(data.state || {});
+    activeView = (data.state && typeof data.state.currentView === 'string') ? data.state.currentView : 'survey';
+    restoreAppAfterLogin();
+  } catch (error) {
+    console.warn('Sesión previa no disponible:', error.message);
+    setSession('', null);
+    resetAppState();
+    showAuth();
+    setAuthMode('login');
+  }
+};
+
+const logout = async () => {
+  try {
+    if (authToken) {
+      await apiRequest('/api/auth/logout', { method: 'POST', payload: {} });
+    }
+  } catch {
+    // ignore logout errors
+  }
+
+  setSession('', null);
+  resetAppState();
+  showAuth();
+  setAuthMode('login');
 };
 
 const isChatOpen = () => !els.chatDrawer?.classList.contains('hidden');
 
 const openChat = () => {
+  if (!currentUser) return;
   els.chatDrawer?.classList.remove('hidden');
   els.chatBackdrop?.classList.remove('hidden');
   els.chatFab?.classList.add('hidden');
@@ -454,7 +804,7 @@ const openChat = () => {
 const closeChat = () => {
   els.chatDrawer?.classList.add('hidden');
   els.chatBackdrop?.classList.add('hidden');
-  els.chatFab?.classList.remove('hidden');
+  els.chatFab?.classList.toggle('hidden', !currentUser || activeView === 'admin');
 };
 
 const toggleChat = () => {
@@ -543,12 +893,14 @@ const renderQuestion = () => {
             wrapper.classList.remove('active');
           }
           answers[question.id] = Array.from(set);
+          persistState();
           return;
         }
 
         answers[question.id] = option.value;
         els.questionBody.querySelectorAll('.option').forEach((optEl) => optEl.classList.remove('active'));
         wrapper.classList.add('active');
+        persistState();
       });
     });
   }
@@ -572,6 +924,7 @@ const renderQuestion = () => {
 
     select.addEventListener('change', () => {
       answers[question.id] = select.value;
+      persistState();
     });
 
     els.questionBody.appendChild(select);
@@ -583,6 +936,7 @@ const renderQuestion = () => {
     textarea.value = stored || '';
     textarea.addEventListener('input', () => {
       answers[question.id] = textarea.value.trim();
+      persistState();
     });
     els.questionBody.appendChild(textarea);
   }
@@ -723,20 +1077,20 @@ const resetSurvey = () => {
   latestAssessment = null;
   latestCoursePlan = null;
   courseProgress = null;
+  currentLesson = { moduleIndex: 0, activityIndex: 0 };
+  surveyStage = 'survey';
 
-  try {
-    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
-  } catch {
-    // ignore
-  }
+  clearLocalState();
 
   if (els.chatMessages) els.chatMessages.innerHTML = '';
   chatHistory.length = 0;
+  simSessions.clear();
 
   closeChat();
-  showView('survey');
-  setSurveyStage('survey');
+  showView('survey', { sync: false });
+  setSurveyStage('survey', { sync: false });
   renderQuestion();
+  persistState();
 };
 
 const setDonut = (score, label) => {
@@ -1050,23 +1404,36 @@ const ensureCourseState = (plan) => {
   return safe;
 };
 
-const ensureCourseProgress = (plan, { reset } = { reset: false }) => {
+const ensureCourseProgress = (plan, { reset, seed } = { reset: false, seed: null }) => {
   const sig = computePlanSignature(plan);
-  const prev = courseProgress && typeof courseProgress === 'object' ? courseProgress : null;
+  const source = seed && typeof seed === 'object' ? seed : courseProgress;
+  const prev = source && typeof source === 'object' ? source : null;
 
   let next = prev;
   if (reset || !prev || prev.planSig !== sig) {
-    next = { planSig: sig, completed: {} };
+    next = { planSig: sig, completed: {}, modules: {}, snapshots: [], lastAccessAt: new Date().toISOString() };
   } else {
-    next = { ...prev, planSig: sig, completed: prev.completed && typeof prev.completed === 'object' ? prev.completed : {} };
+    next = {
+      ...prev,
+      planSig: sig,
+      completed: prev.completed && typeof prev.completed === 'object' ? prev.completed : {},
+      modules: prev.modules && typeof prev.modules === 'object' ? prev.modules : {},
+      snapshots: Array.isArray(prev.snapshots) ? prev.snapshots : [],
+      lastAccessAt: new Date().toISOString(),
+    };
   }
 
-  const ids = new Set();
+  const activityIds = new Set();
+  const moduleIds = new Set();
   (Array.isArray(plan?.ruta) ? plan.ruta : []).forEach((mod) => {
-    (Array.isArray(mod?.actividades) ? mod.actividades : []).forEach((act) => ids.add(act.id));
+    if (mod?.id) moduleIds.add(mod.id);
+    (Array.isArray(mod?.actividades) ? mod.actividades : []).forEach((act) => activityIds.add(act.id));
   });
   Object.keys(next.completed).forEach((key) => {
-    if (!ids.has(key)) delete next.completed[key];
+    if (!activityIds.has(key)) delete next.completed[key];
+  });
+  Object.keys(next.modules).forEach((key) => {
+    if (!moduleIds.has(key)) delete next.modules[key];
   });
 
   return next;
@@ -1101,6 +1468,83 @@ const computeCompetenciesFromProgress = (plan, progress) => {
 
   const score_total = computeTotalScore(computed);
   return { competencias: computed, score_total };
+};
+
+const getModuleProgressEntry = (module) => {
+  if (!courseProgress || !module?.id) return null;
+  courseProgress.modules = courseProgress.modules || {};
+  if (!courseProgress.modules[module.id]) {
+    courseProgress.modules[module.id] = {
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+      visits: 0,
+      lastActivityId: null,
+      durationMs: 0,
+    };
+  }
+  return courseProgress.modules[module.id];
+};
+
+const recordCourseSnapshot = () => {
+  if (!latestCoursePlan || !courseProgress) return;
+  courseProgress.snapshots = Array.isArray(courseProgress.snapshots) ? courseProgress.snapshots : [];
+  const computed = computeCompetenciesFromProgress(latestCoursePlan, courseProgress);
+  const snapshot = {
+    at: new Date().toISOString(),
+    scoreTotal: computed.score_total,
+    competencias: computed.competencias,
+    completedCount: Object.keys(courseProgress.completed || {}).length,
+  };
+  const last = courseProgress.snapshots[courseProgress.snapshots.length - 1];
+  if (
+    !last ||
+    last.scoreTotal !== snapshot.scoreTotal ||
+    last.completedCount !== snapshot.completedCount
+  ) {
+    courseProgress.snapshots.push(snapshot);
+  }
+};
+
+const summarizeProgressInsights = () => {
+  const insights = {
+    strengths: [],
+    focus: [],
+    mistakes: [],
+  };
+  if (!latestCoursePlan || !courseProgress) return insights;
+
+  const computed = computeCompetenciesFromProgress(latestCoursePlan, courseProgress);
+  const sortedCompetencies = Object.entries(computed.competencias || {}).sort((a, b) => b[1] - a[1]);
+  insights.strengths = sortedCompetencies
+    .slice(0, 2)
+    .map(([key, value]) => `${CATEGORY_LABELS[key] || key}: ${value}%`);
+  insights.focus = sortedCompetencies
+    .slice(-2)
+    .reverse()
+    .map(([key, value]) => `${CATEGORY_LABELS[key] || key}: ${value}%`);
+
+  const route = Array.isArray(latestCoursePlan?.ruta) ? latestCoursePlan.ruta : [];
+  const weakActivities = [];
+  route.forEach((module) => {
+    (Array.isArray(module?.actividades) ? module.actividades : []).forEach((activity) => {
+      const done = courseProgress?.completed?.[activity.id];
+      if (!done) return;
+      const score = Number(done.score);
+      if (Number.isFinite(score) && score < 0.7) {
+        weakActivities.push({
+          label: `${module.titulo}: ${activity.titulo}`,
+          score,
+          feedback: done.feedback || '',
+        });
+      }
+    });
+  });
+  insights.mistakes = weakActivities
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((item) => item.feedback || item.label);
+
+  return insights;
 };
 
 const renderCoursePlan = () => {
@@ -1177,12 +1621,72 @@ const renderCoursePlan = () => {
   });
 };
 
+const renderSummaryList = (element, items, emptyText) => {
+  if (!element) return;
+  element.innerHTML = '';
+  if (!items.length) {
+    element.innerHTML = `<p class="hint">${emptyText}</p>`;
+    return;
+  }
+
+  items.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'summary-item';
+    card.textContent = item;
+    element.appendChild(card);
+  });
+};
+
+const renderHistory = () => {
+  if (!els.historyList) return;
+  els.historyList.innerHTML = '';
+  const snapshots = Array.isArray(courseProgress?.snapshots) ? courseProgress.snapshots.slice(-5).reverse() : [];
+  if (!snapshots.length) {
+    els.historyList.innerHTML = '<p class="hint">Todavía no hay hitos guardados. En cuanto avances, aparecerán aquí.</p>';
+    return;
+  }
+
+  snapshots.forEach((snapshot) => {
+    const row = document.createElement('div');
+    row.className = 'history-item';
+
+    const left = document.createElement('div');
+    const title = document.createElement('p');
+    title.className = 'history-title';
+    title.textContent = `${snapshot.scoreTotal || 0}% de blindaje`;
+    const meta = document.createElement('p');
+    meta.className = 'history-meta';
+    meta.textContent = `${formatDate(snapshot.at)} · ${snapshot.completedCount || 0} actividades registradas`;
+    left.appendChild(title);
+    left.appendChild(meta);
+
+    row.appendChild(left);
+    els.historyList.appendChild(row);
+  });
+};
+
 const renderCoursesDashboard = () => {
   if (!latestCoursePlan || !courseProgress) return;
   const computed = computeCompetenciesFromProgress(latestCoursePlan, courseProgress);
+  const insights = summarizeProgressInsights();
   setDonut(computed.score_total, latestCoursePlan.score_name);
   renderCompetencies(computed.competencias);
   renderCoursePlan();
+  renderSummaryList(
+    els.profileSummaryList,
+    [
+      `Fortalezas: ${insights.strengths.join(' · ') || 'Aún se están detectando.'}`,
+      `Áreas a reforzar: ${insights.focus.join(' · ') || 'Seguimos recopilando señales.'}`,
+      `Avance actual: ${Object.keys(courseProgress.completed || {}).length} actividades completadas.`,
+    ],
+    'La IA preparará un resumen en cuanto tengas actividad.'
+  );
+  renderSummaryList(
+    els.mistakeList,
+    insights.mistakes,
+    'Aquí aparecerán señales específicas cuando detectemos errores frecuentes.'
+  );
+  renderHistory();
   if (els.courseReadyHint) els.courseReadyHint.classList.remove('hidden');
 };
 
@@ -1262,6 +1766,7 @@ const generateCourse = async ({ reset } = { reset: false }) => {
 
     latestCoursePlan = ensureCourseState(plan);
     courseProgress = ensureCourseProgress(latestCoursePlan, { reset });
+    recordCourseSnapshot();
     persistState();
   } catch (error) {
     alert(`No se pudo generar el curso: ${error.message}`);
@@ -1363,21 +1868,53 @@ const setLessonMeta = (moduleIndex, activityIndex) => {
   }
 };
 
-const markActivityCompleted = ({ moduleIndex, activityIndex, score, feedback }) => {
+const markModuleVisited = (moduleIndex, activityIndex) => {
+  const route = Array.isArray(latestCoursePlan?.ruta) ? latestCoursePlan.ruta : [];
+  const module = route[moduleIndex];
+  if (!module || !courseProgress) return;
+  const entry = getModuleProgressEntry(module);
+  if (!entry) return;
+  entry.visits = clamp(Number(entry.visits) || 0, 0, 999) + 1;
+  entry.lastActivityId =
+    Array.isArray(module?.actividades) && module.actividades[activityIndex]
+      ? module.actividades[activityIndex].id
+      : entry.lastActivityId;
+  courseProgress.lastAccessAt = new Date().toISOString();
+  lessonActivityStartedAt = Date.now();
+  persistState();
+};
+
+const markActivityCompleted = ({ moduleIndex, activityIndex, score, feedback, details = null }) => {
   const info = getModuleAndActivity(moduleIndex, activityIndex);
   if (!info) return;
-  const { activity } = info;
+  const { activity, module, activities } = info;
 
   const prev = courseProgress?.completed?.[activity.id];
   const attempts = clamp(Number(prev?.attempts) || 0, 0, 999) + 1;
+  const durationMs = lessonActivityStartedAt ? Math.max(0, Date.now() - lessonActivityStartedAt) : 0;
 
   courseProgress.completed = courseProgress.completed || {};
   courseProgress.completed[activity.id] = {
     score: clamp(Number(score) || 0, 0, 1),
     attempts,
     feedback: String(feedback || prev?.feedback || '').slice(0, 600),
+    durationMs,
+    details,
     at: new Date().toISOString(),
   };
+
+  const moduleEntry = getModuleProgressEntry(module);
+  if (moduleEntry) {
+    moduleEntry.lastActivityId = activity.id;
+    moduleEntry.durationMs = clamp(Number(moduleEntry.durationMs) || 0, 0, Number.MAX_SAFE_INTEGER) + durationMs;
+    const moduleDone = activities.every((item) => Boolean(courseProgress?.completed?.[item.id]));
+    if (moduleDone && !moduleEntry.completedAt) {
+      moduleEntry.completedAt = new Date().toISOString();
+    }
+  }
+
+  courseProgress.lastAccessAt = new Date().toISOString();
+  recordCourseSnapshot();
 
   persistState();
 };
@@ -1441,6 +1978,7 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
   const { module, activities, activity } = info;
 
   currentLesson = { moduleIndex, activityIndex };
+  markModuleVisited(moduleIndex, activityIndex);
   setLessonMeta(moduleIndex, activityIndex);
   els.lessonActivity.innerHTML = '';
 
@@ -1500,8 +2038,8 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
     renderModuleComplete(moduleIndex);
   };
 
-  const completeAndNext = (score, fbText) => {
-    markActivityCompleted({ moduleIndex, activityIndex, score, feedback: fbText });
+  const completeAndNext = (score, fbText, details = null) => {
+    markActivityCompleted({ moduleIndex, activityIndex, score, feedback: fbText, details });
     renderCoursesDashboard();
     goNext();
   };
@@ -1533,7 +2071,12 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         continueBtn.className = 'btn primary';
         continueBtn.textContent = 'Continuar';
         continueBtn.addEventListener('click', () => {
-          completeAndNext(isCorrect ? 1 : 0.6, activity.explicacion);
+          completeAndNext(isCorrect ? 1 : 0.6, activity.explicacion, {
+            selectedIndex: idx,
+            selectedText: optionText,
+            correctIndex,
+            correctText: options[correctIndex] || '',
+          });
         });
 
         const retryBtn = document.createElement('button');
@@ -1582,7 +2125,10 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         showFeedback('Marca todos los puntos para continuar.');
         return;
       }
-      completeAndNext(1, 'Checklist completado.');
+      completeAndNext(1, 'Checklist completado.', {
+        checkedItems: items,
+        totalItems: items.length,
+      });
     });
     addPrimaryActions(doneBtn);
   } else if (activity.tipo === 'abierta') {
@@ -1637,7 +2183,11 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         const continueBtn = document.createElement('button');
         continueBtn.className = 'btn primary';
         continueBtn.textContent = 'Continuar';
-        continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+        continueBtn.addEventListener('click', () =>
+          completeAndNext(score, fb, {
+            answer: answerText.slice(0, 600),
+          })
+        );
 
         replacePrimaryActions(continueBtn, retryBtn);
         retryBtn.disabled = false;
@@ -1716,7 +2266,12 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
       const doneBtn = document.createElement('button');
       doneBtn.className = 'btn primary';
       doneBtn.textContent = 'Finalizar simulación';
-      doneBtn.addEventListener('click', () => completeAndNext(finalScore, fb));
+      doneBtn.addEventListener('click', () =>
+        completeAndNext(finalScore, fb, {
+          turns: session.turns,
+          transcript: session.history.slice(-8),
+        })
+      );
       replacePrimaryActions(doneBtn);
     };
 
@@ -1796,7 +2351,10 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         continueBtn.className = 'btn primary';
         continueBtn.textContent = 'Continuar';
         continueBtn.addEventListener('click', () => {
-          completeAndNext(isCorrect ? 1 : 0.6, expl);
+          completeAndNext(isCorrect ? 1 : 0.6, expl, {
+            selectedDomain: domain,
+            correctDomain: domains[correctIndex] || '',
+          });
         });
 
         const retryBtn = document.createElement('button');
@@ -1892,7 +2450,13 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
       const continueBtn = document.createElement('button');
       continueBtn.className = 'btn primary';
       continueBtn.textContent = 'Continuar';
-      continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+      continueBtn.addEventListener('click', () =>
+        completeAndNext(score, fb, {
+          selectedSignals: senales
+            .filter((sig) => chosen.has(sig.id))
+            .map((sig) => sig.label),
+        })
+      );
 
       replacePrimaryActions(continueBtn, retryBtn);
     });
@@ -2018,7 +2582,15 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
       const continueBtn = document.createElement('button');
       continueBtn.className = 'btn primary';
       continueBtn.textContent = 'Continuar';
-      continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+      continueBtn.addEventListener('click', () =>
+        completeAndNext(score, fb, {
+          selections: msgs.map((m) => ({
+            from: m.from,
+            picked: selections.get(m.id) || 'sin responder',
+            correct: m.correcto === 'estafa' ? 'estafa' : 'seguro',
+          })),
+        })
+      );
 
       replacePrimaryActions(continueBtn, retryBtn);
     });
@@ -2217,7 +2789,12 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
       const continueBtn = document.createElement('button');
       continueBtn.className = 'btn primary';
       continueBtn.textContent = 'Continuar';
-      continueBtn.addEventListener('click', () => completeAndNext(score, fb));
+      continueBtn.addEventListener('click', () =>
+        completeAndNext(score, fb, {
+          flaggedTargets: Array.from(flagged),
+          cartCount: cart.count,
+        })
+      );
 
       replacePrimaryActions(continueBtn, retryBtn);
     });
@@ -2228,6 +2805,7 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
     const pasos = Array.isArray(activity.pasos) ? activity.pasos : [];
     let step = 0;
     const scores = [];
+    const flowChoices = [];
 
     const stepWrap = document.createElement('div');
     stepWrap.className = 'flow';
@@ -2245,7 +2823,9 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         const doneBtn = document.createElement('button');
         doneBtn.className = 'btn primary';
         doneBtn.textContent = 'Continuar';
-        doneBtn.addEventListener('click', () => completeAndNext(final, fb));
+        doneBtn.addEventListener('click', () =>
+          completeAndNext(final, fb, { flowChoices })
+        );
         replacePrimaryActions(doneBtn);
         return;
       }
@@ -2265,6 +2845,11 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
           stepWrap.querySelectorAll('button').forEach((b) => (b.disabled = true));
           const score = clamp(Number(opt.puntaje) || 0.6, 0, 1);
           scores.push(score);
+          flowChoices.push({
+            step: st.texto,
+            choice: opt.texto,
+            score,
+          });
           const fb = opt.feedback || 'Listo. En una situación real, verifica por un canal oficial.';
           showFeedback(fb);
 
@@ -2281,7 +2866,7 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
               return;
             }
             const final = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 1;
-            completeAndNext(final, fb);
+            completeAndNext(final, fb, { flowChoices });
           });
 
           replacePrimaryActions(continueBtn);
@@ -2296,7 +2881,9 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
     const doneBtn = document.createElement('button');
     doneBtn.className = 'btn primary';
     doneBtn.textContent = 'Continuar';
-    doneBtn.addEventListener('click', () => completeAndNext(1, 'Actividad completada.'));
+    doneBtn.addEventListener('click', () => completeAndNext(1, 'Actividad completada.', {
+      viewed: true,
+    }));
     addPrimaryActions(doneBtn);
   }
 
@@ -2314,7 +2901,290 @@ const openLesson = (moduleIndex) => {
   renderLessonActivity(moduleIndex, nextActivityIndex);
 };
 
+const renderMetricCards = (items) => {
+  if (!els.adminOverview) return;
+  els.adminOverview.innerHTML = '';
+  items.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+
+    const label = document.createElement('p');
+    label.className = 'stat-label';
+    label.textContent = item.label;
+
+    const value = document.createElement('p');
+    value.className = 'stat-value';
+    value.textContent = item.value;
+
+    const note = document.createElement('p');
+    note.className = 'stat-note';
+    note.textContent = item.note;
+
+    card.appendChild(label);
+    card.appendChild(value);
+    card.appendChild(note);
+    els.adminOverview.appendChild(card);
+  });
+};
+
+const renderBars = (element, items, { valueKey = 'value', labelKey = 'label', suffix = '', max = null } = {}) => {
+  if (!element) return;
+  element.innerHTML = '';
+  if (!items.length) {
+    element.innerHTML = '<p class="hint">Todavía no hay suficientes datos.</p>';
+    return;
+  }
+
+  const peak = max || Math.max(...items.map((item) => Number(item[valueKey]) || 0), 1);
+  items.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'analytics-bar-row';
+
+    const top = document.createElement('div');
+    top.className = 'analytics-bar-top';
+
+    const label = document.createElement('span');
+    label.className = 'analytics-bar-label';
+    label.textContent = item[labelKey];
+
+    const value = document.createElement('span');
+    value.className = 'analytics-bar-value';
+    value.textContent = `${item[valueKey]}${suffix}`;
+
+    top.appendChild(label);
+    top.appendChild(value);
+
+    const track = document.createElement('div');
+    track.className = 'analytics-bar-track';
+    const fill = document.createElement('div');
+    fill.className = 'analytics-bar-fill';
+    fill.style.width = `${((Number(item[valueKey]) || 0) / peak) * 100}%`;
+    track.appendChild(fill);
+
+    row.appendChild(top);
+    row.appendChild(track);
+    element.appendChild(row);
+  });
+};
+
+const renderAdminTable = (tbody, rows, columns) => {
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = columns.length;
+    td.textContent = 'Todavía no hay datos suficientes.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach((row) => {
+    const tr = document.createElement('tr');
+    columns.forEach((column) => {
+      const td = document.createElement('td');
+      td.textContent = column.format ? column.format(row[column.key], row) : row[column.key];
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+};
+
+const renderAdminAnalytics = (data) => {
+  latestAnalytics = data;
+  renderMetricCards([
+    {
+      label: 'Usuarios totales',
+      value: data?.overview?.totalUsers ?? 0,
+      note: `${data?.overview?.activeUsers7d ?? 0} activos en los últimos 7 días`,
+    },
+    {
+      label: 'Blindaje promedio',
+      value: `${data?.overview?.averageShield ?? 0}%`,
+      note: `Mejora media: ${data?.overview?.averageImprovement ?? 0} puntos`,
+    },
+    {
+      label: 'Finalización de módulos',
+      value: `${data?.overview?.moduleCompletionRate ?? 0}%`,
+      note: `Actividades completadas: ${data?.overview?.activityCompletionRate ?? 0}%`,
+    },
+    {
+      label: 'Días para notar mejora',
+      value:
+        data?.overview?.avgDaysToImprove === null || data?.overview?.avgDaysToImprove === undefined
+          ? '—'
+          : `${data.overview.avgDaysToImprove}`,
+      note: 'Promedio para superar el nivel base',
+    },
+  ]);
+
+  renderBars(els.ageChart, data?.ageBuckets || [], { valueKey: 'count', labelKey: 'label' });
+  renderBars(els.vulnerabilityChart, (data?.vulnerabilityByTopic || []).slice(0, 6), {
+    valueKey: 'vulnerableCount',
+    labelKey: 'label',
+  });
+  renderBars(els.topicPerformanceChart, data?.topicPerformance || [], {
+    valueKey: 'avgScore',
+    labelKey: 'label',
+    suffix: '%',
+    max: 100,
+  });
+  renderBars(els.decisionChart, data?.decisionMix || [], {
+    valueKey: 'value',
+    labelKey: 'label',
+  });
+  renderBars(els.improvementAgeChart, data?.improvementByAge || [], {
+    valueKey: 'avgImprovement',
+    labelKey: 'age',
+    suffix: ' pts',
+  });
+
+  if (els.trendList) {
+    els.trendList.innerHTML = '';
+    const trend = Array.isArray(data?.learningTrend) ? data.learningTrend.slice(-7).reverse() : [];
+    if (!trend.length) {
+      els.trendList.innerHTML = '<p class="hint">Aún no hay suficiente historial para esta gráfica.</p>';
+    } else {
+      trend.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'history-item';
+        row.innerHTML = `
+          <div>
+            <p class="history-title">${item.avgScore}% de blindaje promedio</p>
+            <p class="history-meta">${item.day}</p>
+          </div>
+        `;
+        els.trendList.appendChild(row);
+      });
+    }
+  }
+
+  renderAdminTable(
+    els.moduleTableBody,
+    Array.isArray(data?.modulePerformance) ? data.modulePerformance.slice(0, 12) : [],
+    [
+      { key: 'title' },
+      { key: 'category', format: (value) => CATEGORY_LABELS[value] || value },
+      { key: 'level', format: (value) => LEVEL_LABELS[value] || value },
+      { key: 'avgScore', format: (value) => `${value}%` },
+      { key: 'completionRate', format: (value) => `${value}%` },
+      { key: 'avgTimeMin', format: (value) => `${value} min` },
+    ]
+  );
+
+  renderAdminTable(
+    els.userTableBody,
+    Array.isArray(data?.users) ? data.users.slice(0, 20) : [],
+    [
+      { key: 'email' },
+      { key: 'age' },
+      { key: 'initialLevel' },
+      { key: 'currentShield', format: (value) => `${value}%` },
+      { key: 'improvement', format: (value) => `${value} pts` },
+      { key: 'progressPercent', format: (value) => `${value}%` },
+      { key: 'lastAccessAt', format: (value) => formatDate(value) },
+    ]
+  );
+};
+
+const loadAdminAnalytics = async () => {
+  if (currentUser?.role !== 'admin') return;
+  if (els.adminOverview) {
+    els.adminOverview.innerHTML = '<p class="hint">Cargando métricas…</p>';
+  }
+  try {
+    const data = await apiRequest('/api/admin/analytics', { method: 'GET' });
+    renderAdminAnalytics(data);
+  } catch (error) {
+    if (els.adminOverview) {
+      els.adminOverview.innerHTML = `<p class="hint">No se pudieron cargar las métricas: ${error.message}</p>`;
+    }
+  }
+};
+
+const exportAnalytics = () => {
+  if (!latestAnalytics) return;
+  const blob = new Blob([JSON.stringify(latestAnalytics, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `escudo-analytics-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 // Event wiring
+els.showLoginBtn?.addEventListener('click', () => setAuthMode('login'));
+els.showRegisterBtn?.addEventListener('click', () => setAuthMode('register'));
+
+els.authForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = els.authEmail?.value?.trim() || '';
+  const password = els.authPassword?.value || '';
+  if (!email || !password) return;
+
+  if (els.authSubmitBtn) {
+    els.authSubmitBtn.disabled = true;
+    els.authSubmitBtn.textContent = authMode === 'login' ? 'Entrando…' : 'Creando…';
+  }
+  if (els.authError) {
+    els.authError.classList.add('hidden');
+    els.authError.textContent = '';
+  }
+
+  try {
+    const data = await apiRequest(
+      authMode === 'login' ? '/api/auth/login' : '/api/auth/register',
+      {
+        method: 'POST',
+        payload: { email, password },
+        includeAuth: false,
+      }
+    );
+    handleAuthSuccess(data);
+    if (els.authPassword) els.authPassword.value = '';
+  } catch (error) {
+    if (els.authError) {
+      els.authError.textContent = error.message;
+      els.authError.classList.remove('hidden');
+    }
+  } finally {
+    if (els.authSubmitBtn) {
+      els.authSubmitBtn.disabled = false;
+      els.authSubmitBtn.textContent = authMode === 'login' ? 'Entrar' : 'Crear cuenta';
+    }
+  }
+});
+
+els.logoutBtn?.addEventListener('click', logout);
+els.goSurveyBtn?.addEventListener('click', () => {
+  showView('survey');
+  setSurveyStage(latestAssessment ? 'results' : 'survey');
+  if (latestAssessment) renderAssessment(latestAssessment);
+  else renderQuestion();
+});
+els.goCoursesBtn?.addEventListener('click', () => enterCourses());
+els.openAdminBtn?.addEventListener('click', async () => {
+  showView('admin');
+  await loadAdminAnalytics();
+});
+els.adminBackBtn?.addEventListener('click', () => {
+  if (latestCoursePlan && courseProgress) {
+    showView('courses');
+    renderCoursesDashboard();
+  } else {
+    showView('survey');
+    setSurveyStage(latestAssessment ? 'results' : 'survey');
+  }
+});
+els.adminRefreshBtn?.addEventListener('click', loadAdminAnalytics);
+els.adminExportBtn?.addEventListener('click', exportAnalytics);
+
 els.nextBtn?.addEventListener('click', () => {
   if (!validateCurrent()) {
     els.alertBox?.classList.remove('hidden');
@@ -2375,6 +3245,10 @@ document.addEventListener('click', (event) => {
 
 els.chatForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (!currentUser) {
+    showAuth();
+    return;
+  }
   const text = els.chatInput?.value?.trim() || '';
   if (!text) return;
   if (els.chatInput) els.chatInput.value = '';
@@ -2394,13 +3268,7 @@ els.chatForm?.addEventListener('submit', async (event) => {
 
 // Bootstrap
 hydrateState();
-showView('survey');
-
-if (latestAssessment) {
-  renderAssessment(latestAssessment);
-  setSurveyStage('results');
-} else {
-  setSurveyStage('survey');
-}
-
+setAuthMode('login');
+showAuth();
 renderQuestion();
+loadSession();
