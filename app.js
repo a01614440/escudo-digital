@@ -114,9 +114,11 @@ const STORAGE_KEYS = {
   session: 'escudo_session_v1',
   assessment: 'escudo_assessment_v1',
   answers: 'escudo_answers_v1',
-  coursePlan: 'escudo_course_plan_v3',
-  courseProgress: 'escudo_course_progress_v3',
+  coursePlan: 'escudo_course_plan_v4',
+  courseProgress: 'escudo_course_progress_v4',
 };
+
+const COURSE_PLAN_VERSION = 4;
 
 const CATEGORY_LABELS = {
   sms: 'SMS',
@@ -145,6 +147,7 @@ const ACTIVITY_LABELS = {
   inbox: 'Inbox',
   web_lab: 'Laboratorio web',
   scenario_flow: 'Escenario',
+  call_sim: 'Llamada guiada',
 };
 
 const COMP_KEYS = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
@@ -319,6 +322,7 @@ let remoteSyncInFlight = false;
 let remoteSyncQueued = false;
 let suspendRemoteSync = false;
 let lessonActivityStartedAt = 0;
+let lessonRuntimeCleanup = null;
 
 const chatHistory = [];
 const simSessions = new Map(); // activityId -> { history, done, bestScore }
@@ -403,6 +407,10 @@ const applyStateSnapshot = (state) => {
   latestAssessment = safe.assessment || null;
   latestCoursePlan = safe.coursePlan ? ensureCourseState(safe.coursePlan) : null;
   courseProgress = safe.courseProgress || null;
+  if (latestCoursePlan && latestCoursePlan.planVersion !== COURSE_PLAN_VERSION) {
+    latestCoursePlan = null;
+    courseProgress = null;
+  }
   if (latestCoursePlan) {
     courseProgress = ensureCourseProgress(latestCoursePlan, { reset: false, seed: courseProgress });
   }
@@ -464,6 +472,33 @@ const computeTotalScore = (competencias) => {
   if (!values.length) return 0;
   return Math.round(values.reduce((acc, v) => acc + v, 0) / values.length);
 };
+
+const makeScenarioFingerprint = (...parts) => {
+  const raw = parts
+    .flatMap((part) => (Array.isArray(part) ? part : [part]))
+    .map((part) => String(part || '').trim().toLowerCase())
+    .filter(Boolean)
+    .join('||');
+  let hash = 0;
+  for (let idx = 0; idx < raw.length; idx += 1) {
+    hash = (hash * 31 + raw.charCodeAt(idx)) >>> 0;
+  }
+  return `sc_${hash.toString(16) || '0'}`;
+};
+
+const isScenarioActivity = (activity) =>
+  [
+    'quiz',
+    'simulacion',
+    'abierta',
+    'sim_chat',
+    'compare_domains',
+    'signal_hunt',
+    'inbox',
+    'web_lab',
+    'scenario_flow',
+    'call_sim',
+  ].includes(String(activity?.tipo || '').toLowerCase());
 
 const categoryNote = (value) => {
   if (value >= 85) return 'Muy fuerte';
@@ -1152,11 +1187,12 @@ const computePlanSignature = (plan) => {
   const route = Array.isArray(plan?.ruta) ? plan.ruta : [];
   const ids = route.map((m) => String(m?.id || '')).join('|');
   const actCount = route.reduce((acc, m) => acc + (Array.isArray(m?.actividades) ? m.actividades.length : 0), 0);
-  return `${String(plan?.score_name || '')}::${ids}::${actCount}`;
+  return `${Number(plan?.planVersion) || 0}::${String(plan?.score_name || '')}::${ids}::${actCount}`;
 };
 
 const ensureCourseState = (plan) => {
   const safe = plan && typeof plan === 'object' ? plan : {};
+  safe.planVersion = Number.isFinite(Number(safe.planVersion)) ? Number(safe.planVersion) : 0;
   safe.score_name = String(safe.score_name || 'Blindaje Digital').trim() || 'Blindaje Digital';
   safe.competencias = safe.competencias && typeof safe.competencias === 'object' ? safe.competencias : {};
 
@@ -1183,8 +1219,21 @@ const ensureCourseState = (plan) => {
           const tipo = String(act.tipo || act.type || 'concepto').trim().toLowerCase();
           const tituloAct = String(act.titulo || `Actividad ${aIdx + 1}`).trim();
           const peso = clamp(Number(act.peso ?? act.puntos ?? 1) || 1, 0.5, 3);
+          const scenarioId =
+            String(
+              act.scenarioId ||
+                makeScenarioFingerprint(
+                  tipo,
+                  tituloAct,
+                  act.escenario,
+                  act.prompt,
+                  act.mensaje,
+                  act?.pagina?.dominio,
+                  act.inicio
+                )
+            ).trim();
 
-          const base = { id: actId, tipo, titulo: tituloAct, peso };
+          const base = { id: actId, scenarioId, tipo, titulo: tituloAct, peso };
 
           if (tipo === 'checklist') {
             const items = Array.isArray(act.items) ? act.items.map((x) => String(x).trim()).filter(Boolean) : [];
@@ -1220,7 +1269,50 @@ const ensureCourseState = (plan) => {
               ...base,
               escenario: String(act.escenario || '').trim(),
               inicio: String(act.inicio || '').trim(),
+              contactName: String(act.contactName || act.nombre || act.contacto || '').trim(),
+              avatarLabel: String(act.avatarLabel || act.avatar || act.iniciales || '').trim(),
+              contactStatus: String(act.contactStatus || act.status || act.estado || '').trim(),
+              quickReplies: Array.isArray(act.quickReplies)
+                ? act.quickReplies.map((x) => String(x).trim()).filter(Boolean).slice(0, 4)
+                : [],
               turnos_max: clamp(Number(act.turnos_max) || 6, 3, 10),
+            };
+          }
+
+          if (tipo === 'call_sim') {
+            const rawSteps = Array.isArray(act.steps) ? act.steps : Array.isArray(act.pasos) ? act.pasos : [];
+            const steps = rawSteps
+              .map((st, sIdx) => {
+                if (!st || typeof st !== 'object') return null;
+                const texto = String(st.texto || st.text || '').trim();
+                const opciones = (Array.isArray(st.opciones) ? st.opciones : Array.isArray(st.options) ? st.options : [])
+                  .map((opt, oIdx) => {
+                    if (!opt || typeof opt !== 'object') return null;
+                    const texto = String(opt.texto || opt.label || opt.text || '').trim();
+                    if (!texto) return null;
+                    return {
+                      id: String(opt.id || `o${oIdx + 1}`).trim() || `o${oIdx + 1}`,
+                      texto,
+                      puntaje: clamp(Number(opt.puntaje ?? opt.score ?? 0.6) || 0.6, 0, 1),
+                      feedback: String(opt.feedback || opt.retro || '').trim(),
+                    };
+                  })
+                  .filter(Boolean)
+                  .slice(0, 5);
+                if (!texto || opciones.length < 2) return null;
+                return { id: String(st.id || `p${sIdx + 1}`).trim() || `p${sIdx + 1}`, texto, opciones };
+              })
+              .filter(Boolean)
+              .slice(0, 6);
+            return {
+              ...base,
+              intro: String(act.intro || '').trim(),
+              callerName: String(act.callerName || act.nombre || act.caller || '').trim(),
+              callerNumber: String(act.callerNumber || act.numero || act.number || '').trim(),
+              opening: String(act.opening || act.inicio || '').trim(),
+              allowVoice: act.allowVoice !== false,
+              voiceProfile: String(act.voiceProfile || act.voice || act.voz || '').trim(),
+              steps,
             };
           }
 
@@ -1271,6 +1363,7 @@ const ensureCourseState = (plan) => {
               ...base,
               mensaje,
               senales,
+              accion: String(act.accion || act.safeAction || '').trim(),
             };
           }
 
@@ -1287,14 +1380,50 @@ const ensureCourseState = (plan) => {
               .map((msg, m2Idx) => {
                 if (!msg || typeof msg !== 'object') return null;
                 const id = String(msg.id || `m${m2Idx + 1}`).trim() || `m${m2Idx + 1}`;
+                const displayName = String(msg.displayName || msg.nombre || msg.alias || '').trim();
                 const from = String(msg.from || msg.de || msg.remitente || '').trim();
                 const subject = String(msg.subject || msg.asunto || '').trim();
+                const preview = String(msg.preview || msg.resumen || '').trim();
+                const dateLabel = String(msg.dateLabel || msg.fecha || '').trim();
+                const warning = String(msg.warning || msg.aviso || '').trim();
                 const text = String(msg.text || msg.mensaje || msg.cuerpo || '').trim();
+                const body = Array.isArray(msg.body)
+                  ? msg.body.map((x) => String(x).trim()).filter(Boolean).slice(0, 8)
+                  : [];
+                const attachments = Array.isArray(msg.attachments)
+                  ? msg.attachments.map((x) => String(x).trim()).filter(Boolean).slice(0, 4)
+                  : [];
+                const details =
+                  msg.details && typeof msg.details === 'object'
+                    ? {
+                        from: String(msg.details.from || msg.from || '').trim(),
+                        replyTo: String(msg.details.replyTo || msg.details.reply_to || '').trim(),
+                        returnPath: String(msg.details.returnPath || msg.details.return_path || '').trim(),
+                      }
+                    : null;
+                const ctaLabel = String(msg.ctaLabel || msg.boton || '').trim();
+                const linkPreview = String(msg.linkPreview || msg.link || '').trim();
                 const clsRaw = String(msg.correcto || msg.clasificacion || msg.tipo || msg.clase || '').toLowerCase();
                 const correcto = clsRaw.includes('estafa') || clsRaw.includes('fraud') || clsRaw.includes('phish') ? 'estafa' : 'seguro';
                 const explicacion = String(msg.explicacion || msg.razon || '').trim();
                 if (!text) return null;
-                return { id, from, subject, text, correcto, explicacion };
+                return {
+                  id,
+                  displayName,
+                  from,
+                  subject,
+                  preview,
+                  dateLabel,
+                  warning,
+                  text,
+                  body,
+                  attachments,
+                  details,
+                  ctaLabel,
+                  linkPreview,
+                  correcto,
+                  explicacion,
+                };
               })
               .filter(Boolean)
               .slice(0, 8);
@@ -1312,12 +1441,18 @@ const ensureCourseState = (plan) => {
             const page = act.pagina && typeof act.pagina === 'object' ? act.pagina : act.page && typeof act.page === 'object' ? act.page : {};
             const marca = String(page.marca || page.brand || '').trim() || 'NovaTienda';
             const dominio = String(page.dominio || page.url || '').trim() || 'novatienda-mx.shop';
+            const browserTitle = String(page.browserTitle || page.browser_title || '').trim();
             const banner = String(page.banner || page.hero || '').trim();
             const sub = String(page.sub || page.subtitulo || page.copy || '').trim();
             const contacto = String(page.contacto || page.contact || '').trim();
             const pagos = Array.isArray(page.pagos)
               ? page.pagos.map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
               : [];
+            const shipping = String(page.shipping || page.envio || '').trim();
+            const reviews = String(page.reviews || page.resenas || '').trim();
+            const policy = String(page.policy || page.politicas || '').trim();
+            const cartNote = String(page.cartNote || page.carrito || '').trim();
+            const checkoutPrompt = String(page.checkoutPrompt || page.checkout_prompt || '').trim();
             const productosRaw = Array.isArray(page.productos) ? page.productos : [];
             const productos = productosRaw
               .map((p, pIdx) => {
@@ -1349,8 +1484,17 @@ const ensureCourseState = (plan) => {
             return {
               ...base,
               intro,
-              pagina: { marca, dominio, banner, sub, contacto, pagos, productos },
+              pagina: { marca, dominio, browserTitle, banner, sub, contacto, pagos, shipping, reviews, policy, cartNote, checkoutPrompt, productos },
               hotspots,
+              decisionPrompt: String(act.decisionPrompt || act.preguntaDecision || '').trim(),
+              decisionOptions: Array.isArray(act.decisionOptions)
+                ? act.decisionOptions.map((x) => String(x).trim()).filter(Boolean).slice(0, 4)
+                : Array.isArray(act.opcionesDecision)
+                  ? act.opcionesDecision.map((x) => String(x).trim()).filter(Boolean).slice(0, 4)
+                  : [],
+              correctDecision: Number.isFinite(Number(act.correctDecision))
+                ? clamp(Number(act.correctDecision), 0, 3)
+                : null,
             };
           }
 
@@ -1392,6 +1536,18 @@ const ensureCourseState = (plan) => {
           // concepto u otros -> contenido
           return {
             ...base,
+            bloques: Array.isArray(act.bloques)
+              ? act.bloques
+                  .map((block) => {
+                    if (!block || typeof block !== 'object') return null;
+                    const titulo = String(block.titulo || block.label || '').trim();
+                    const texto = String(block.texto || block.text || '').trim();
+                    if (!titulo || !texto) return null;
+                    return { titulo, texto };
+                  })
+                  .filter(Boolean)
+                  .slice(0, 5)
+              : [],
             contenido: String(act.contenido || act.texto || '').trim(),
           };
         })
@@ -1411,7 +1567,14 @@ const ensureCourseProgress = (plan, { reset, seed } = { reset: false, seed: null
 
   let next = prev;
   if (reset || !prev || prev.planSig !== sig) {
-    next = { planSig: sig, completed: {}, modules: {}, snapshots: [], lastAccessAt: new Date().toISOString() };
+    next = {
+      planSig: sig,
+      completed: {},
+      modules: {},
+      snapshots: [],
+      seenScenarioIds: {},
+      lastAccessAt: new Date().toISOString(),
+    };
   } else {
     next = {
       ...prev,
@@ -1419,6 +1582,10 @@ const ensureCourseProgress = (plan, { reset, seed } = { reset: false, seed: null
       completed: prev.completed && typeof prev.completed === 'object' ? prev.completed : {},
       modules: prev.modules && typeof prev.modules === 'object' ? prev.modules : {},
       snapshots: Array.isArray(prev.snapshots) ? prev.snapshots : [],
+      seenScenarioIds:
+        prev.seenScenarioIds && typeof prev.seenScenarioIds === 'object'
+          ? prev.seenScenarioIds
+          : {},
       lastAccessAt: new Date().toISOString(),
     };
   }
@@ -1434,6 +1601,11 @@ const ensureCourseProgress = (plan, { reset, seed } = { reset: false, seed: null
   });
   Object.keys(next.modules).forEach((key) => {
     if (!moduleIds.has(key)) delete next.modules[key];
+  });
+  Object.keys(next.seenScenarioIds || {}).forEach((key) => {
+    const list = Array.isArray(next.seenScenarioIds[key]) ? next.seenScenarioIds[key] : [];
+    next.seenScenarioIds[key] = Array.from(new Set(list.map((item) => String(item).trim()).filter(Boolean))).slice(0, 300);
+    if (!next.seenScenarioIds[key].length) delete next.seenScenarioIds[key];
   });
 
   return next;
@@ -1787,7 +1959,7 @@ const enterCourses = async () => {
   showView('courses');
   applyDefaultCoursePrefs();
 
-  if (latestCoursePlan && courseProgress) {
+  if (latestCoursePlan?.planVersion === COURSE_PLAN_VERSION && courseProgress) {
     renderCoursesDashboard();
     return;
   }
@@ -1919,6 +2091,83 @@ const markActivityCompleted = ({ moduleIndex, activityIndex, score, feedback, de
   persistState();
 };
 
+const rememberScenarioSeen = (module, activity) => {
+  if (!courseProgress || !module || !activity || !isScenarioActivity(activity)) return;
+  const scenarioId = String(activity.scenarioId || '').trim();
+  if (!scenarioId) return;
+  courseProgress.seenScenarioIds = courseProgress.seenScenarioIds || {};
+  const key = `${normalizeCategory(module.categoria)}:${normalizeModuleLevel(module.nivel)}`;
+  const list = Array.isArray(courseProgress.seenScenarioIds[key]) ? courseProgress.seenScenarioIds[key] : [];
+  if (!list.includes(scenarioId)) {
+    list.push(scenarioId);
+    courseProgress.seenScenarioIds[key] = list.slice(-120);
+    persistState();
+  }
+};
+
+const feedbackRatingLabel = (score) => {
+  const safe = clamp(Number(score) || 0, 0, 1);
+  if (safe >= 0.85) return 'Buena';
+  if (safe >= 0.6) return 'Regular';
+  return 'Riesgosa';
+};
+
+const feedbackToText = (payload) => {
+  if (typeof payload === 'string') return payload;
+  if (!payload || typeof payload !== 'object') return '';
+  return [
+    payload.title ? `Resultado: ${payload.title}` : '',
+    payload.signal ? `Señal detectada: ${payload.signal}` : '',
+    payload.risk ? `Riesgo: ${payload.risk}` : '',
+    payload.action ? `Acción segura: ${payload.action}` : '',
+    payload.extra ? String(payload.extra) : '',
+    Array.isArray(payload.detected) && payload.detected.length
+      ? `Señales detectadas: ${payload.detected.join(', ')}`
+      : '',
+    Array.isArray(payload.missed) && payload.missed.length
+      ? `Te faltó revisar: ${payload.missed.join(', ')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+};
+
+const feedbackToHtml = (payload) => {
+  if (typeof payload === 'string') {
+    return String(payload || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => `<p>${escapeHtml(line)}</p>`)
+      .join('');
+  }
+  if (!payload || typeof payload !== 'object') return '';
+  const summary = payload.title
+    ? `<div class="feedback-pill">${escapeHtml(payload.title)}</div>`
+    : '';
+  const sections = [
+    payload.signal ? `<div><span class="feedback-label">Señal detectada</span><p>${escapeHtml(payload.signal)}</p></div>` : '',
+    payload.risk ? `<div><span class="feedback-label">Riesgo</span><p>${escapeHtml(payload.risk)}</p></div>` : '',
+    payload.action ? `<div><span class="feedback-label">Acción segura</span><p>${escapeHtml(payload.action)}</p></div>` : '',
+    payload.extra ? `<div><span class="feedback-label">Qué hacer ahora</span><p>${escapeHtml(payload.extra)}</p></div>` : '',
+  ]
+    .filter(Boolean)
+    .join('');
+  const detected =
+    Array.isArray(payload.detected) && payload.detected.length
+      ? `<div><span class="feedback-label">Señales detectadas</span><ul>${payload.detected
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join('')}</ul></div>`
+      : '';
+  const missed =
+    Array.isArray(payload.missed) && payload.missed.length
+      ? `<div><span class="feedback-label">Te faltó revisar</span><ul>${payload.missed
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join('')}</ul></div>`
+      : '';
+  return `${summary}${sections}${detected}${missed}`;
+};
+
 const renderModuleComplete = (moduleIndex) => {
   if (!els.lessonActivity) return;
   const route = Array.isArray(latestCoursePlan?.ruta) ? latestCoursePlan.ruta : [];
@@ -1971,14 +2220,1094 @@ const renderModuleComplete = (moduleIndex) => {
   els.lessonActivity.appendChild(actions);
 };
 
+const renderConceptBlocks = (body, activity) => {
+  const blocks = Array.isArray(activity?.bloques) ? activity.bloques : [];
+  if (blocks.length) {
+    const grid = document.createElement('div');
+    grid.className = 'concept-grid';
+    blocks.forEach((block) => {
+      const card = document.createElement('div');
+      card.className = 'concept-card';
+      const title = document.createElement('p');
+      title.className = 'concept-card-title';
+      title.textContent = block.titulo;
+      const text = document.createElement('p');
+      text.className = 'concept-card-text';
+      text.textContent = block.texto;
+      card.appendChild(title);
+      card.appendChild(text);
+      grid.appendChild(card);
+    });
+    body.appendChild(grid);
+  }
+  renderParagraphs(body, activity?.contenido || '');
+};
+
+const renderWhatsAppSimulation = ({
+  moduleIndex,
+  activityIndex,
+  activity,
+  body,
+  showFeedback,
+  replacePrimaryActions,
+  completeAndNext,
+}) => {
+  const phone = document.createElement('div');
+  phone.className = 'wa-phone';
+
+  const header = document.createElement('div');
+  header.className = 'wa-header';
+  const avatar = document.createElement('div');
+  avatar.className = 'wa-avatar';
+  avatar.textContent = activity.avatarLabel || (activity.contactName || 'ED').slice(0, 2).toUpperCase();
+
+  const who = document.createElement('div');
+  who.className = 'wa-contact';
+  const name = document.createElement('p');
+  name.className = 'wa-contact-name';
+  name.textContent = activity.contactName || 'Contacto';
+  const status = document.createElement('p');
+  status.className = 'wa-contact-status';
+  status.textContent = activity.contactStatus || 'en línea';
+  who.appendChild(name);
+  who.appendChild(status);
+  header.appendChild(avatar);
+  header.appendChild(who);
+
+  const screen = document.createElement('div');
+  screen.className = 'wa-screen';
+  const typing = document.createElement('div');
+  typing.className = 'wa-typing hidden';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+  screen.appendChild(typing);
+
+  const quickReplies = document.createElement('div');
+  quickReplies.className = 'wa-quick-replies';
+
+  const form = document.createElement('form');
+  form.className = 'wa-inputbar';
+  form.addEventListener('submit', (event) => event.preventDefault());
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Escribe tu respuesta segura…';
+  input.disabled = true;
+  const send = document.createElement('button');
+  send.type = 'submit';
+  send.className = 'btn primary';
+  send.textContent = 'Enviar';
+  send.disabled = true;
+  form.appendChild(input);
+  form.appendChild(send);
+
+  phone.appendChild(header);
+  phone.appendChild(screen);
+  phone.appendChild(quickReplies);
+  phone.appendChild(form);
+  body.appendChild(phone);
+
+  const nowTime = () =>
+    new Intl.DateTimeFormat('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date());
+
+  const session =
+    simSessions.get(activity.id) || { history: [], done: false, bestScore: 0, turns: 0, seeded: false };
+  simSessions.set(activity.id, session);
+
+  const appendBubble = (text, role, timeText = nowTime()) => {
+    const bubble = document.createElement('div');
+    bubble.className = `wa-row ${role === 'user' ? 'user' : 'bot'}`;
+
+    const card = document.createElement('div');
+    card.className = `wa-bubble ${role === 'user' ? 'user' : 'bot'}`;
+    const p = document.createElement('p');
+    p.textContent = text;
+    const meta = document.createElement('div');
+    meta.className = 'wa-meta';
+    meta.innerHTML = `<span>${timeText}</span><span>${role === 'user' ? '✓✓' : ''}</span>`;
+    card.appendChild(p);
+    card.appendChild(meta);
+    bubble.appendChild(card);
+    screen.insertBefore(bubble, typing);
+    screen.scrollTop = screen.scrollHeight;
+  };
+
+  const setTyping = (visible, text) => {
+    typing.classList.toggle('hidden', !visible);
+    if (text) status.textContent = text;
+    else status.textContent = activity.contactStatus || 'en línea';
+    screen.scrollTop = screen.scrollHeight;
+  };
+
+  const seedOpening = async () => {
+    if (session.seeded) return;
+    session.seeded = true;
+    setTyping(true, 'escribiendo…');
+    await sleep(700);
+    session.history.push({ role: 'scammer', content: activity.inicio || 'Necesito que actúes rápido.' });
+    appendBubble(activity.inicio || 'Necesito que actúes rápido.', 'bot');
+    setTyping(false);
+    input.disabled = false;
+    send.disabled = false;
+  };
+
+  if (session.history.length) {
+    session.history.forEach((item) => appendBubble(item.content, item.role === 'user' ? 'user' : 'bot', item.at || nowTime()));
+    input.disabled = false;
+    send.disabled = false;
+  } else {
+    seedOpening();
+  }
+
+  const setBusy = (busy) => {
+    input.disabled = busy;
+    send.disabled = busy;
+    if (busy) setTyping(true, 'escribiendo…');
+    else setTyping(false);
+  };
+
+  const finish = (score, payload) => {
+    const plain = feedbackToText(payload);
+    showFeedback(payload);
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn primary';
+    nextBtn.textContent = 'Finalizar simulación';
+    nextBtn.addEventListener('click', () =>
+      completeAndNext(score, plain, {
+        turns: session.turns,
+        transcript: session.history.slice(-10),
+      })
+    );
+    replacePrimaryActions(nextBtn);
+  };
+
+  const sendMessage = async (text) => {
+    if (!text || session.done) return;
+    input.value = '';
+    session.turns += 1;
+    session.history.push({ role: 'user', content: text, at: nowTime() });
+    appendBubble(text, 'user');
+    setBusy(true);
+
+    try {
+      const resp = await callBackend('/api/course/sim-turn', {
+        scenario: activity.escenario,
+        history: session.history,
+        userMessage: text,
+        turn: session.turns,
+        turnos_max: activity.turnos_max,
+        user: { answers, assessment: latestAssessment },
+      });
+
+      await sleep(650);
+      const scammerReply = String(resp?.reply || '').trim();
+      if (scammerReply) {
+        session.history.push({ role: 'scammer', content: scammerReply, at: nowTime() });
+        appendBubble(scammerReply, 'bot');
+      }
+
+      const score = clamp(Number(resp?.score) || 0, 0, 1);
+      session.bestScore = Math.max(session.bestScore, score);
+      session.done = Boolean(resp?.done) || session.turns >= activity.turnos_max;
+      const payload = {
+        title: resp?.rating || feedbackRatingLabel(score),
+        signal: resp?.signal_detected || 'La conversación mete presión para que resuelvas dentro del mismo chat.',
+        risk: resp?.risk || 'Si sigues en el mismo canal, el estafador controla el contexto y tu decisión.',
+        action: resp?.safe_action || 'Detén la conversación y verifica por otro canal confiable.',
+        extra: resp?.coach_feedback || '',
+      };
+
+      if (session.done) finish(session.bestScore, payload);
+      else {
+        showFeedback(payload);
+        const continueBtn = document.createElement('button');
+        continueBtn.className = 'btn ghost';
+        continueBtn.textContent = 'Seguir practicando';
+        continueBtn.addEventListener('click', () => {
+          replacePrimaryActions();
+          showFeedback('');
+        });
+        replacePrimaryActions(continueBtn);
+      }
+    } catch (error) {
+      showFeedback({
+        title: 'Regular',
+        signal: 'La simulación no pudo continuar.',
+        risk: 'Se perdió la práctica en este turno.',
+        action: 'Intenta de nuevo y mantén la regla: verifica por otro canal.',
+        extra: error.message || '',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  form.addEventListener('submit', () => sendMessage(input.value.trim()));
+
+  (Array.isArray(activity.quickReplies) ? activity.quickReplies : []).forEach((reply) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'wa-chip';
+    chip.textContent = reply;
+    chip.addEventListener('click', () => {
+      input.value = reply;
+      sendMessage(reply);
+    });
+    quickReplies.appendChild(chip);
+  });
+};
+
+const renderInboxSimulation = ({
+  activity,
+  body,
+  showFeedback,
+  replacePrimaryActions,
+  completeAndNext,
+  moduleIndex,
+  activityIndex,
+}) => {
+  const kind = activity.kind === 'sms' ? 'sms' : 'correo';
+  const messages = Array.isArray(activity.mensajes) ? activity.mensajes : [];
+  const selections = new Map();
+  const listItems = new Map();
+  const cards = new Map();
+  let selectedId = messages[0]?.id || '';
+
+  if (activity.intro) {
+    const intro = document.createElement('p');
+    intro.className = 'hint';
+    intro.textContent = activity.intro;
+    body.appendChild(intro);
+  }
+
+  const sim = document.createElement('div');
+  sim.className = `email-sim ${kind === 'sms' ? 'is-sms' : ''}`;
+
+  const sidebar = document.createElement('div');
+  sidebar.className = 'email-sidebar';
+  const reader = document.createElement('div');
+  reader.className = 'email-reader';
+  const readerHeader = document.createElement('div');
+  readerHeader.className = 'email-reader-head';
+  const readerBody = document.createElement('div');
+  readerBody.className = 'email-reader-body';
+  const readerFooter = document.createElement('div');
+  readerFooter.className = 'email-reader-footer';
+  reader.appendChild(readerHeader);
+  reader.appendChild(readerBody);
+  reader.appendChild(readerFooter);
+  sim.appendChild(sidebar);
+  sim.appendChild(reader);
+
+  const updateListStatus = (msgId) => {
+    const row = listItems.get(msgId);
+    if (!row) return;
+    const badge = row.querySelector('.email-list-status');
+    if (!badge) return;
+    const picked = selections.get(msgId);
+    badge.textContent = picked === 'estafa' ? 'Sospechoso' : picked === 'seguro' ? 'Seguro' : 'Sin clasificar';
+    badge.className = `email-list-status ${picked || 'empty'}`;
+  };
+
+  const openMessage = (msg) => {
+    if (!msg) return;
+    selectedId = msg.id;
+    sidebar.querySelectorAll('.email-list-item').forEach((node) => node.classList.toggle('active', node.dataset.msgId === msg.id));
+    readerHeader.innerHTML = '';
+    readerBody.innerHTML = '';
+    readerFooter.innerHTML = '';
+
+    const top = document.createElement('div');
+    top.className = 'email-open-top';
+    const titleWrap = document.createElement('div');
+    const subject = document.createElement('h4');
+    subject.className = 'email-open-subject';
+    subject.textContent = msg.subject || msg.displayName || 'Mensaje';
+    const meta = document.createElement('p');
+    meta.className = 'email-open-meta';
+    meta.textContent = `${msg.displayName || msg.from || 'Mensaje'} · ${msg.dateLabel || ''}`.trim();
+    titleWrap.appendChild(subject);
+    titleWrap.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'email-open-actions';
+    const detailsBtn = document.createElement('button');
+    detailsBtn.type = 'button';
+    detailsBtn.className = 'btn ghost compact';
+    detailsBtn.textContent = 'Ver detalles';
+    const reportBtn = document.createElement('button');
+    reportBtn.type = 'button';
+    reportBtn.className = 'btn ghost compact';
+    reportBtn.textContent = 'Reportar phishing';
+    reportBtn.addEventListener('click', () => {
+      selections.set(msg.id, 'estafa');
+      updateListStatus(msg.id);
+      openMessage(msg);
+    });
+    actions.appendChild(detailsBtn);
+    actions.appendChild(reportBtn);
+
+    top.appendChild(titleWrap);
+    top.appendChild(actions);
+    readerHeader.appendChild(top);
+
+    if (msg.warning) {
+      const warning = document.createElement('div');
+      warning.className = 'email-warning';
+      warning.textContent = msg.warning;
+      readerBody.appendChild(warning);
+    }
+
+    const detailCard = document.createElement('div');
+    detailCard.className = 'email-details hidden';
+    if (msg.details) {
+      ['from', 'replyTo', 'returnPath'].forEach((key) => {
+        if (!msg.details[key]) return;
+        const row = document.createElement('p');
+        row.innerHTML = `<strong>${key === 'replyTo' ? 'Reply-To' : key === 'returnPath' ? 'Return-Path' : 'From'}:</strong> ${escapeHtml(msg.details[key])}`;
+        detailCard.appendChild(row);
+      });
+    } else {
+      detailCard.innerHTML = `<p><strong>From:</strong> ${escapeHtml(msg.from || '')}</p>`;
+    }
+    detailsBtn.addEventListener('click', () => detailCard.classList.toggle('hidden'));
+    readerBody.appendChild(detailCard);
+
+    const hero = document.createElement('div');
+    hero.className = 'email-body-card';
+    const fromLine = document.createElement('p');
+    fromLine.className = 'email-body-from';
+    fromLine.textContent = `${msg.displayName || 'Mensaje'} <${msg.from || ''}>`;
+    hero.appendChild(fromLine);
+
+    (Array.isArray(msg.body) && msg.body.length ? msg.body : [msg.text]).forEach((line) => {
+      const p = document.createElement('p');
+      p.className = 'email-body-line';
+      p.textContent = line;
+      hero.appendChild(p);
+    });
+
+    if (msg.attachments?.length) {
+      const attachWrap = document.createElement('div');
+      attachWrap.className = 'email-attachments';
+      msg.attachments.forEach((file) => {
+        const chip = document.createElement('span');
+        chip.className = 'email-attachment';
+        chip.textContent = file;
+        attachWrap.appendChild(chip);
+      });
+      hero.appendChild(attachWrap);
+    }
+
+    if (msg.ctaLabel || msg.linkPreview) {
+      const cta = document.createElement('button');
+      cta.type = 'button';
+      cta.className = 'btn primary compact';
+      cta.textContent = msg.ctaLabel || 'Abrir enlace';
+      cta.addEventListener('click', () => {
+        const modal = document.createElement('div');
+        modal.className = 'email-link-warning';
+        modal.innerHTML = `
+          <div class="email-link-warning-card">
+            <p class="email-link-warning-title">Advertencia</p>
+            <p>${escapeHtml(msg.linkPreview || 'Este enlace podría llevarte fuera del canal oficial.')}</p>
+            <button type="button" class="btn ghost compact">Cerrar</button>
+          </div>
+        `;
+        modal.querySelector('button')?.addEventListener('click', () => modal.remove());
+        reader.appendChild(modal);
+      });
+      hero.appendChild(cta);
+    }
+
+    readerBody.appendChild(hero);
+
+    const footerTitle = document.createElement('p');
+    footerTitle.className = 'email-classify-title';
+    footerTitle.textContent = kind === 'correo' ? '¿Cómo clasificarías este correo?' : '¿Cómo clasificarías este mensaje?';
+    const footerChoices = document.createElement('div');
+    footerChoices.className = 'email-classify-actions';
+    ['seguro', 'estafa'].forEach((choice) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `btn ${selections.get(msg.id) === choice ? 'primary' : 'ghost'} compact`;
+      btn.textContent = choice === 'seguro' ? 'Seguro' : 'Sospechoso';
+      btn.addEventListener('click', () => {
+        selections.set(msg.id, choice);
+        updateListStatus(msg.id);
+        openMessage(msg);
+      });
+      footerChoices.appendChild(btn);
+    });
+    readerFooter.appendChild(footerTitle);
+    readerFooter.appendChild(footerChoices);
+  };
+
+  messages.forEach((msg) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'email-list-item';
+    row.dataset.msgId = msg.id;
+    const top = document.createElement('div');
+    top.className = 'email-list-top';
+    top.innerHTML = `
+      <span class="email-list-name">${escapeHtml(msg.displayName || msg.from || 'Mensaje')}</span>
+      <span class="email-list-date">${escapeHtml(msg.dateLabel || '')}</span>
+    `;
+    const subject = document.createElement('p');
+    subject.className = 'email-list-subject';
+    subject.textContent = msg.subject || msg.text;
+    const preview = document.createElement('p');
+    preview.className = 'email-list-preview';
+    preview.textContent = msg.preview || msg.text;
+    const status = document.createElement('span');
+    status.className = 'email-list-status empty';
+    status.textContent = 'Sin clasificar';
+    row.appendChild(top);
+    row.appendChild(subject);
+    row.appendChild(preview);
+    row.appendChild(status);
+    row.addEventListener('click', () => openMessage(msg));
+    sidebar.appendChild(row);
+    listItems.set(msg.id, row);
+    cards.set(msg.id, msg);
+  });
+
+  body.appendChild(sim);
+  openMessage(cards.get(selectedId));
+
+  const evalBtn = document.createElement('button');
+  evalBtn.className = 'btn primary';
+  evalBtn.textContent = 'Evaluar';
+  evalBtn.addEventListener('click', () => {
+    const missing = messages.filter((msg) => !selections.has(msg.id));
+    if (missing.length) {
+      showFeedback({
+        title: 'Falta revisar mensajes',
+        signal: `Todavía tienes ${missing.length} mensaje(s) sin clasificar.`,
+        action: 'Ábrelos y decide si son seguros o sospechosos antes de continuar.',
+      });
+      return;
+    }
+
+    let correct = 0;
+    const detected = [];
+    const missed = [];
+    messages.forEach((msg) => {
+      const picked = selections.get(msg.id);
+      const expected = msg.correcto === 'estafa' ? 'estafa' : 'seguro';
+      if (picked === expected) correct += 1;
+      else if (expected === 'estafa') missed.push(msg.subject || msg.text.slice(0, 40));
+      if (expected === 'estafa' && picked === expected) detected.push(msg.explicacion || msg.subject || 'Correo riesgoso');
+      updateListStatus(msg.id);
+    });
+
+    const score = clamp(correct / Math.max(messages.length, 1), 0, 1);
+    const payload = {
+      title: feedbackRatingLabel(score),
+      signal: kind === 'correo'
+        ? 'Revisaste remitente, urgencia, adjuntos y la forma en que intentan sacarte del canal oficial.'
+        : 'Revisaste urgencia, remitente y presión para actuar desde el mensaje.',
+      risk: 'Un correo o mensaje bien presentado todavía puede dirigir a phishing o malware.',
+      action: 'Antes de responder o hacer clic, verifica por tu cuenta en la app o sitio oficial.',
+      detected: detected.slice(0, 3),
+      missed: missed.slice(0, 3),
+    };
+    showFeedback(payload);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn primary';
+    nextBtn.textContent = 'Continuar';
+    nextBtn.addEventListener('click', () =>
+      completeAndNext(score, feedbackToText(payload), {
+        selections: messages.map((msg) => ({
+          id: msg.id,
+          picked: selections.get(msg.id),
+          correct: msg.correcto,
+        })),
+      })
+    );
+    replacePrimaryActions(nextBtn);
+  });
+  replacePrimaryActions(evalBtn);
+};
+
+const renderWebLabSimulation = ({
+  activity,
+  body,
+  showFeedback,
+  replacePrimaryActions,
+  completeAndNext,
+}) => {
+  const page = activity.pagina || {};
+  const hotspots = Array.isArray(activity.hotspots) ? activity.hotspots : [];
+  const flagged = new Set();
+  let stage = 'product';
+  let decision = null;
+
+  if (activity.intro) {
+    const intro = document.createElement('p');
+    intro.className = 'hint';
+    intro.textContent = activity.intro;
+    body.appendChild(intro);
+  }
+
+  const shell = document.createElement('div');
+  shell.className = 'browser-sim';
+  const chrome = document.createElement('div');
+  chrome.className = 'browser-top';
+  chrome.innerHTML = `
+    <div class="browser-dots"><span></span><span></span><span></span></div>
+    <div class="browser-url" data-hotspot="domain">${escapeHtml(page.dominio || 'tienda-demo.com')}</div>
+  `;
+  shell.appendChild(chrome);
+
+  const nav = document.createElement('div');
+  nav.className = 'store-nav';
+  ['product', 'cart', 'checkout'].forEach((value) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `store-nav-btn ${value === stage ? 'active' : ''}`;
+    btn.textContent =
+      value === 'product' ? 'Producto' : value === 'cart' ? 'Carrito' : 'Checkout';
+    btn.addEventListener('click', () => {
+      stage = value;
+      renderStage();
+    });
+    nav.appendChild(btn);
+  });
+  shell.appendChild(nav);
+
+  const content = document.createElement('div');
+  content.className = 'store-stage';
+  shell.appendChild(content);
+
+  const hud = document.createElement('div');
+  hud.className = 'detective-panel';
+  const counter = document.createElement('p');
+  counter.className = 'detective-count';
+  const findings = document.createElement('div');
+  findings.className = 'detective-findings';
+  hud.appendChild(counter);
+  hud.appendChild(findings);
+
+  const hotspotMap = new Map(hotspots.map((spot) => [spot.target, spot]));
+  const toggleTarget = (target) => {
+    if (!target) return;
+    if (flagged.has(target)) flagged.delete(target);
+    else flagged.add(target);
+    const urlNode = shell.querySelector('.browser-url');
+    if (urlNode && target === 'domain') {
+      urlNode.classList.toggle('flagged', flagged.has(target));
+    }
+    renderStage();
+  };
+
+  const updateHud = () => {
+    counter.textContent = `Hallazgos marcados: ${flagged.size}`;
+    findings.innerHTML = '';
+    Array.from(flagged).forEach((target) => {
+      const chip = document.createElement('span');
+      chip.className = 'detective-chip';
+      chip.textContent = hotspotMap.get(target)?.label || target;
+      findings.appendChild(chip);
+    });
+  };
+
+  const markable = (tag, target, text, extraClass = '') => {
+    const node = document.createElement(tag);
+    node.className = `detective-target ${extraClass} ${flagged.has(target) ? 'flagged' : ''}`.trim();
+    if (target) node.dataset.hotspot = target;
+    node.textContent = text;
+    return node;
+  };
+
+  const renderStage = () => {
+    content.innerHTML = '';
+    shell.querySelector('.browser-url')?.classList.toggle('flagged', flagged.has('domain'));
+    nav.querySelectorAll('.store-nav-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.textContent === (stage === 'product' ? 'Producto' : stage === 'cart' ? 'Carrito' : 'Checkout'));
+    });
+
+    const hero = document.createElement('div');
+    hero.className = 'store-hero';
+    const brand = document.createElement('p');
+    brand.className = 'store-brand';
+    brand.textContent = page.marca || 'Tienda demo';
+    const title = document.createElement('p');
+    title.className = 'store-banner';
+    title.dataset.hotspot = 'banner';
+    title.textContent = page.banner || 'Oferta especial';
+    const sub = document.createElement('p');
+    sub.className = 'store-sub';
+    sub.textContent = page.sub || '';
+    hero.appendChild(brand);
+    hero.appendChild(title);
+    hero.appendChild(sub);
+    if (stage === 'product') content.appendChild(hero);
+
+    if (stage === 'product') {
+      const grid = document.createElement('div');
+      grid.className = 'store-product-grid';
+      (Array.isArray(page.productos) ? page.productos : []).forEach((product) => {
+        const card = document.createElement('div');
+        card.className = 'store-product-card';
+        card.innerHTML = `
+          <p class="store-product-name">${escapeHtml(product.nombre || 'Producto')}</p>
+          <p class="store-product-price">${escapeHtml(product.antes ? `${product.antes} → ${product.precio}` : product.precio || '')}</p>
+        `;
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'btn ghost compact';
+        add.textContent = 'Agregar al carrito';
+        add.addEventListener('click', () => {
+          stage = 'cart';
+          renderStage();
+        });
+        card.appendChild(add);
+        grid.appendChild(card);
+      });
+      content.appendChild(grid);
+      if (page.reviews) content.appendChild(markable('div', 'reviews', page.reviews, 'store-section'));
+    }
+
+    if (stage === 'cart') {
+      if (page.cartNote) content.appendChild(markable('div', 'banner', page.cartNote, 'store-section'));
+      if (page.shipping) content.appendChild(markable('div', 'shipping', page.shipping, 'store-section'));
+      const goCheckout = document.createElement('button');
+      goCheckout.type = 'button';
+      goCheckout.className = 'btn primary';
+      goCheckout.textContent = 'Seguir al checkout';
+      goCheckout.addEventListener('click', () => {
+        stage = 'checkout';
+        renderStage();
+      });
+      content.appendChild(goCheckout);
+    }
+
+    if (stage === 'checkout') {
+      if (page.checkoutPrompt) content.appendChild(markable('div', 'banner', page.checkoutPrompt, 'store-section'));
+      if (page.contacto) content.appendChild(markable('div', 'contacto', page.contacto, 'store-section'));
+      if (page.policy) content.appendChild(markable('div', 'policy', page.policy, 'store-section'));
+      const pay = document.createElement('div');
+      pay.className = 'store-pay-box detective-target';
+      pay.dataset.hotspot = 'pago';
+      pay.innerHTML = `
+        <p class="store-pay-title">Métodos de pago</p>
+        <p class="store-pay-copy">${escapeHtml((page.pagos || []).join(' · '))}</p>
+      `;
+      content.appendChild(pay);
+    }
+
+    content.querySelectorAll('[data-hotspot]').forEach((node) => {
+      node.classList.toggle('flagged', flagged.has(node.dataset.hotspot));
+      node.addEventListener('click', () => toggleTarget(node.dataset.hotspot));
+    });
+
+    if (activity.decisionPrompt && activity.decisionOptions?.length) {
+      const decisionBox = document.createElement('div');
+      decisionBox.className = 'store-decision-box';
+      const prompt = document.createElement('p');
+      prompt.className = 'store-decision-title';
+      prompt.textContent = activity.decisionPrompt;
+      decisionBox.appendChild(prompt);
+      const options = document.createElement('div');
+      options.className = 'store-decision-options';
+      activity.decisionOptions.forEach((option, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `btn ${decision === index ? 'primary' : 'ghost'} compact`;
+        btn.textContent = option;
+        btn.addEventListener('click', () => {
+          decision = index;
+          renderStage();
+        });
+        options.appendChild(btn);
+      });
+      decisionBox.appendChild(options);
+      content.appendChild(decisionBox);
+    }
+
+    updateHud();
+  };
+
+  renderStage();
+  chrome.querySelector('[data-hotspot="domain"]')?.addEventListener('click', () => toggleTarget('domain'));
+  body.appendChild(shell);
+  body.appendChild(hud);
+
+  const evalBtn = document.createElement('button');
+  evalBtn.className = 'btn primary';
+  evalBtn.textContent = 'Evaluar hallazgos';
+  evalBtn.addEventListener('click', () => {
+    const correctTargets = hotspots.filter((spot) => spot.correcta).map((spot) => spot.target);
+    const matched = correctTargets.filter((target) => flagged.has(target));
+    const missed = hotspots
+      .filter((spot) => spot.correcta && !flagged.has(spot.target))
+      .map((spot) => spot.label);
+    const wrong = Array.from(flagged).filter((target) => !correctTargets.includes(target));
+    const hotspotScore = matched.length / Math.max(correctTargets.length, 1);
+    const decisionScore =
+      Number.isFinite(Number(activity.correctDecision)) && activity.decisionOptions?.length
+        ? decision === activity.correctDecision
+          ? 1
+          : 0.25
+        : 1;
+    const score = clamp((hotspotScore + decisionScore) / 2, 0, 1);
+    const payload = {
+      title: feedbackRatingLabel(score),
+      signal: matched.length
+        ? `Detectaste ${matched.length} señal(es) clave en el dominio, checkout o políticas.`
+        : 'Se te fueron varias pistas del flujo de compra.',
+      risk: 'Una tienda clonada intenta que confíes en el diseño y ignores el método de pago o la falta de datos reales.',
+      action: 'Antes de comprar, verifica dominio, empresa, reseñas externas y usa pagos con protección.',
+      detected: matched.map((target) => hotspotMap.get(target)?.label || target),
+      missed,
+      extra:
+        wrong.length && hotspots.length
+          ? 'No todo detalle raro es decisivo: la clave es juntar varias señales antes de actuar.'
+          : 'Buena práctica: sal del sitio y comprueba la información por tu cuenta si algo no cuadra.',
+    };
+    showFeedback(payload);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn primary';
+    nextBtn.textContent = 'Continuar';
+    nextBtn.addEventListener('click', () =>
+      completeAndNext(score, feedbackToText(payload), {
+        flaggedTargets: Array.from(flagged),
+        decision,
+      })
+    );
+    replacePrimaryActions(nextBtn);
+  });
+  replacePrimaryActions(evalBtn);
+};
+
+const renderCallSimulation = ({
+  activity,
+  body,
+  showFeedback,
+  replacePrimaryActions,
+  completeAndNext,
+}) => {
+  let step = -1;
+  let elapsed = 0;
+  let listening = false;
+  let recognition = null;
+  let finished = false;
+  const scores = [];
+  const transcript = [];
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const fullVoiceSupported = Boolean(activity.allowVoice && window.speechSynthesis && SpeechRecognitionCtor);
+  let voiceMode = fullVoiceSupported;
+
+  const phone = document.createElement('div');
+  phone.className = 'call-phone';
+  const screen = document.createElement('div');
+  screen.className = 'call-screen';
+  const chip = document.createElement('p');
+  chip.className = 'call-chip';
+  chip.textContent = 'Llamada entrante';
+  const name = document.createElement('h3');
+  name.className = 'call-name';
+  name.textContent = activity.callerName || 'Llamada';
+  const number = document.createElement('p');
+  number.className = 'call-number';
+  number.textContent = activity.callerNumber || 'Número no verificado';
+  const timer = document.createElement('p');
+  timer.className = 'call-timer';
+  timer.textContent = '00:00';
+  const transcriptBox = document.createElement('div');
+  transcriptBox.className = 'call-transcript';
+  const optionsBox = document.createElement('div');
+  optionsBox.className = 'call-options';
+  const controls = document.createElement('div');
+  controls.className = 'call-controls';
+  controls.innerHTML = `
+    <button type="button" class="call-control ghost" data-control="mute">Silencio</button>
+    <button type="button" class="call-control danger" data-control="hangup">Colgar</button>
+    <button type="button" class="call-control ghost" data-control="speaker">Altavoz</button>
+    <button type="button" class="call-control ghost" data-control="keypad">Teclado</button>
+  `;
+  screen.appendChild(chip);
+  screen.appendChild(name);
+  screen.appendChild(number);
+  screen.appendChild(timer);
+  screen.appendChild(transcriptBox);
+  screen.appendChild(optionsBox);
+  screen.appendChild(controls);
+  phone.appendChild(screen);
+  body.appendChild(phone);
+
+  if (activity.intro) {
+    const intro = document.createElement('p');
+    intro.className = 'hint';
+    intro.textContent = activity.intro;
+    body.insertBefore(intro, phone);
+  }
+
+  const timerRef = window.setInterval(() => {
+    elapsed += 1;
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const secs = String(elapsed % 60).padStart(2, '0');
+    timer.textContent = `${mins}:${secs}`;
+  }, 1000);
+
+  const speak = (text) => {
+    if (!voiceMode || !window.speechSynthesis || !text) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices?.() || [];
+    const preferred = voices.find((voice) =>
+      activity.voiceProfile === 'male'
+        ? /male|jorge|diego|carlos|m/i.test(voice.name)
+        : /female|sofia|paulina|monica|maria|f/i.test(voice.name)
+    );
+    if (preferred) utterance.voice = preferred;
+    utterance.lang = 'es-MX';
+    utterance.rate = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const appendLine = (who, text) => {
+    const row = document.createElement('div');
+    row.className = `call-line ${who}`;
+    row.innerHTML = `<span class="call-line-who">${who === 'bot' ? 'Agente' : 'Tú'}:</span> <span>${escapeHtml(text)}</span>`;
+    transcriptBox.appendChild(row);
+    transcriptBox.scrollTop = transcriptBox.scrollHeight;
+  };
+
+  const startRecognition = () => {
+    if (!SpeechRecognitionCtor || listening || finished) return;
+    recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'es-MX';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    listening = true;
+    const micBtn = controls.querySelector('.call-control.mic');
+    if (micBtn) micBtn.textContent = 'Escuchando…';
+    recognition.onresult = (event) => {
+      const text = event.results?.[0]?.[0]?.transcript || '';
+      if (text) appendLine('user', text);
+      transcript.push({ role: 'user_voice', content: text });
+    };
+    recognition.onend = () => {
+      listening = false;
+      const micBtnReset = controls.querySelector('.call-control.mic');
+      if (micBtnReset) micBtnReset.textContent = 'Responder con voz';
+    };
+    recognition.start();
+  };
+
+  if (fullVoiceSupported) {
+    const micBtn = document.createElement('button');
+    micBtn.type = 'button';
+    micBtn.className = 'call-control ghost mic';
+    micBtn.textContent = 'Responder con voz';
+    micBtn.addEventListener('click', startRecognition);
+    controls.appendChild(micBtn);
+  } else {
+    const note = document.createElement('p');
+    note.className = 'hint';
+    note.textContent = 'Modo texto activado: puedes practicar sin micrófono.';
+    body.appendChild(note);
+  }
+
+  const cleanup = () => {
+    window.clearInterval(timerRef);
+    recognition?.stop?.();
+    window.speechSynthesis?.cancel?.();
+  };
+  lessonRuntimeCleanup = cleanup;
+
+  const finalizeCall = (payload, score, extraDetails = {}) => {
+    if (finished) return;
+    finished = true;
+    cleanup();
+    showFeedback(payload);
+    optionsBox.innerHTML = '';
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn primary';
+    nextBtn.textContent = 'Continuar';
+    nextBtn.addEventListener('click', () =>
+      completeAndNext(score, feedbackToText(payload), {
+        transcript,
+        scores,
+        ...extraDetails,
+      })
+    );
+    replacePrimaryActions(nextBtn);
+  };
+
+  const startCard = document.createElement('div');
+  startCard.className = 'voice-permission';
+  startCard.innerHTML = `
+    <p class="voice-permission-title">Practicar esta llamada</p>
+    <p>Para practicar llamadas, necesitamos acceso a tu micrófono. También puedes continuar sin micrófono en modo texto.</p>
+  `;
+  const permissionActions = document.createElement('div');
+  permissionActions.className = 'voice-permission-actions';
+  const voiceBtn = document.createElement('button');
+  voiceBtn.type = 'button';
+  voiceBtn.className = 'btn primary';
+  voiceBtn.textContent = 'Continuar con voz';
+  voiceBtn.disabled = !activity.allowVoice;
+  const textBtn = document.createElement('button');
+  textBtn.type = 'button';
+  textBtn.className = 'btn ghost';
+  textBtn.textContent = 'Modo texto';
+  permissionActions.appendChild(voiceBtn);
+  permissionActions.appendChild(textBtn);
+  startCard.appendChild(permissionActions);
+  body.insertBefore(startCard, phone);
+
+  const renderStep = () => {
+    if (finished) return;
+    optionsBox.innerHTML = '';
+    const steps = Array.isArray(activity.steps) ? activity.steps : [];
+    if (step === -1) {
+      appendLine('bot', activity.opening || 'Tenemos que validar tu cuenta ahora.');
+      speak(activity.opening || 'Tenemos que validar tu cuenta ahora.');
+      step = 0;
+    }
+    const current = steps[step];
+    if (!current) {
+      const score = scores.length ? scores.reduce((acc, value) => acc + value, 0) / scores.length : 1;
+      finalizeCall(
+        {
+          title: feedbackRatingLabel(score),
+          signal: 'La llamada usó presión, aparente autoridad o acciones de alto riesgo para que reaccionaras sin validar.',
+          risk: 'En vishing, el mayor error es resolver dentro de la llamada y compartir datos o mover dinero.',
+          action: 'La salida segura es colgar y verificar por tu cuenta desde la app o el número oficial.',
+        },
+        score,
+        { endedBy: 'scenario_complete' }
+      );
+      return;
+    }
+
+    appendLine('bot', current.texto);
+    speak(current.texto);
+    current.opciones.forEach((option) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'option-btn';
+      btn.textContent = option.texto;
+      btn.addEventListener('click', () => {
+        appendLine('user', option.texto);
+        transcript.push({ role: 'choice', content: option.texto });
+        scores.push(clamp(Number(option.puntaje) || 0, 0, 1));
+        const payload = {
+          title: feedbackRatingLabel(option.puntaje),
+          signal: current.texto,
+          risk: 'La llamada quiere que tomes una decisión dentro de su propio guion.',
+          action: option.feedback || 'Cuelga y verifica por tu cuenta.',
+        };
+        showFeedback(payload);
+        step += 1;
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn primary';
+        nextBtn.textContent = step < steps.length ? 'Siguiente tramo' : 'Cerrar llamada';
+        nextBtn.addEventListener('click', renderStep);
+        replacePrimaryActions(nextBtn);
+      });
+      optionsBox.appendChild(btn);
+    });
+  };
+
+  controls.querySelector('[data-control="mute"]')?.addEventListener('click', (event) => {
+    const btn = event.currentTarget;
+    if (!(btn instanceof HTMLElement)) return;
+    btn.classList.toggle('active');
+    chip.textContent = btn.classList.contains('active') ? 'Micrófono silenciado' : 'Llamada entrante';
+  });
+
+  controls.querySelector('[data-control="speaker"]')?.addEventListener('click', (event) => {
+    const btn = event.currentTarget;
+    if (!(btn instanceof HTMLElement)) return;
+    btn.classList.toggle('active');
+    chip.textContent = btn.classList.contains('active') ? 'Altavoz activado' : 'Llamada entrante';
+  });
+
+  controls.querySelector('[data-control="keypad"]')?.addEventListener('click', (event) => {
+    const btn = event.currentTarget;
+    if (!(btn instanceof HTMLElement)) return;
+    btn.classList.toggle('active');
+    chip.textContent = btn.classList.contains('active') ? 'Teclado abierto' : 'Llamada entrante';
+  });
+
+  controls.querySelector('[data-control="hangup"]')?.addEventListener('click', () => {
+    startCard.remove();
+    appendLine('user', 'Cuelgo y verifico por mi cuenta.');
+    transcript.push({ role: 'user', content: 'Cuelgo y verifico por mi cuenta.' });
+    const score = scores.length ? clamp(scores.reduce((acc, value) => acc + value, 0) / scores.length + 0.1, 0, 1) : 0.95;
+    finalizeCall(
+      {
+        title: 'Buena',
+        signal: 'Cortaste la llamada antes de compartir datos o seguir el guion del supuesto agente.',
+        risk: 'Seguir en una llamada sospechosa aumenta la presión para entregar códigos, datos o dinero.',
+        action: 'Ahora toca verificar desde la app oficial o llamando tú al número real de la institución.',
+      },
+      score,
+      { endedBy: 'user_hangup' }
+    );
+  });
+
+  voiceBtn.addEventListener('click', async () => {
+    if (!fullVoiceSupported) {
+      voiceMode = false;
+      startCard.remove();
+      showFeedback({
+        title: 'Modo texto',
+        signal: 'Tu navegador no tiene soporte completo para practicar esta llamada con voz.',
+        action: 'Seguiremos en modo texto con la misma lógica de seguridad.',
+      });
+      renderStep();
+      return;
+    }
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Tu navegador no permite activar el micrófono en esta simulación.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream?.getTracks?.().forEach((track) => track.stop());
+      voiceMode = true;
+    } catch (error) {
+      voiceMode = false;
+      showFeedback({
+        title: 'Modo texto',
+        signal: 'No se activó el micrófono para esta práctica.',
+        action: 'Puedes continuar en modo texto y aplicar la misma decisión segura: colgar y verificar por canales oficiales.',
+        extra: error?.message || '',
+      });
+    }
+    startCard.remove();
+    renderStep();
+  });
+  textBtn.addEventListener('click', () => {
+    voiceMode = false;
+    startCard.remove();
+    renderStep();
+  });
+};
+
 const renderLessonActivity = (moduleIndex, activityIndex) => {
   if (!els.lessonActivity || !latestCoursePlan || !courseProgress) return;
+  if (typeof lessonRuntimeCleanup === 'function') {
+    lessonRuntimeCleanup();
+    lessonRuntimeCleanup = null;
+  }
   const info = getModuleAndActivity(moduleIndex, activityIndex);
   if (!info) return;
   const { module, activities, activity } = info;
 
   currentLesson = { moduleIndex, activityIndex };
   markModuleVisited(moduleIndex, activityIndex);
+  rememberScenarioSeen(module, activity);
   setLessonMeta(moduleIndex, activityIndex);
   els.lessonActivity.innerHTML = '';
 
@@ -2044,12 +3373,28 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
     goNext();
   };
 
-  const showFeedback = (text) => {
+  const showFeedback = (content) => {
+    if (!content || (typeof content === 'string' && !content.trim())) {
+      feedback.classList.add('hidden');
+      feedback.innerHTML = '';
+      return;
+    }
     feedback.classList.remove('hidden');
-    feedback.textContent = text;
+    feedback.innerHTML = feedbackToHtml(content);
   };
 
-  if (activity.tipo === 'simulacion' || activity.tipo === 'quiz') {
+  if (activity.tipo === 'concepto') {
+    renderConceptBlocks(body, activity);
+    const doneBtn = document.createElement('button');
+    doneBtn.className = 'btn primary';
+    doneBtn.textContent = 'Continuar';
+    doneBtn.addEventListener('click', () =>
+      completeAndNext(1, 'Actividad completada.', {
+        viewed: true,
+      })
+    );
+    addPrimaryActions(doneBtn);
+  } else if (activity.tipo === 'simulacion' || activity.tipo === 'quiz') {
     renderParagraphs(body, activity.escenario);
     const options = Array.isArray(activity.opciones) ? activity.opciones : [];
     const correctIndex = Number(activity.correcta);
@@ -2065,13 +3410,30 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         answered = true;
         const isCorrect = idx === correctIndex;
         btn.classList.add(isCorrect ? 'correct' : 'wrong');
-        showFeedback(activity.explicacion || (isCorrect ? 'Bien.' : 'Casi. Intenta otra vez.'));
+        const payload = {
+          title: feedbackRatingLabel(isCorrect ? 1 : 0.4),
+          signal:
+            activity.senal ||
+            (isCorrect
+              ? 'Detectaste la pista principal del escenario.'
+              : 'La señal clave estaba en la urgencia, el canal o la petición del mensaje.'),
+          risk:
+            activity.riesgo ||
+            'Responder sin verificar puede exponerte a robo de datos, dinero o acceso.',
+          action:
+            activity.accion ||
+            (options[correctIndex]
+              ? `La acción segura era: ${options[correctIndex]}`
+              : 'Verifica por un canal oficial antes de actuar.'),
+          extra: activity.explicacion || (isCorrect ? 'Buena decisión.' : 'Valía la pena frenar y revisar mejor la situación.'),
+        };
+        showFeedback(payload);
 
         const continueBtn = document.createElement('button');
         continueBtn.className = 'btn primary';
         continueBtn.textContent = 'Continuar';
         continueBtn.addEventListener('click', () => {
-          completeAndNext(isCorrect ? 1 : 0.6, activity.explicacion, {
+          completeAndNext(isCorrect ? 1 : 0.6, feedbackToText(payload), {
             selectedIndex: idx,
             selectedText: optionText,
             correctIndex,
@@ -2122,10 +3484,20 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
     doneBtn.textContent = 'Listo';
     doneBtn.addEventListener('click', () => {
       if (!allChecked()) {
-        showFeedback('Marca todos los puntos para continuar.');
+        showFeedback({
+          title: 'Falta completar el checklist',
+          signal: 'Todavía no marcaste todos los pasos.',
+          action: 'Completa cada punto antes de avanzar para fijar la rutina.',
+        });
         return;
       }
-      completeAndNext(1, 'Checklist completado.', {
+      const payload = {
+        title: 'Buena',
+        signal: 'Repasaste los pasos clave sin saltarte ninguno.',
+        risk: 'Si omites un paso de verificación, aumenta la probabilidad de actuar con prisa.',
+        action: 'Usa este checklist como rutina rápida cuando un mensaje o llamada te meta presión.',
+      };
+      completeAndNext(1, feedbackToText(payload), {
         checkedItems: items,
         totalItems: items.length,
       });
@@ -2178,7 +3550,13 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         });
         const score = clamp(Number(resp?.score) || 0, 0, 1);
         const fb = String(resp?.feedback || 'Listo.').trim();
-        showFeedback(fb);
+        showFeedback({
+          title: feedbackRatingLabel(score),
+          signal: 'Tu respuesta mostró cómo identificar o frenar el riesgo.',
+          risk: 'La idea es no resolver desde el canal sospechoso ni compartir datos.',
+          action: 'Quédate con una frase corta, clara y orientada a verificar por canales oficiales.',
+          extra: fb,
+        });
 
         const continueBtn = document.createElement('button');
         continueBtn.className = 'btn primary';
@@ -2195,7 +3573,12 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
           renderLessonActivity(moduleIndex, activityIndex);
         });
       } catch (err) {
-        showFeedback(`No pude evaluar con IA. ${err.message || ''}`.trim());
+        showFeedback({
+          title: 'Sin evaluación',
+          signal: 'No se pudo revisar esta respuesta con IA.',
+          action: 'Puedes reintentar y mantener la misma regla: no compartas datos y verifica por canales oficiales.',
+          extra: err.message || '',
+        });
       } finally {
         setBusy(false);
       }
@@ -2204,118 +3587,14 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
     submitBtn.addEventListener('click', grade);
     addPrimaryActions(submitBtn);
   } else if (activity.tipo === 'sim_chat') {
-    const intro = document.createElement('p');
-    intro.className = 'hint';
-    intro.textContent =
-      'Simulación real: la IA actuará como estafador. Tu objetivo es NO caer y verificar por canales oficiales.';
-    body.appendChild(intro);
-
-    renderParagraphs(body, activity.escenario);
-
-    const messages = document.createElement('div');
-    messages.className = 'chat-messages';
-    messages.style.maxHeight = '320px';
-    messages.style.minHeight = '220px';
-
-    const session =
-      simSessions.get(activity.id) || { history: [], done: false, bestScore: 0, turns: 0 };
-    simSessions.set(activity.id, session);
-
-    const pushMsg = (text, who) => {
-      const bubble = document.createElement('div');
-      bubble.className = `chat-bubble ${who}`;
-      bubble.textContent = text;
-      messages.appendChild(bubble);
-      messages.scrollTop = messages.scrollHeight;
-    };
-
-    if (session.history.length === 0) {
-      const opening = activity.inicio || 'Hola, soy soporte. Necesito confirmar unos datos rapido.';
-      session.history.push({ role: 'scammer', content: opening });
-    }
-
-    messages.innerHTML = '';
-    session.history.forEach((m) => pushMsg(m.content, m.role === 'user' ? 'user' : 'bot'));
-    body.appendChild(messages);
-
-    const form = document.createElement('form');
-    form.className = 'chat-form';
-    form.addEventListener('submit', (e) => e.preventDefault());
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Responde (sin datos reales)…';
-
-    const send = document.createElement('button');
-    send.className = 'btn primary';
-    send.type = 'submit';
-    send.textContent = 'Enviar';
-
-    const setBusy = (busy) => {
-      input.disabled = busy;
-      send.disabled = busy;
-      send.textContent = busy ? '…' : 'Enviar';
-    };
-
-    form.appendChild(input);
-    form.appendChild(send);
-    body.appendChild(form);
-
-    const finish = (finalScore, fb) => {
-      showFeedback(fb);
-      const doneBtn = document.createElement('button');
-      doneBtn.className = 'btn primary';
-      doneBtn.textContent = 'Finalizar simulación';
-      doneBtn.addEventListener('click', () =>
-        completeAndNext(finalScore, fb, {
-          turns: session.turns,
-          transcript: session.history.slice(-8),
-        })
-      );
-      replacePrimaryActions(doneBtn);
-    };
-
-    form.addEventListener('submit', async () => {
-      const text = input.value.trim();
-      if (!text || session.done) return;
-      input.value = '';
-      session.turns += 1;
-
-      session.history.push({ role: 'user', content: text });
-      pushMsg(text, 'user');
-      setBusy(true);
-
-      try {
-        const resp = await callBackend('/api/course/sim-turn', {
-          scenario: activity.escenario,
-          history: session.history,
-          userMessage: text,
-          turn: session.turns,
-          turnos_max: activity.turnos_max,
-          user: { answers, assessment: latestAssessment },
-        });
-
-        const scammerReply = String(resp?.reply || '').trim();
-        if (scammerReply) {
-          session.history.push({ role: 'scammer', content: scammerReply });
-          pushMsg(scammerReply, 'bot');
-        }
-
-        const coachFeedback = String(resp?.coach_feedback || '').trim();
-        if (coachFeedback) showFeedback(coachFeedback);
-
-        const score = clamp(Number(resp?.score) || 0, 0, 1);
-        session.bestScore = Math.max(session.bestScore, score);
-        session.done = Boolean(resp?.done) || session.turns >= activity.turnos_max;
-
-        if (session.done) {
-          finish(session.bestScore, coachFeedback || 'Simulación terminada.');
-        }
-      } catch (err) {
-        showFeedback(`No pude continuar la simulación. ${err.message || ''}`.trim());
-      } finally {
-        setBusy(false);
-      }
+    renderWhatsAppSimulation({
+      moduleIndex,
+      activityIndex,
+      activity,
+      body,
+      showFeedback,
+      replacePrimaryActions,
+      completeAndNext,
     });
   } else if (activity.tipo === 'compare_domains') {
     renderParagraphs(body, activity.prompt || 'Elige el dominio legítimo.');
@@ -2345,13 +3624,22 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
             ? 'Bien: elegiste el dominio más consistente.'
             : 'Ojo: en estafas, cambian letras o agregan palabras al dominio.');
         const tip = activity.tip ? `Tip: ${activity.tip}` : '';
-        showFeedback(`${expl}${tip ? `\n\n${tip}` : ''}`.trim());
+        const payload = {
+          title: feedbackRatingLabel(isCorrect ? 1 : 0.45),
+          signal: isCorrect
+            ? 'Elegiste el dominio más consistente para verificar por tu cuenta.'
+            : 'El dominio seguro suele ser el más simple y coherente con la marca real.',
+          risk: 'Un cambio pequeño en letras o extensiones puede llevarte a una web clonada.',
+          action: 'Si dudas, no abras el enlace desde el mensaje. Escribe tú el dominio en el navegador.',
+          extra: `${expl}${tip ? ` ${tip}` : ''}`.trim(),
+        };
+        showFeedback(payload);
 
         const continueBtn = document.createElement('button');
         continueBtn.className = 'btn primary';
         continueBtn.textContent = 'Continuar';
         continueBtn.addEventListener('click', () => {
-          completeAndNext(isCorrect ? 1 : 0.6, expl, {
+          completeAndNext(isCorrect ? 1 : 0.6, feedbackToText(payload), {
             selectedDomain: domain,
             correctDomain: domains[correctIndex] || '',
           });
@@ -2441,17 +3729,24 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
         if (!chosen.has(sig.id) && sig.correcta) row.classList.add('missed');
       });
 
-      const rating = score >= 0.85 ? 'Buena' : score >= 0.6 ? 'Regular' : 'Riesgosa';
       const missed = senales.filter((s) => s.correcta && !chosen.has(s.id)).map((s) => s.label);
-      const extra = missed.length ? `Te faltó detectar: ${missed.slice(0, 3).join(', ')}.` : 'Detectaste las señales clave.';
-      const fb = `Resultado: ${rating}. Encontraste ${found}/${totalCorrect} señales.\n${extra}`.trim();
-      showFeedback(fb);
+      const payload = {
+        title: feedbackRatingLabel(score),
+        signal: `Encontraste ${found} de ${totalCorrect} señales relevantes.`,
+        risk: 'Cuando una señal pasa desapercibida, es más fácil que el mensaje te arrastre al siguiente paso.',
+        action:
+          activity.accion ||
+          'Detén la conversación o mensaje y verifica por el canal oficial antes de abrir links, pagar o responder.',
+        detected: senales.filter((s) => chosen.has(s.id) && s.correcta).map((s) => s.label),
+        missed: missed.slice(0, 3),
+      };
+      showFeedback(payload);
 
       const continueBtn = document.createElement('button');
       continueBtn.className = 'btn primary';
       continueBtn.textContent = 'Continuar';
       continueBtn.addEventListener('click', () =>
-        completeAndNext(score, fb, {
+        completeAndNext(score, feedbackToText(payload), {
           selectedSignals: senales
             .filter((sig) => chosen.has(sig.id))
             .map((sig) => sig.label),
@@ -2463,343 +3758,31 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
 
     addPrimaryActions(evalBtn);
   } else if (activity.tipo === 'inbox') {
-    if (activity.intro) renderParagraphs(body, activity.intro);
-    const kind = activity.kind === 'sms' ? 'SMS' : 'Correo';
-
-    const list = document.createElement('div');
-    list.className = 'inbox';
-
-    const msgs = Array.isArray(activity.mensajes) ? activity.mensajes : [];
-    const selections = new Map();
-    const cards = new Map();
-
-    const updateEval = (btn) => {
-      btn.disabled = selections.size !== msgs.length;
-    };
-
-    const makeChoiceBtn = (label, choice, msgId, btnGroup) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'inbox-choice';
-      b.textContent = label;
-      b.addEventListener('click', () => {
-        selections.set(msgId, choice);
-        btnGroup.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
-        b.classList.add('active');
-      });
-      return b;
-    };
-
-    msgs.forEach((m) => {
-      const card = document.createElement('div');
-      card.className = 'inbox-item';
-
-      const top = document.createElement('div');
-      top.className = 'inbox-top';
-
-      const left = document.createElement('div');
-      const from = document.createElement('p');
-      from.className = 'inbox-from';
-      from.textContent = m.from || (kind === 'SMS' ? 'Remitente desconocido' : 'Correo desconocido');
-      left.appendChild(from);
-
-      if (m.subject) {
-        const subject = document.createElement('p');
-        subject.className = 'inbox-subject';
-        subject.textContent = m.subject;
-        left.appendChild(subject);
-      }
-
-      const tag = document.createElement('span');
-      tag.className = 'inbox-tag';
-      tag.textContent = kind;
-
-      top.appendChild(left);
-      top.appendChild(tag);
-
-      const text = document.createElement('p');
-      text.className = 'inbox-text';
-      text.textContent = m.text;
-
-      const choices = document.createElement('div');
-      choices.className = 'inbox-choices';
-      const safeBtn = makeChoiceBtn('Seguro', 'seguro', m.id, choices);
-      const scamBtn = makeChoiceBtn('Estafa', 'estafa', m.id, choices);
-      choices.appendChild(safeBtn);
-      choices.appendChild(scamBtn);
-
-      card.appendChild(top);
-      card.appendChild(text);
-      card.appendChild(choices);
-
-      list.appendChild(card);
-      cards.set(m.id, card);
+    renderInboxSimulation({
+      activity,
+      body,
+      showFeedback,
+      replacePrimaryActions,
+      completeAndNext,
+      moduleIndex,
+      activityIndex,
     });
-
-    body.appendChild(list);
-
-    const evalBtn = document.createElement('button');
-    evalBtn.className = 'btn primary';
-    evalBtn.textContent = 'Evaluar';
-    evalBtn.disabled = true;
-
-    const retryBtn = document.createElement('button');
-    retryBtn.className = 'btn ghost';
-    retryBtn.textContent = 'Reintentar';
-    retryBtn.addEventListener('click', () => renderLessonActivity(moduleIndex, activityIndex));
-
-    // enable eval when all selected
-    const obs = new MutationObserver(() => updateEval(evalBtn));
-    obs.observe(body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-
-    evalBtn.addEventListener('click', () => {
-      obs.disconnect();
-      let ok = 0;
-      msgs.forEach((m) => {
-        const picked = selections.get(m.id);
-        const correct = m.correcto === 'estafa' ? 'estafa' : 'seguro';
-        const card = cards.get(m.id);
-        if (!card) return;
-        if (picked === correct) {
-          ok += 1;
-          card.classList.add('correct');
-        } else {
-          card.classList.add('wrong');
-        }
-        if (m.explicacion) {
-          const expl = document.createElement('p');
-          expl.className = 'inbox-expl';
-          expl.textContent = m.explicacion;
-          card.appendChild(expl);
-        }
-      });
-
-      const score = msgs.length ? clamp(ok / msgs.length, 0, 1) : 1;
-      const rating = score >= 0.85 ? 'Buena' : score >= 0.6 ? 'Regular' : 'Riesgosa';
-      const fb = `Resultado: ${rating}. Acertaste ${ok}/${msgs.length}.`;
-      showFeedback(fb);
-
-      const continueBtn = document.createElement('button');
-      continueBtn.className = 'btn primary';
-      continueBtn.textContent = 'Continuar';
-      continueBtn.addEventListener('click', () =>
-        completeAndNext(score, fb, {
-          selections: msgs.map((m) => ({
-            from: m.from,
-            picked: selections.get(m.id) || 'sin responder',
-            correct: m.correcto === 'estafa' ? 'estafa' : 'seguro',
-          })),
-        })
-      );
-
-      replacePrimaryActions(continueBtn, retryBtn);
-    });
-
-    // Hook selection updates
-    body.addEventListener('click', () => updateEval(evalBtn));
-    addPrimaryActions(evalBtn);
   } else if (activity.tipo === 'web_lab') {
-    if (activity.intro) renderParagraphs(body, activity.intro);
-
-    const page = activity.pagina || {};
-    const hotspots = Array.isArray(activity.hotspots) ? activity.hotspots : [];
-    const hotspotByTarget = new Map(hotspots.map((h) => [h.target, h]));
-    const flagged = new Set();
-    const elements = new Map();
-
-    const lab = document.createElement('div');
-    lab.className = 'web-lab';
-
-    const bar = document.createElement('div');
-    bar.className = 'web-lab-bar hotspot';
-    bar.dataset.hotspot = 'domain';
-    bar.textContent = `https://${page.dominio || 'tienda-promos.shop'}`;
-    lab.appendChild(bar);
-    elements.set('domain', bar);
-
-    const hero = document.createElement('div');
-    hero.className = 'web-lab-hero';
-    const brand = document.createElement('p');
-    brand.className = 'web-lab-brand';
-    brand.textContent = page.marca || 'NovaTienda';
-    const banner = document.createElement('p');
-    banner.className = 'web-lab-banner hotspot';
-    banner.dataset.hotspot = 'banner';
-    banner.textContent = page.banner || 'OFERTA ESPECIAL HOY';
-    const sub = document.createElement('p');
-    sub.className = 'web-lab-sub';
-    sub.textContent = page.sub || 'Compra segura y envío rápido.';
-    hero.appendChild(brand);
-    hero.appendChild(banner);
-    hero.appendChild(sub);
-    lab.appendChild(hero);
-    elements.set('banner', banner);
-
-    const grid = document.createElement('div');
-    grid.className = 'web-lab-grid';
-    const cart = { count: 0 };
-    const cartPill = document.createElement('span');
-    cartPill.className = 'web-lab-cart';
-    cartPill.textContent = 'Carrito: 0';
-
-    (Array.isArray(page.productos) ? page.productos : []).forEach((p) => {
-      const card = document.createElement('div');
-      card.className = 'web-lab-product';
-      const name = document.createElement('p');
-      name.className = 'web-lab-product-name';
-      name.textContent = p.nombre;
-      const price = document.createElement('p');
-      price.className = 'web-lab-product-price';
-      price.textContent = p.antes ? `${p.antes} → ${p.precio}` : p.precio;
-      const add = document.createElement('button');
-      add.type = 'button';
-      add.className = 'btn ghost web-lab-add';
-      add.textContent = 'Agregar';
-      add.addEventListener('click', () => {
-        cart.count += 1;
-        cartPill.textContent = `Carrito: ${cart.count}`;
-      });
-      card.appendChild(name);
-      card.appendChild(price);
-      card.appendChild(add);
-      grid.appendChild(card);
+    renderWebLabSimulation({
+      activity,
+      body,
+      showFeedback,
+      replacePrimaryActions,
+      completeAndNext,
     });
-    lab.appendChild(cartPill);
-    lab.appendChild(grid);
-
-    const footer = document.createElement('div');
-    footer.className = 'web-lab-footer hotspot';
-    footer.dataset.hotspot = 'contacto';
-    footer.textContent = page.contacto || 'Contacto: solo por mensaje (sin dirección).';
-    lab.appendChild(footer);
-    elements.set('contacto', footer);
-
-    const checkout = document.createElement('div');
-    checkout.className = 'web-lab-checkout hotspot';
-    checkout.dataset.hotspot = 'pago';
-    const payTitle = document.createElement('p');
-    payTitle.className = 'web-lab-pay-title';
-    payTitle.textContent = 'Pago';
-    const payText = document.createElement('p');
-    payText.className = 'web-lab-pay-text';
-    const payments = Array.isArray(page.pagos) && page.pagos.length ? page.pagos.join(' • ') : 'Transferencia bancaria (único método)';
-    payText.textContent = payments;
-    const payBtn = document.createElement('button');
-    payBtn.type = 'button';
-    payBtn.className = 'btn primary web-lab-pay';
-    payBtn.textContent = 'Pagar';
-    payBtn.addEventListener('click', () => {
-      showFeedback('Antes de pagar, revisa bien el dominio, el contacto y el método de pago.');
+  } else if (activity.tipo === 'call_sim') {
+    renderCallSimulation({
+      activity,
+      body,
+      showFeedback,
+      replacePrimaryActions,
+      completeAndNext,
     });
-    checkout.appendChild(payTitle);
-    checkout.appendChild(payText);
-    checkout.appendChild(payBtn);
-    lab.appendChild(checkout);
-    elements.set('pago', checkout);
-
-    const hint = document.createElement('p');
-    hint.className = 'hint';
-    hint.textContent = 'Modo detective: haz click en lo que te parezca sospechoso.';
-
-    const hud = document.createElement('div');
-    hud.className = 'web-lab-hud';
-    const counter = document.createElement('span');
-    counter.className = 'web-lab-counter';
-    counter.textContent = 'Señales marcadas: 0';
-    hud.appendChild(counter);
-
-    const updateCounter = () => {
-      counter.textContent = `Señales marcadas: ${flagged.size}`;
-    };
-
-    const toggleFlag = (target) => {
-      const el = elements.get(target);
-      if (!el) return;
-      if (flagged.has(target)) {
-        flagged.delete(target);
-        el.classList.remove('flagged');
-      } else {
-        flagged.add(target);
-        el.classList.add('flagged');
-      }
-      updateCounter();
-    };
-
-    lab.addEventListener('click', (e) => {
-      const t = e.target instanceof HTMLElement ? e.target.closest('[data-hotspot]') : null;
-      if (!t) return;
-      const target = String(t.dataset.hotspot || '').trim();
-      if (!target) return;
-      toggleFlag(target);
-    });
-
-    body.appendChild(hint);
-    body.appendChild(lab);
-    body.appendChild(hud);
-
-    const evalBtn = document.createElement('button');
-    evalBtn.className = 'btn primary';
-    evalBtn.textContent = 'Evaluar';
-
-    const retryBtn = document.createElement('button');
-    retryBtn.className = 'btn ghost';
-    retryBtn.textContent = 'Reintentar';
-    retryBtn.addEventListener('click', () => renderLessonActivity(moduleIndex, activityIndex));
-
-    const computeF1 = (tp, fp, fn) => {
-      const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
-      const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
-      if (precision + recall === 0) return 0;
-      return (2 * precision * recall) / (precision + recall);
-    };
-
-    evalBtn.addEventListener('click', () => {
-      const correctTargets = new Set(hotspots.filter((h) => h.correcta).map((h) => h.target));
-      let tp = 0;
-      let fp = 0;
-      let fn = 0;
-      flagged.forEach((t) => {
-        if (correctTargets.has(t)) tp += 1;
-        else fp += 1;
-      });
-      correctTargets.forEach((t) => {
-        if (!flagged.has(t)) fn += 1;
-      });
-      const score = clamp(computeF1(tp, fp, fn), 0, 1);
-
-      // annotate elements
-      correctTargets.forEach((t) => {
-        const el = elements.get(t);
-        if (!el) return;
-        if (flagged.has(t)) el.classList.add('correct');
-        else el.classList.add('missed');
-      });
-      flagged.forEach((t) => {
-        if (correctTargets.has(t)) return;
-        const el = elements.get(t);
-        if (el) el.classList.add('wrong');
-      });
-
-      const missed = Array.from(correctTargets).filter((t) => !flagged.has(t));
-      const fb = missed.length
-        ? `Te faltó marcar ${missed.length} señal(es). En tiendas falsas, esos detalles son claves.`
-        : 'Bien: marcaste las señales principales de riesgo.';
-      showFeedback(fb);
-
-      const continueBtn = document.createElement('button');
-      continueBtn.className = 'btn primary';
-      continueBtn.textContent = 'Continuar';
-      continueBtn.addEventListener('click', () =>
-        completeAndNext(score, fb, {
-          flaggedTargets: Array.from(flagged),
-          cartCount: cart.count,
-        })
-      );
-
-      replacePrimaryActions(continueBtn, retryBtn);
-    });
-
-    addPrimaryActions(evalBtn);
   } else if (activity.tipo === 'scenario_flow') {
     if (activity.intro) renderParagraphs(body, activity.intro);
     const pasos = Array.isArray(activity.pasos) ? activity.pasos : [];
@@ -2818,13 +3801,18 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
       const st = pasos[step];
       if (!st) {
         const final = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 1;
-        const fb = 'Simulación terminada.';
-        showFeedback(fb);
+        const payload = {
+          title: feedbackRatingLabel(final),
+          signal: 'Aplicaste tu rutina de verificación en una situación cotidiana.',
+          risk: 'Cuando la rutina se rompe, la urgencia o la confianza pueden tomar el control.',
+          action: 'Mantén la secuencia: pausa, verifica y confirma por canal oficial.',
+        };
+        showFeedback(payload);
         const doneBtn = document.createElement('button');
         doneBtn.className = 'btn primary';
         doneBtn.textContent = 'Continuar';
         doneBtn.addEventListener('click', () =>
-          completeAndNext(final, fb, { flowChoices })
+          completeAndNext(final, feedbackToText(payload), { flowChoices })
         );
         replacePrimaryActions(doneBtn);
         return;
@@ -2850,8 +3838,13 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
             choice: opt.texto,
             score,
           });
-          const fb = opt.feedback || 'Listo. En una situación real, verifica por un canal oficial.';
-          showFeedback(fb);
+          const payload = {
+            title: feedbackRatingLabel(score),
+            signal: st.texto,
+            risk: 'La prisa, la confianza o el contexto pueden hacerte bajar la guardia.',
+            action: opt.feedback || 'Verifica por un canal oficial antes de actuar.',
+          };
+          showFeedback(payload);
 
           const nextIndex =
             Number.isFinite(Number(opt.siguiente)) ? Number(opt.siguiente) : step + 1;
@@ -2866,7 +3859,7 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
               return;
             }
             const final = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 1;
-            completeAndNext(final, fb, { flowChoices });
+            completeAndNext(final, feedbackToText(payload), { flowChoices });
           });
 
           replacePrimaryActions(continueBtn);
@@ -2877,7 +3870,7 @@ const renderLessonActivity = (moduleIndex, activityIndex) => {
 
     renderStep();
   } else {
-    renderParagraphs(body, activity.contenido);
+    renderConceptBlocks(body, activity);
     const doneBtn = document.createElement('button');
     doneBtn.className = 'btn primary';
     doneBtn.textContent = 'Continuar';

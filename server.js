@@ -338,20 +338,22 @@ Reglas globales:
 5) actividades: entre 6 y 10 por módulo (varía el formato; no todos iguales).
 6) Tipos permitidos de actividad:
    - concepto, quiz, simulacion, abierta, sim_chat, checklist,
-   - compare_domains, signal_hunt, inbox, web_lab, scenario_flow.
-7) Cada actividad debe tener: id, tipo, titulo, peso (0.5 a 3).
+   - compare_domains, signal_hunt, inbox, web_lab, scenario_flow, call_sim.
+7) Cada actividad debe tener: id, scenarioId, tipo, titulo, peso (0.5 a 3).
+8) scenarioId debe ser estable, descriptivo y ÚNICO dentro del módulo y dentro de módulos repetidos de la misma categoría.
 
 Campos por tipo:
-- concepto: contenido (max 120 palabras)
+- concepto: contenido (max 120 palabras) y opcional bloques (3-5 objetos con: titulo, texto)
 - checklist: intro (1 frase), items (4-9)
 - quiz/simulacion: escenario (max 140 palabras), opciones (3-5), correcta (index), explicacion (max 55 palabras)
 - abierta: prompt (1-2 frases) y opcional pistas (0-3)
-- sim_chat: escenario (max 90 palabras), inicio (1 mensaje del estafador), turnos_max (5-8)
+- sim_chat: escenario (max 90 palabras), inicio (1 mensaje del estafador), turnos_max (5-8), contactName, avatarLabel, contactStatus, quickReplies (0-4)
 - compare_domains: prompt (1 frase), dominios (2-4), correcta (index), explicacion (max 55 palabras), tip (opcional)
 - signal_hunt: mensaje (max 160 palabras), senales (4-8 objetos con: id, label, correcta, explicacion corta)
-- inbox: kind ("sms" o "correo"), intro (1 frase), mensajes (4-7 objetos con: id, from, subject opcional, text, correcto ("seguro"|"estafa"), explicacion corta)
-- web_lab: intro (1 frase), pagina (marca, dominio, banner, sub, contacto, pagos[], productos[]), hotspots (target debe ser: "domain","banner","contacto","pago"; 2-4 correctas)
+- inbox: kind ("sms" o "correo"), intro (1 frase), mensajes (4-7 objetos con: id, displayName opcional, from, subject opcional, preview opcional, dateLabel opcional, warning opcional, text, body opcional[], attachments opcional[], details opcional {from, replyTo, returnPath}, ctaLabel opcional, linkPreview opcional, correcto ("seguro"|"estafa"), explicacion corta)
+- web_lab: intro (1 frase), pagina (marca, dominio, browserTitle opcional, banner, sub, contacto, pagos[], productos[], shipping opcional, reviews opcional, policy opcional, cartNote opcional, checkoutPrompt opcional), hotspots (target debe ser: "domain","banner","contacto","pago","shipping","reviews","policy"; 2-6 correctas), decisionPrompt opcional, decisionOptions opcional[], correctDecision opcional
 - scenario_flow: intro (1 frase), pasos (2-5; cada paso: texto y 2-4 opciones con: texto, puntaje 0-1, feedback corto, siguiente opcional)
+- call_sim: intro (1 frase), callerName, callerNumber, opening, allowVoice (boolean), voiceProfile opcional ("male"|"female"), steps (2-4; cada step: texto y 2-4 opciones con: texto, puntaje 0-1, feedback corto)
 
 Reglas de dificultad por nivel:
 - basico: señales claras y decisiones fáciles.
@@ -363,14 +365,15 @@ Reglas por categoría (evita repetición):
 - sms: incluye inbox(kind="sms") y signal_hunt.
 - correo_redes: incluye inbox(kind="correo") y signal_hunt.
 - whatsapp: incluye sim_chat y signal_hunt (enlaces/urgencia/suplantación).
-- llamadas: incluye scenario_flow (y una abierta tipo “guión para colgar/verificar”).
+- llamadas: incluye call_sim (y una abierta tipo “guión para colgar/verificar”).
 - habitos: incluye scenario_flow (rutina) y checklist (regla personal).
 
 Reglas de consistencia:
 - La ruta DEBE respetar "categorias_sugeridas" (mismo orden y longitud).
 - Si viene "niveles_sugeridos", úsalo para nivel por módulo (mismo orden).
 - Si una categoría se repite, cambia enfoque y sube dificultad (básico -> refuerzo -> avanzado).
-- No repitas títulos ni actividades “clonadas”.
+- No repitas títulos, scenarioId ni actividades “clonadas”.
+- Si "progreso_actual" incluye seenScenarioIds, evita reciclar esos mismos escenarios.
 
 Seguridad:
 - No incluyas URLs ni teléfonos.
@@ -440,6 +443,10 @@ const buildSimTurnPrompt = ({ scenario, history, userMessage, turn, turnos_max, 
         'Devuelve SOLO JSON válido con estas llaves exactas:\n' +
         '- reply (string): el siguiente mensaje del estafador (corto, manipulador, genérico).\n' +
         '- coach_feedback (string): retroalimentación breve y directa (2–4 frases).\n' +
+        '- signal_detected (string): señal exacta detectada en ese turno.\n' +
+        '- risk (string): por qué esa señal es peligrosa.\n' +
+        '- safe_action (string): qué debería hacer el usuario en una situación real.\n' +
+        '- rating (string): "Buena", "Regular" o "Riesgosa".\n' +
         '- score (number 0-1): qué tan segura fue la respuesta del usuario.\n' +
         '- done (boolean): true si el usuario ya actuó de forma segura o si se llegó al límite.\n\n' +
         'Reglas para coach_feedback:\n' +
@@ -1038,6 +1045,7 @@ const COURSE_CATEGORIES = [
 ];
 
 const COURSE_MODULE_COUNT = 7;
+const COURSE_PLAN_VERSION = 4;
 
 const MODULE_LEVELS = ['basico', 'refuerzo', 'avanzado'];
 
@@ -1078,7 +1086,1741 @@ const normalizeCourseCategory = (value) => {
   return COURSE_CATEGORIES.includes(raw) ? raw : 'habitos';
 };
 
-const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel }) => {
+const normalizeScenarioToken = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+
+const createScenarioId = ({ category, level, label, variant = 0 }) => {
+  const parts = [
+    normalizeScenarioToken(category),
+    normalizeScenarioToken(level),
+    normalizeScenarioToken(label),
+    `v${Number(variant) || 0}`,
+  ].filter(Boolean);
+  return parts.join('__') || `scenario__${Date.now()}`;
+};
+
+const fingerprintScenarioId = (...parts) => {
+  const raw = parts
+    .flatMap((part) => (Array.isArray(part) ? part : [part]))
+    .map((part) => String(part || '').trim().toLowerCase())
+    .filter(Boolean)
+    .join('||');
+  const hash = crypto.createHash('sha1').update(raw || 'escudo').digest('hex').slice(0, 12);
+  return `sc_${hash}`;
+};
+
+const getActivityRepeatKey = (activity) =>
+  fingerprintScenarioId(
+    activity?.tipo,
+    activity?.titulo,
+    activity?.escenario,
+    activity?.prompt,
+    activity?.mensaje,
+    activity?.intro,
+    activity?.inicio,
+    activity?.opening,
+    activity?.contactName,
+    activity?.callerName,
+    activity?.callerNumber,
+    activity?.from,
+    activity?.subject,
+    activity?.pagina?.dominio,
+    Array.isArray(activity?.senales)
+      ? activity.senales.map((item) => `${item?.label || ''}:${item?.correcta ? '1' : '0'}`).join('|')
+      : '',
+    Array.isArray(activity?.mensajes)
+      ? activity.mensajes
+          .map((item) => `${item?.from || ''}|${item?.subject || ''}|${item?.text || ''}`)
+          .join('|')
+      : '',
+    Array.isArray(activity?.hotspots)
+      ? activity.hotspots.map((item) => `${item?.target || ''}:${item?.label || ''}`).join('|')
+      : ''
+  );
+
+const getSeenScenarioIds = (progress, { category = '', level = '' } = {}) => {
+  const map =
+    progress?.seenScenarioIds && typeof progress.seenScenarioIds === 'object'
+      ? progress.seenScenarioIds
+      : {};
+  const keys = Object.keys(map);
+  const normalizedCategory = normalizeCourseCategory(category);
+  const normalizedLevel = normalizeModuleLevel(level);
+  return keys
+    .filter((key) => {
+      if (!normalizedCategory) return true;
+      const [cat, lvl] = String(key).split(':');
+      if (normalizeCourseCategory(cat) !== normalizedCategory) return false;
+      if (!normalizedLevel) return true;
+      return normalizeModuleLevel(lvl) === normalizedLevel;
+    })
+    .flatMap((key) => (Array.isArray(map[key]) ? map[key] : []))
+    .filter(Boolean);
+};
+
+const pickModuleVariant = ({ category, level, occurrence = 0, progress, total = 2 }) => {
+  if (!total || total <= 1) return 0;
+  const seen = getSeenScenarioIds(progress, { category, level });
+  return (Number(occurrence) + seen.length) % total;
+};
+
+const buildConceptBlocks = (items) =>
+  (Array.isArray(items) ? items : [])
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const titulo = toText(item.titulo || item.label);
+      const texto = toText(item.texto || item.text);
+      if (!titulo || !texto) return null;
+      return { titulo: titulo.slice(0, 60), texto: texto.slice(0, 260) };
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+
+const buildWhatsAppModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
+  const scenarioSets = {
+    basico: [
+      {
+        key: 'familiar-deposito',
+        contactName: 'Prima Ana',
+        avatarLabel: 'PA',
+        contactStatus: 'en línea',
+        opening:
+          'Hola, cambié de número. Estoy cerrando un pago urgente y no me deja entrar a la app. ¿Me ayudas con una transferencia y te la regreso hoy?',
+        huntMessage:
+          '“Cambié de número, me urge una transferencia ahorita y no le digas a nadie porque me da pena”.',
+        redFlags: [
+          { id: 'w1', label: 'Cambio inesperado de número', correcta: true, explicacion: 'La suplantación suele empezar así.' },
+          { id: 'w2', label: 'Urgencia para mover dinero', correcta: true, explicacion: 'La prisa busca que no verifiques.' },
+          { id: 'w3', label: 'Pide secreto', correcta: true, explicacion: 'Aislarte evita que confirmes con alguien real.' },
+          { id: 'w4', label: 'Usa saludo cercano', correcta: false, explicacion: 'El tono cercano no prueba identidad.' },
+        ],
+        safestChoice:
+          'Responder que llamarás al número guardado y no transferirás nada hasta confirmar.',
+        riskyChoices: [
+          'Transferir para “sacarlo del apuro”.',
+          'Pedir solo una foto como prueba.',
+          'Seguir la conversación sin verificar por otro canal.',
+        ],
+      },
+      {
+        key: 'link-paquete',
+        contactName: 'Entrega Express',
+        avatarLabel: 'EE',
+        contactStatus: 'escribiendo…',
+        opening:
+          'Tu paquete no pudo salir hoy. Necesito que abras este enlace y confirmes el pago de reintento antes de 20 minutos.',
+        huntMessage:
+          '“Tu envío quedó retenido. Entra al enlace corto y confirma hoy para evitar devolución”.',
+        redFlags: [
+          { id: 'w1', label: 'Presión de tiempo', correcta: true, explicacion: 'Busca que abras el enlace sin pensar.' },
+          { id: 'w2', label: 'Enlace corto o raro', correcta: true, explicacion: 'Oculta el sitio real al que quiere llevarte.' },
+          { id: 'w3', label: 'Pago inesperado', correcta: true, explicacion: 'Muchas estafas inventan “cargos de entrega”.' },
+          { id: 'w4', label: 'Habla de un paquete', correcta: false, explicacion: 'Eso solo no basta para confiar.' },
+        ],
+        safestChoice:
+          'No abrir el enlace y revisar el envío en la app o sitio oficial que tú escribes.',
+        riskyChoices: [
+          'Pagar para evitar retrasos.',
+          'Reenviar el enlace a alguien para preguntar.',
+          'Escribir tus datos en el enlace.',
+        ],
+      },
+    ],
+    refuerzo: [
+      {
+        key: 'familiar-secreto',
+        contactName: 'Mamá',
+        avatarLabel: 'MA',
+        contactStatus: 'en línea',
+        opening:
+          'Estoy en una junta y no puedo hablar. Necesito que hagas una transferencia ahorita y luego te explico. No le digas a nadie porque es algo personal.',
+        huntMessage:
+          '“Estoy ocupada, no puedo contestar llamadas. Hazme el depósito y luego lo vemos; por favor no se lo comentes a nadie”.',
+        redFlags: [
+          { id: 'w1', label: 'Impide la llamada', correcta: true, explicacion: 'Evita que confirmes identidad.' },
+          { id: 'w2', label: 'Pide secreto', correcta: true, explicacion: 'Una señal típica en suplantación.' },
+          { id: 'w3', label: 'Presión emocional', correcta: true, explicacion: 'Te empuja a actuar sin revisar.' },
+          { id: 'w4', label: 'Mensaje bien escrito', correcta: false, explicacion: 'Hoy las estafas se redactan muy bien.' },
+        ],
+        safestChoice:
+          'Decir que solo ayudarás después de llamar al número guardado o hablar con otro familiar.',
+        riskyChoices: [
+          'Hacer la transferencia y avisar después.',
+          'Seguir escribiendo hasta sentirte seguro.',
+          'Pedir una nota de voz y confiar si suena parecida.',
+        ],
+      },
+      {
+        key: 'codigo-otp',
+        contactName: 'Soporte Cuenta',
+        avatarLabel: 'SC',
+        contactStatus: 'escribiendo…',
+        opening:
+          'Estamos cerrando un intento de acceso en tu cuenta. Te llegará un código por SMS; envíamelo aquí para bloquear el movimiento.',
+        huntMessage:
+          '“Te llegó un código de seguridad. Pásamelo en este chat para cancelar el movimiento antes de que se procese”.',
+        redFlags: [
+          { id: 'w1', label: 'Pide un código OTP', correcta: true, explicacion: 'Ese código nunca se comparte.' },
+          { id: 'w2', label: 'Se presenta como soporte', correcta: true, explicacion: 'Puede ser una identidad falsa.' },
+          { id: 'w3', label: 'Usa urgencia por “seguridad”', correcta: true, explicacion: 'La presión evita que verifiques por la app.' },
+          { id: 'w4', label: 'Habla de proteger tu cuenta', correcta: false, explicacion: 'El pretexto puede sonar legítimo.' },
+        ],
+        safestChoice:
+          'No compartir el código y revisar la cuenta desde la app oficial o soporte oficial.',
+        riskyChoices: [
+          'Mandar el código para “cancelar” la operación.',
+          'Pedir que te espere mientras revisas el SMS.',
+          'Seguir la conversación para ver si “suena real”.',
+        ],
+      },
+    ],
+    avanzado: [
+      {
+        key: 'viaje-bloqueado',
+        contactName: 'Daniel',
+        avatarLabel: 'DA',
+        contactStatus: 'en línea',
+        opening:
+          'Estoy atorado con un pago del hotel y me bloquearon la app. Traigo el otro celular descompuesto. ¿Me ayudas con una transferencia? En cuanto quede, te marco desde recepción.',
+        huntMessage:
+          '“No puedo marcar ahorita porque estoy resolviendo esto en recepción. Si me ayudas ya, en cuanto termine te regreso todo”.',
+        redFlags: [
+          { id: 'w1', label: 'Historia muy alineada al contexto', correcta: true, explicacion: 'Mientras más creíble suena, más fácil es confiar.' },
+          { id: 'w2', label: 'Evita verificar por llamada', correcta: true, explicacion: 'Te deja solo en el canal del estafador.' },
+          { id: 'w3', label: 'Promesa de devolución inmediata', correcta: true, explicacion: 'Busca bajar tu resistencia.' },
+          { id: 'w4', label: 'No tiene faltas de ortografía', correcta: false, explicacion: 'Eso ya no es una señal confiable.' },
+        ],
+        safestChoice:
+          'Cortar la conversación, llamar al número guardado y validar con otro familiar antes de mover dinero.',
+        riskyChoices: [
+          'Mandar una cantidad menor “solo para ayudar”.',
+          'Pedir más contexto y seguir chateando.',
+          'Esperar el comprobante del hotel y transferir si se ve creíble.',
+        ],
+      },
+      {
+        key: 'cliente-pago',
+        contactName: 'Pago Pendiente',
+        avatarLabel: 'PP',
+        contactStatus: 'escribiendo…',
+        opening:
+          'Soy del área de pagos. Tu compra quedó retenida por seguridad. Si me compartes aquí el comprobante y tu código temporal, libero el envío sin que pierdas el descuento.',
+        huntMessage:
+          '“Tu compra sí existe, solo falta la validación rápida. Si hoy no mandas el código y el comprobante, se pierde el precio especial”.',
+        redFlags: [
+          { id: 'w1', label: 'Pide comprobante y código en el chat', correcta: true, explicacion: 'Quiere saltarse el canal real de pago.' },
+          { id: 'w2', label: 'Usa presión sutil por el precio', correcta: true, explicacion: 'La urgencia no siempre viene con amenazas directas.' },
+          { id: 'w3', label: 'Se presenta como área de pagos', correcta: true, explicacion: 'La identidad aparente no prueba legitimidad.' },
+          { id: 'w4', label: 'Tono profesional', correcta: false, explicacion: 'Una estafa pulida también suena profesional.' },
+        ],
+        safestChoice:
+          'Salir del chat y revisar la compra solo desde la app o web oficial que tú escribes.',
+        riskyChoices: [
+          'Mandar el comprobante “para avanzar”.',
+          'Pedir que te llamen pero seguir dentro del mismo flujo.',
+          'Compartir el código si ya revisaste el cargo.',
+        ],
+      },
+    ],
+  };
+
+  const scenario = scenarioSets[modNivel][variant % scenarioSets[modNivel].length];
+  const riskOptions = [scenario.safestChoice, ...scenario.riskyChoices];
+
+  return {
+    id: modId,
+    titulo: 'WhatsApp: Suplantación y Enlaces',
+    descripcion: `Práctica ${levelHint} para reconocer engaños en WhatsApp ${toneNote}.`,
+    categoria: cat,
+    nivel: modNivel,
+    actividades: [
+      mk(1, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
+        tipo: 'concepto',
+        titulo: 'Qué revisar antes de contestar',
+        bloques: buildConceptBlocks([
+          { titulo: 'Señales de alerta', texto: 'Cambio de número, urgencia, secreto o un enlace que no esperabas.' },
+          { titulo: 'Qué quiere el estafador', texto: 'Que respondas rápido, abras el enlace o envíes dinero/códigos sin confirmar.' },
+          { titulo: 'Qué hacer ahora (pasos)', texto: 'Pausa, llama al contacto real o revisa desde la app oficial. No compartas códigos.' },
+          { titulo: 'Checklist rápido', texto: 'Verifica el número, confirma por otro canal y no transfieras por presión.' },
+        ]),
+        contenido:
+          'Si alguien te escribe con urgencia por WhatsApp, no tomes la decisión dentro del mismo chat. Verifica por otro canal antes de abrir enlaces o mandar dinero.',
+        peso: 0.9,
+      }),
+      mk(2, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-chat`, variant }),
+        tipo: 'sim_chat',
+        titulo: 'Simulación tipo WhatsApp',
+        escenario: `Escenario ${levelHint}: ${scenario.opening}`,
+        inicio: scenario.opening,
+        contactName: scenario.contactName,
+        avatarLabel: scenario.avatarLabel,
+        contactStatus: scenario.contactStatus,
+        quickReplies: [
+          'Te llamo al número de siempre.',
+          'No voy a transferir sin verificar.',
+          'Reviso por mi cuenta y te confirmo.',
+        ],
+        turnos_max: modNivel === 'avanzado' ? 7 : 6,
+        peso: 1.6,
+      }),
+      mk(3, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-alertas`, variant }),
+        tipo: 'signal_hunt',
+        titulo: 'Marca las señales de alerta',
+        mensaje: scenario.huntMessage,
+        senales: scenario.redFlags,
+        accion: scenario.safestChoice,
+        peso: 1.2,
+      }),
+      mk(4, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-decision`, variant }),
+        tipo: 'quiz',
+        titulo: 'Elige la respuesta más segura',
+        escenario: 'Si esto te llegara en la vida real, ¿cuál sería tu siguiente paso?',
+        opciones: riskOptions,
+        correcta: 0,
+        explicacion: `La opción segura es verificar por otro canal y no compartir dinero, códigos ni datos en el mismo chat.`,
+        senal: 'La conversación mete urgencia y evita que confirmes identidad.',
+        riesgo: 'Si resuelves todo dentro del mismo WhatsApp, el estafador controla el contexto.',
+        accion: scenario.safestChoice,
+        peso: 1.0,
+      }),
+      mk(5, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-guion`, variant }),
+        tipo: 'abierta',
+        titulo: 'Escribe tu respuesta segura',
+        prompt: 'Redacta una respuesta breve para frenar la urgencia sin discutir y dejando claro que verificarás por otro canal.',
+        pistas: ['te llamo al número guardado', 'no envío dinero ni códigos', 'verifico por mi cuenta'],
+        peso: 1.0,
+      }),
+      mk(6, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-checklist`, variant }),
+        tipo: 'checklist',
+        titulo: 'Checklist rápido de WhatsApp',
+        intro: 'Antes de responder, confirma esto:',
+        items: [
+          'Verifica si el número coincide con el contacto real.',
+          'Confirma por llamada o por otra persona de confianza.',
+          'No abras enlaces ni pagues por presión.',
+          'Nunca compartas códigos, NIP ni comprobantes en el chat.',
+        ],
+        peso: 1.0,
+      }),
+    ],
+  };
+};
+
+const buildWebModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
+  const scenarioSets = {
+    basico: [
+      {
+        key: 'cyber-zone',
+        store: {
+          marca: 'Cyber Zone MX',
+          dominio: 'cyberzone-ofertas.shop',
+          browserTitle: 'Cyber Zone MX | Promoción relámpago',
+          banner: 'Liquidación total: 85% de descuento solo hoy',
+          sub: 'Envió rápido y “garantía total” sin detalles claros.',
+          contacto: 'Atención solo por formulario. Sin dirección ni razón social visible.',
+          pagos: ['Transferencia bancaria', 'Tarjeta por enlace externo'],
+          shipping: 'Envío “asegurado” con costo extra obligatorio.',
+          reviews: 'Testimonios genéricos sin fecha ni nombres verificables.',
+          policy: 'Devoluciones sujetas a aprobación interna; sin tiempos claros.',
+          cartNote: 'Tu carrito se reserva solo 12 minutos.',
+          checkoutPrompt: 'Para mantener el descuento, termina el pago hoy.',
+          productos: [
+            { nombre: 'Laptop Air 14', antes: '$18,999', precio: '$3,499' },
+            { nombre: 'Audífonos Pro', antes: '$2,799', precio: '$399' },
+            { nombre: 'Tablet Mini', antes: '$7,999', precio: '$1,299' },
+          ],
+        },
+        hotspots: [
+          { id: 'w1', target: 'domain', label: 'Dominio extraño', correcta: true, explicacion: 'No coincide con una tienda conocida ni suena institucional.' },
+          { id: 'w2', target: 'banner', label: 'Descuento exagerado', correcta: true, explicacion: 'Busca que compres antes de revisar.' },
+          { id: 'w3', target: 'contacto', label: 'Contacto incompleto', correcta: true, explicacion: 'Sin datos formales es difícil reclamar.' },
+          { id: 'w4', target: 'pago', label: 'Pago de alto riesgo', correcta: true, explicacion: 'Transferencia y enlaces externos ofrecen poca protección.' },
+          { id: 'w5', target: 'policy', label: 'Política poco clara', correcta: true, explicacion: 'Una tienda confiable explica devoluciones y tiempos.' },
+        ],
+        domains: ['cyberzone.com.mx', 'cyberzone-ofertas.shop', 'cyberzone-mx.site'],
+      },
+      {
+        key: 'hogar-express',
+        store: {
+          marca: 'Hogar Express',
+          dominio: 'hogar-express-remate.store',
+          browserTitle: 'Hogar Express | Remate especial',
+          banner: 'Todo el catálogo con envío gratis y descuento VIP',
+          sub: 'Muebles y electrodomésticos con pago inmediato.',
+          contacto: 'Chat 24/7, sin domicilio fiscal ni aviso legal.',
+          pagos: ['Transferencia', 'Gift card'],
+          shipping: 'Entrega en 24 horas para todo México sin restricciones.',
+          reviews: 'Solo reseñas de 5 estrellas, todas del mismo día.',
+          policy: 'No hay devoluciones en productos en remate.',
+          cartNote: 'Si sales del sitio, pierdes la oferta exclusiva.',
+          checkoutPrompt: 'Sube tu comprobante para validar tu pedido al instante.',
+          productos: [
+            { nombre: 'Sofá Terra', antes: '$12,499', precio: '$2,099' },
+            { nombre: 'Freidora Smart', antes: '$2,199', precio: '$349' },
+            { nombre: 'TV 50"', antes: '$11,999', precio: '$1,899' },
+          ],
+        },
+        hotspots: [
+          { id: 'w1', target: 'domain', label: 'Dominio promocional', correcta: true, explicacion: 'Agrega palabras de remate para parecer temporal.' },
+          { id: 'w2', target: 'shipping', label: 'Promesa de envío poco realista', correcta: true, explicacion: 'Se ve demasiado buena para ser verdad.' },
+          { id: 'w3', target: 'reviews', label: 'Reseñas sospechosas', correcta: true, explicacion: 'Todas iguales y del mismo día sugieren manipulación.' },
+          { id: 'w4', target: 'pago', label: 'Métodos sin protección', correcta: true, explicacion: 'Gift card y transferencia son muy riesgosos.' },
+          { id: 'w5', target: 'banner', label: 'Banner llamativo', correcta: false, explicacion: 'No todo banner bonito es una señal por sí sola.' },
+        ],
+        domains: ['hogarexpress.com.mx', 'hogar-express-remate.store', 'hogarexpress-seguro.online'],
+      },
+    ],
+    refuerzo: [
+      {
+        key: 'pixel-mart',
+        store: {
+          marca: 'Pixel Mart',
+          dominio: 'pixelmart-mx.com',
+          browserTitle: 'Pixel Mart | Ofertas del mes',
+          banner: 'Ahorra hasta 30% en tecnología seleccionada',
+          sub: 'Diseño pulido, pero checkout con fricción sospechosa.',
+          contacto: 'Correo genérico y horario amplio, sin datos fiscales visibles.',
+          pagos: ['Tarjeta', 'Transferencia con descuento adicional'],
+          shipping: 'Entrega normal, pero no muestra paquetería ni seguimiento.',
+          reviews: 'Reseñas breves; no hay enlaces a perfiles reales.',
+          policy: 'Reembolsos “a criterio del área de validación”.',
+          cartNote: 'Tu carrito está listo. Recibe 10% extra si pagas por transferencia.',
+          checkoutPrompt: 'Valida tu compra compartiendo comprobante y teléfono.',
+          productos: [
+            { nombre: 'Cámara Nova', antes: '$8,999', precio: '$6,199' },
+            { nombre: 'Mouse Arc', antes: '$1,099', precio: '$789' },
+            { nombre: 'Monitor 27"', antes: '$5,499', precio: '$4,399' },
+          ],
+        },
+        hotspots: [
+          { id: 'w1', target: 'domain', label: 'Dominio similar al oficial', correcta: true, explicacion: 'Usa “-mx” para verse local y confiable.' },
+          { id: 'w2', target: 'contacto', label: 'Contacto insuficiente', correcta: true, explicacion: 'Sin datos fiscales ni empresa clara.' },
+          { id: 'w3', target: 'pago', label: 'Descuento por transferencia', correcta: true, explicacion: 'Empuja al método menos recuperable.' },
+          { id: 'w4', target: 'policy', label: 'Reembolsos ambiguos', correcta: true, explicacion: 'No explica condiciones reales de devolución.' },
+          { id: 'w5', target: 'reviews', label: 'Reseñas sin respaldo', correcta: true, explicacion: 'No puedes verificar que sean reales.' },
+        ],
+        domains: ['pixelmart.com.mx', 'pixelmart-mx.com', 'pixelm4rt.com'],
+      },
+      {
+        key: 'urban-tech',
+        store: {
+          marca: 'Urban Tech',
+          dominio: 'urban-techshop.com.mx',
+          browserTitle: 'Urban Tech Shop | Compra segura',
+          banner: 'Promoción por aniversario',
+          sub: 'La página se ve seria, pero el pago final cambia de flujo.',
+          contacto: 'Formulario y correo; no aparece domicilio ni políticas detalladas.',
+          pagos: ['Tarjeta', 'Depósito para confirmar inventario'],
+          shipping: 'Entrega nacional con “seguro opcional”.',
+          reviews: 'Calificaciones altas, pero sin comentarios concretos.',
+          policy: 'Cambios y devoluciones solo por incidencias autorizadas.',
+          cartNote: 'Tu pedido está casi listo.',
+          checkoutPrompt: 'Depósito requerido para apartar inventario en promoción.',
+          productos: [
+            { nombre: 'Smartphone Lite', antes: '$6,499', precio: '$5,299' },
+            { nombre: 'Audífonos Beam', antes: '$1,599', precio: '$1,199' },
+            { nombre: 'Consola Pocket', antes: '$4,799', precio: '$3,999' },
+          ],
+        },
+        hotspots: [
+          { id: 'w1', target: 'pago', label: 'Depósito para apartar inventario', correcta: true, explicacion: 'Es una excusa común para sacarte del pago seguro.' },
+          { id: 'w2', target: 'contacto', label: 'Sin domicilio ni empresa visible', correcta: true, explicacion: 'Dificulta reclamar si algo sale mal.' },
+          { id: 'w3', target: 'policy', label: 'Política muy abierta a interpretación', correcta: true, explicacion: 'No deja claras tus garantías.' },
+          { id: 'w4', target: 'shipping', label: 'Seguro opcional poco claro', correcta: false, explicacion: 'Puede ser raro, pero por sí solo no basta.' },
+          { id: 'w5', target: 'domain', label: 'Dominio largo pero plausible', correcta: true, explicacion: 'Puede intentar parecer oficial con palabras extras.' },
+        ],
+        domains: ['urbantech.com.mx', 'urban-techshop.com.mx', 'urbantech-seguro.com'],
+      },
+    ],
+    avanzado: [
+      {
+        key: 'mercado-luna',
+        store: {
+          marca: 'Mercado Luna',
+          dominio: 'mercadoluna.com',
+          browserTitle: 'Mercado Luna | Tecnología para tu hogar',
+          banner: 'Fin de semana con beneficios exclusivos',
+          sub: 'Diseño limpio y precios razonables, pero hay señales finas en el checkout.',
+          contacto: 'Formulario, chat y horario comercial. No aparecen datos legales completos.',
+          pagos: ['Tarjeta', 'Transferencia para “validación manual”'],
+          shipping: 'Entrega nacional con tiempos creíbles.',
+          reviews: 'Reseñas creíbles, pero ninguna enlaza a perfiles verificables.',
+          policy: 'Devoluciones dentro de 7 días; la letra pequeña excluye promociones.',
+          cartNote: 'Para proteger tu compra, valida hoy tu método de pago.',
+          checkoutPrompt: 'Si eliges transferencia, tu pedido se confirma más rápido.',
+          productos: [
+            { nombre: 'Notebook Air', antes: '$13,999', precio: '$12,699' },
+            { nombre: 'Tablet Home', antes: '$5,499', precio: '$4,999' },
+            { nombre: 'Barra de sonido', antes: '$2,899', precio: '$2,499' },
+          ],
+        },
+        hotspots: [
+          { id: 'w1', target: 'pago', label: '“Validación manual” por transferencia', correcta: true, explicacion: 'La presión es sutil, pero sigue siendo riesgosa.' },
+          { id: 'w2', target: 'policy', label: 'Exclusiones escondidas', correcta: true, explicacion: 'La letra pequeña limita tus opciones reales.' },
+          { id: 'w3', target: 'contacto', label: 'Datos legales incompletos', correcta: true, explicacion: 'Un comercio serio muestra empresa y razón social.' },
+          { id: 'w4', target: 'reviews', label: 'Reseñas sin respaldo externo', correcta: true, explicacion: 'No puedes confirmar que existan compradores reales.' },
+        ],
+        domains: ['mercadoluna.com', 'mercadoluna-oficial.com', 'mercadoluna.mx-pay.com'],
+      },
+      {
+        key: 'terra-shop',
+        store: {
+          marca: 'Terra Shop',
+          dominio: 'terrashop.com.mx',
+          browserTitle: 'Terra Shop | Accesorios oficiales',
+          banner: 'Beneficios por compra anticipada',
+          sub: 'Todo se ve normal hasta que el checkout pide un paso “extra”.',
+          contacto: 'Contacto parcial y razón social no visible en checkout.',
+          pagos: ['Tarjeta', 'Cripto para liberar envío gratis'],
+          shipping: 'Envíos estándar con cargos normales.',
+          reviews: 'Reseñas cortas, sin fotos ni historial de compras.',
+          policy: 'Cancelaciones solo antes de “validación”.',
+          cartNote: 'Activa el beneficio anticipado desde el checkout.',
+          checkoutPrompt: 'Para conservar el beneficio, completa una validación adicional ahora.',
+          productos: [
+            { nombre: 'Reloj Pulse', antes: '$3,299', precio: '$2,999' },
+            { nombre: 'Teclado Air', antes: '$1,899', precio: '$1,699' },
+            { nombre: 'Hub USB-C', antes: '$899', precio: '$799' },
+          ],
+        },
+        hotspots: [
+          { id: 'w1', target: 'domain', label: 'Dominio creíble, pero sin respaldo visible', correcta: false, explicacion: 'Aquí el dominio por sí solo no basta para decidir.' },
+          { id: 'w2', target: 'pago', label: 'Cripto para beneficio extra', correcta: true, explicacion: 'Te empuja al método menos recuperable.' },
+          { id: 'w3', target: 'policy', label: 'Cancelación limitada por “validación”', correcta: true, explicacion: 'El checkout controla el proceso a su favor.' },
+          { id: 'w4', target: 'reviews', label: 'Reseñas sin evidencia', correcta: true, explicacion: 'Se ven bien, pero no prueban ventas reales.' },
+          { id: 'w5', target: 'contacto', label: 'Razón social ausente', correcta: true, explicacion: 'Sin empresa visible es mala señal.' },
+        ],
+        domains: ['terrashop.com.mx', 'terra-shop.com.mx', 'terrashop-valida.com'],
+      },
+    ],
+  };
+
+  const scenario = scenarioSets[modNivel][variant % scenarioSets[modNivel].length];
+  return {
+    id: modId,
+    titulo: 'Detecta Páginas Clonadas',
+    descripcion: `Laboratorio ${levelHint} para comprar con más criterio ${toneNote}.`,
+    categoria: cat,
+    nivel: modNivel,
+    actividades: [
+      mk(1, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
+        tipo: 'concepto',
+        titulo: 'Antes de confiar en una tienda',
+        bloques: buildConceptBlocks([
+          { titulo: 'Señales de alerta', texto: 'Dominio raro, contacto incompleto, reseñas poco creíbles o pago por transferencia.' },
+          { titulo: 'Qué quiere el estafador', texto: 'Que compres por emoción o prisa y pagues por un método difícil de recuperar.' },
+          { titulo: 'Qué hacer ahora (pasos)', texto: 'Revisa dominio, empresa, políticas, reseñas externas y método de pago antes de comprar.' },
+          { titulo: 'Checklist rápido', texto: 'Si algo te presiona a pagar hoy, sal del sitio y verifica fuera de él.' },
+        ]),
+        contenido:
+          'Una tienda falsa puede verse muy bien. Lo importante es revisar señales concretas antes del pago, no confiar solo por el diseño.',
+        peso: 0.9,
+      }),
+      mk(2, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-lab`, variant }),
+        tipo: 'web_lab',
+        titulo: 'Laboratorio: tienda en vivo',
+        intro: 'Explora la tienda, cambia entre producto, carrito y checkout, y marca lo que te parezca sospechoso.',
+        pagina: scenario.store,
+        hotspots: scenario.hotspots,
+        decisionPrompt: 'Con lo que viste, ¿comprarías aquí o no?',
+        decisionOptions: ['Sí compraría', 'No compraría hasta verificar más', 'Solo si me llaman primero'],
+        correctDecision: 1,
+        peso: 1.7,
+      }),
+      mk(3, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-dominios`, variant }),
+        tipo: 'compare_domains',
+        titulo: 'Comparación rápida de dominios',
+        prompt: '¿Cuál dominio te da más confianza para verificar por tu cuenta?',
+        dominios: scenario.domains,
+        correcta: 0,
+        explicacion: 'El dominio más simple y consistente suele ser el punto de partida más seguro para verificar.',
+        tip: 'Si llegaste desde anuncio o mensaje, mejor escribe tú el dominio en el navegador.',
+        peso: 1.0,
+      }),
+      mk(4, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-checkout`, variant }),
+        tipo: 'quiz',
+        titulo: 'Decisión en checkout',
+        escenario: scenario.store.checkoutPrompt,
+        opciones: [
+          'Seguir con el pago para no perder la oferta.',
+          'Salir y revisar reseñas, empresa y dominio fuera del sitio.',
+          'Mandar comprobante para “agilizar” la compra.',
+          'Compartir datos extra para que validen el pedido.',
+        ],
+        correcta: 1,
+        explicacion: 'Cuando el sitio cambia el flujo de pago o mete urgencia, lo seguro es salir y verificar por fuera.',
+        senal: 'El checkout cambió las reglas y te presiona a decidir rápido.',
+        riesgo: 'Los métodos como transferencia o cripto hacen difícil recuperar el dinero.',
+        accion: 'Busca reseñas externas, revisa la empresa y usa solo pagos con protección.',
+        peso: 1.0,
+      }),
+      mk(5, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-abierta`, variant }),
+        tipo: 'abierta',
+        titulo: 'Tu rutina de compra segura',
+        prompt: modNivel === 'avanzado'
+          ? 'Escribe 4 pasos que seguirías para verificar una tienda que se ve muy profesional pero te genera duda.'
+          : 'Escribe 3 o 4 pasos para verificar una tienda nueva antes de pagar.',
+        pistas: ['dominio exacto', 'reseñas fuera del sitio', 'empresa/contacto real', 'pago con protección'],
+        peso: 1.0,
+      }),
+      mk(6, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-checklist`, variant }),
+        tipo: 'checklist',
+        titulo: 'Checklist rápido antes de comprar',
+        intro: 'Confirma esto antes de pagar:',
+        items: [
+          'Verifica el dominio exacto y cómo llegaste al sitio.',
+          'Busca reseñas fuera de la tienda.',
+          'Revisa si la empresa y el contacto son completos.',
+          'Evita transferencias, cripto o gift cards.',
+          'Si el checkout cambia el proceso, sal y revisa primero.',
+        ],
+        peso: 1.0,
+      }),
+    ],
+  };
+};
+
+const buildEmailModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
+  const scenarioSets = {
+    basico: [
+      {
+        key: 'reembolso',
+        inbox: [
+          {
+            id: 'e1',
+            displayName: 'Centro de pagos',
+            from: 'pagos@soporte-seguro-mail.com',
+            subject: 'Tu reembolso está pendiente',
+            preview: 'Confirma tus datos para liberar el pago hoy.',
+            dateLabel: 'Hoy',
+            warning: 'Ten cuidado con este mensaje',
+            text: 'Hola. Detectamos un saldo a favor. Para liberarlo hoy, confirma tus datos de pago y tu identidad desde el botón de abajo.',
+            body: [
+              'Hola.',
+              'Detectamos un saldo a favor pendiente.',
+              'Para liberarlo hoy, confirma tus datos de pago y tu identidad desde el botón de abajo.',
+              'Si no respondes antes de hoy, el folio se cancela.',
+            ],
+            attachments: ['reembolso_formulario.pdf'],
+            details: {
+              from: 'Centro de pagos <pagos@soporte-seguro-mail.com>',
+              replyTo: 'validacion@seguro-pago-mail.com',
+              returnPath: 'bounce@mailer.seguro-pago-mail.com',
+            },
+            ctaLabel: 'Liberar reembolso',
+            linkPreview: 'https://seguro-pago-mail.com/validacion',
+            correcto: 'estafa',
+            explicacion: 'Usa dinero y urgencia para que entregues datos sensibles.',
+          },
+          {
+            id: 'e2',
+            displayName: 'Paquetería oficial',
+            from: 'avisos@app-paquetes.com',
+            subject: 'Consulta el estatus de tu envío',
+            preview: 'Revisa el movimiento desde tu app oficial.',
+            dateLabel: 'Ayer',
+            text: 'Tu envío sigue en tránsito. Consulta el estatus desde la app o sitio que ya conoces.',
+            body: [
+              'Tu envío sigue en tránsito.',
+              'Si quieres revisar el estatus, entra a tu app oficial o al sitio que ya usas normalmente.',
+            ],
+            details: {
+              from: 'Paquetería oficial <avisos@app-paquetes.com>',
+              replyTo: 'no-reply@app-paquetes.com',
+              returnPath: 'bounce@app-paquetes.com',
+            },
+            ctaLabel: 'Abrir app oficial',
+            linkPreview: 'Abre la app que ya tienes instalada',
+            correcto: 'seguro',
+            explicacion: 'No pide datos, dinero ni un enlace extraño.',
+          },
+          {
+            id: 'e3',
+            displayName: 'Factura servicio',
+            from: 'factura@servicio-alerta.com',
+            subject: 'Comprobante adjunto',
+            preview: 'Revisa el archivo adjunto.',
+            dateLabel: 'Mar 28',
+            warning: 'Este mensaje parece peligroso',
+            text: 'Adjuntamos tu comprobante. Si no lo esperabas, no abras el archivo.',
+            body: [
+              'Adjuntamos tu comprobante del servicio.',
+              'Si no reconoces este movimiento, responde con tu nombre completo y teléfono.',
+            ],
+            attachments: ['comprobante.zip'],
+            details: {
+              from: 'Factura servicio <factura@servicio-alerta.com>',
+              replyTo: 'soporte@servicio-alerta.com',
+              returnPath: 'mailer@servicio-alerta.com',
+            },
+            ctaLabel: 'Descargar adjunto',
+            linkPreview: 'Descarga directa del archivo adjunto',
+            correcto: 'estafa',
+            explicacion: 'Adjunto inesperado y petición de datos: combinación de alto riesgo.',
+          },
+          {
+            id: 'e4',
+            displayName: 'Aviso de seguridad',
+            from: 'seguridad@app-cuenta.com',
+            subject: 'Consejos para proteger tu cuenta',
+            preview: 'No compartas códigos ni contraseñas.',
+            dateLabel: 'Mar 27',
+            text: 'Nunca compartas códigos ni contraseñas. Si dudas, entra a la app oficial.',
+            body: [
+              'Nunca compartas códigos ni contraseñas.',
+              'Si recibes un aviso inesperado, entra a tu app oficial para revisar.',
+            ],
+            details: {
+              from: 'Aviso de seguridad <seguridad@app-cuenta.com>',
+              replyTo: 'no-reply@app-cuenta.com',
+              returnPath: 'bounce@app-cuenta.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'Es preventivo y no te empuja a un flujo riesgoso.',
+          },
+        ],
+        huntMessage: 'Tu reembolso está pendiente. Si no validas hoy tus datos de pago, el folio caduca.',
+      },
+      {
+        key: 'red-social',
+        inbox: [
+          {
+            id: 'e1',
+            displayName: 'Red Social',
+            from: 'alertas@seguridad-redes.net',
+            subject: 'Tu cuenta fue reportada',
+            preview: 'Verifica en una hora para evitar suspensión.',
+            dateLabel: 'Hoy',
+            warning: 'Ten cuidado con este mensaje',
+            text: 'Tu cuenta fue reportada por actividad inusual. Verifica tu identidad en la próxima hora para evitar suspensión.',
+            body: [
+              'Detectamos actividad inusual en tu cuenta.',
+              'Verifica tu identidad dentro de la próxima hora para evitar suspensión.',
+            ],
+            details: {
+              from: 'Red Social <alertas@seguridad-redes.net>',
+              replyTo: 'validacion@seguridad-redes.net',
+              returnPath: 'mailer@seguridad-redes.net',
+            },
+            ctaLabel: 'Verificar cuenta',
+            linkPreview: 'https://seguridad-redes.net/verify',
+            correcto: 'estafa',
+            explicacion: 'Urgencia y verificación fuera de la app son señales claras.',
+          },
+          {
+            id: 'e2',
+            displayName: 'Comunidad',
+            from: 'avisos@tu-comunidad.app',
+            subject: 'Resumen semanal',
+            preview: 'Tus novedades están listas en la app.',
+            dateLabel: 'Ayer',
+            text: 'Tus novedades están listas. Revisa desde la app si quieres verlas.',
+            body: ['Tus novedades están listas.', 'Entra a la app oficial para revisarlas.'],
+            details: {
+              from: 'Comunidad <avisos@tu-comunidad.app>',
+              replyTo: 'no-reply@tu-comunidad.app',
+              returnPath: 'mailer@tu-comunidad.app',
+            },
+            correcto: 'seguro',
+            explicacion: 'No te pide datos ni te apura.',
+          },
+          {
+            id: 'e3',
+            displayName: 'Soporte de cuenta',
+            from: 'soporte@cuenta-ayuda.org',
+            subject: 'Actualiza tu contraseña',
+            preview: 'Reingresa tus datos para conservar acceso.',
+            dateLabel: 'Mar 28',
+            text: 'Tu contraseña expirará hoy. Reingresa tus datos desde este enlace para conservar acceso.',
+            body: [
+              'Tu contraseña expirará hoy.',
+              'Reingresa tus datos desde este enlace para conservar acceso.',
+            ],
+            details: {
+              from: 'Soporte de cuenta <soporte@cuenta-ayuda.org>',
+              replyTo: 'soporte@cuenta-ayuda.org',
+              returnPath: 'mailer@cuenta-ayuda.org',
+            },
+            ctaLabel: 'Actualizar contraseña',
+            linkPreview: 'https://cuenta-ayuda.org/login',
+            correcto: 'estafa',
+            explicacion: 'Te empuja a escribir credenciales en un sitio controlado por el atacante.',
+          },
+          {
+            id: 'e4',
+            displayName: 'Seguridad',
+            from: 'seguridad@app-cuenta.com',
+            subject: 'No compartas códigos',
+            preview: 'Recuerda verificar desde canales oficiales.',
+            dateLabel: 'Mar 26',
+            text: 'Si recibes avisos inesperados, verifica desde la app oficial. Nunca compartas códigos.',
+            body: [
+              'Si recibes avisos inesperados, verifica desde la app oficial.',
+              'Nunca compartas códigos.',
+            ],
+            details: {
+              from: 'Seguridad <seguridad@app-cuenta.com>',
+              replyTo: 'no-reply@app-cuenta.com',
+              returnPath: 'mailer@app-cuenta.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'Es un recordatorio preventivo y no te arrastra a un flujo de riesgo.',
+          },
+        ],
+        huntMessage: 'Tu cuenta fue reportada. Verifica tu identidad en menos de una hora para no perder el acceso.',
+      },
+    ],
+    refuerzo: [
+      {
+        key: 'nombre-visible',
+        inbox: [
+          {
+            id: 'e1',
+            displayName: 'Soporte de Nómina',
+            from: 'notificaciones@pagos-soporte.co',
+            subject: 'Actualización de datos bancarios',
+            preview: 'Completa la validación antes del cierre.',
+            dateLabel: 'Hoy',
+            warning: 'Ten cuidado con este mensaje',
+            text: 'Necesitamos actualizar tus datos bancarios antes del cierre. Completa la validación con tu cuenta y CLABE.',
+            body: [
+              'Hola,',
+              'Necesitamos actualizar tus datos bancarios antes del cierre del día.',
+              'Completa la validación con tu cuenta y CLABE para evitar retrasos.',
+            ],
+            details: {
+              from: 'Soporte de Nómina <notificaciones@pagos-soporte.co>',
+              replyTo: 'validacion@pagos-soporte.co',
+              returnPath: 'bounce@mailer.pagos-soporte.co',
+            },
+            ctaLabel: 'Completar validación',
+            linkPreview: 'https://pagos-soporte.co/actualiza',
+            correcto: 'estafa',
+            explicacion: 'Suena laboral, pero te pide datos bancarios por correo.',
+          },
+          {
+            id: 'e2',
+            displayName: 'Seguridad de cuenta',
+            from: 'alertas@app-segura.com',
+            subject: 'Intento de acceso',
+            preview: 'Revisa desde tu app si no reconoces la actividad.',
+            dateLabel: 'Hoy',
+            text: 'Detectamos un intento de acceso. Si no lo reconoces, entra a tu app o al sitio que escribes tú normalmente.',
+            body: [
+              'Detectamos un intento de acceso.',
+              'Si no lo reconoces, entra a tu app o al sitio que escribes tú normalmente.',
+            ],
+            details: {
+              from: 'Seguridad de cuenta <alertas@app-segura.com>',
+              replyTo: 'no-reply@app-segura.com',
+              returnPath: 'mailer@app-segura.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'Te lleva a verificar por tus propios canales, no desde un enlace sospechoso.',
+          },
+          {
+            id: 'e3',
+            displayName: 'Compras Premium',
+            from: 'compras@premium-club.vip',
+            subject: 'Pago rechazado',
+            preview: 'Actualiza tu tarjeta desde el portal temporal.',
+            dateLabel: 'Ayer',
+            warning: 'Este mensaje parece peligroso',
+            text: 'Tu pago fue rechazado. Actualiza tu tarjeta desde el portal temporal para no perder tu membresía.',
+            body: [
+              'Tu pago fue rechazado.',
+              'Actualiza tu tarjeta desde el portal temporal para no perder tu membresía.',
+            ],
+            details: {
+              from: 'Compras Premium <compras@premium-club.vip>',
+              replyTo: 'pagos@premium-club.vip',
+              returnPath: 'mailer@premium-club.vip',
+            },
+            ctaLabel: 'Actualizar tarjeta',
+            linkPreview: 'https://premium-club.vip/portal-temporal',
+            correcto: 'estafa',
+            explicacion: 'Un portal temporal y urgencia sobre pagos son señales claras.',
+          },
+          {
+            id: 'e4',
+            displayName: 'Comunidad',
+            from: 'avisos@comunidad.app',
+            subject: 'Resumen semanal',
+            preview: 'Tus novedades están listas.',
+            dateLabel: 'Mar 29',
+            text: 'Tus novedades están listas. Puedes verlas desde la app cuando quieras.',
+            body: ['Tus novedades están listas.', 'Puedes verlas desde la app cuando quieras.'],
+            details: {
+              from: 'Comunidad <avisos@comunidad.app>',
+              replyTo: 'no-reply@comunidad.app',
+              returnPath: 'mailer@comunidad.app',
+            },
+            correcto: 'seguro',
+            explicacion: 'No mete urgencia ni pide datos.',
+          },
+        ],
+        huntMessage: 'Completa la validación de tu cuenta bancaria antes del cierre del día para no afectar tu pago.',
+      },
+      {
+        key: 'reply-to',
+        inbox: [
+          {
+            id: 'e1',
+            displayName: 'Atención clientes',
+            from: 'alerta@cliente-servicios.com',
+            subject: 'Confirmación pendiente',
+            preview: 'Responde este correo con tu número y fecha de nacimiento.',
+            dateLabel: 'Hoy',
+            warning: 'Este mensaje parece peligroso',
+            text: 'Para terminar tu proceso, responde este correo con tu número y fecha de nacimiento.',
+            body: [
+              'Para terminar tu proceso, responde este correo con tu número y fecha de nacimiento.',
+              'Si no lo haces hoy, el folio se cerrará.',
+            ],
+            details: {
+              from: 'Atención clientes <alerta@cliente-servicios.com>',
+              replyTo: 'validacion@cliente-servicios-help.net',
+              returnPath: 'mailer@cliente-servicios-help.net',
+            },
+            ctaLabel: 'Responder ahora',
+            linkPreview: 'Responder directo al mensaje',
+            correcto: 'estafa',
+            explicacion: 'El Reply-To cambia de dominio y pide datos personales.',
+          },
+          {
+            id: 'e2',
+            displayName: 'Seguridad',
+            from: 'seguridad@app-cuenta.com',
+            subject: 'Consejo del día',
+            preview: 'Nunca compartas códigos por chat o llamada.',
+            dateLabel: 'Ayer',
+            text: 'Nunca compartas códigos por chat o llamada. Si algo te preocupa, entra a la app oficial.',
+            body: [
+              'Nunca compartas códigos por chat o llamada.',
+              'Si algo te preocupa, entra a la app oficial.',
+            ],
+            details: {
+              from: 'Seguridad <seguridad@app-cuenta.com>',
+              replyTo: 'no-reply@app-cuenta.com',
+              returnPath: 'mailer@app-cuenta.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'Es un mensaje preventivo y no te pide datos ni clics raros.',
+          },
+          {
+            id: 'e3',
+            displayName: 'Aviso financiero',
+            from: 'avisos@finanzas-clientes.org',
+            subject: 'Documento pendiente',
+            preview: 'Descarga el PDF y confírmalo hoy.',
+            dateLabel: 'Mar 28',
+            warning: 'Ten cuidado con este mensaje',
+            text: 'Descarga el PDF adjunto y confírmalo hoy para liberar el documento pendiente.',
+            body: [
+              'Descarga el PDF adjunto y confírmalo hoy para liberar el documento pendiente.',
+            ],
+            attachments: ['documento_pendiente.docm'],
+            details: {
+              from: 'Aviso financiero <avisos@finanzas-clientes.org>',
+              replyTo: 'avisos@finanzas-clientes.org',
+              returnPath: 'mailer@finanzas-clientes.org',
+            },
+            ctaLabel: 'Descargar documento',
+            linkPreview: 'Descarga adjunto .docm',
+            correcto: 'estafa',
+            explicacion: 'Adjunto macro y urgencia: alto riesgo.',
+          },
+          {
+            id: 'e4',
+            displayName: 'Actualización de servicio',
+            from: 'avisos@app-servicio.com',
+            subject: 'Resumen mensual',
+            preview: 'Consulta desde tu app los cambios recientes.',
+            dateLabel: 'Mar 25',
+            text: 'Consulta desde tu app los cambios recientes en tu cuenta.',
+            body: ['Consulta desde tu app los cambios recientes en tu cuenta.'],
+            details: {
+              from: 'Actualización de servicio <avisos@app-servicio.com>',
+              replyTo: 'no-reply@app-servicio.com',
+              returnPath: 'mailer@app-servicio.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'No presiona y dirige al usuario a la app que ya conoce.',
+          },
+        ],
+        huntMessage: 'Responde con tus datos hoy o cerraremos el folio. El correo parece normal, pero el Reply-To cambia.',
+      },
+    ],
+    avanzado: [
+      {
+        key: 'dominio-sutil',
+        inbox: [
+          {
+            id: 'e1',
+            displayName: 'Equipo de seguridad',
+            from: 'alerts@cuentasegura.co',
+            subject: 'Actividad inusual en tu cuenta',
+            preview: 'Revisa el cambio desde el portal de validación.',
+            dateLabel: 'Hoy',
+            warning: 'Ten cuidado con este mensaje',
+            text: 'Detectamos un cambio de dispositivo. Para revisar el evento, entra al portal de validación que aparece abajo.',
+            body: [
+              'Detectamos un cambio de dispositivo.',
+              'Para revisar el evento, entra al portal de validación que aparece abajo.',
+              'Si no validas hoy, el acceso se limitará temporalmente.',
+            ],
+            details: {
+              from: 'Equipo de seguridad <alerts@cuentasegura.co>',
+              replyTo: 'alerts@cuentasegura.co',
+              returnPath: 'mailer@cuentasegura.co',
+            },
+            ctaLabel: 'Abrir portal de validación',
+            linkPreview: 'https://cuentasegura.co/portal/validacion',
+            correcto: 'estafa',
+            explicacion: 'El dominio se ve plausible, pero te saca a un portal de validación no verificado.',
+          },
+          {
+            id: 'e2',
+            displayName: 'Aviso de cuenta',
+            from: 'seguridad@app-cuenta.com',
+            subject: 'Intento de acceso detectado',
+            preview: 'Si no fuiste tú, revisa la app oficial.',
+            dateLabel: 'Hoy',
+            text: 'Detectamos un intento de acceso. Si no fuiste tú, revisa la app oficial desde tu dispositivo.',
+            body: [
+              'Detectamos un intento de acceso.',
+              'Si no fuiste tú, revisa la app oficial desde tu dispositivo.',
+            ],
+            details: {
+              from: 'Aviso de cuenta <seguridad@app-cuenta.com>',
+              replyTo: 'no-reply@app-cuenta.com',
+              returnPath: 'mailer@app-cuenta.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'Te lleva a tu propio canal, no a uno controlado por el mensaje.',
+          },
+          {
+            id: 'e3',
+            displayName: 'Compras Terra',
+            from: 'ventas@terra-clientes.com',
+            subject: 'Necesitamos validar tu compra',
+            preview: 'Confirma el comprobante y tu número para liberar el envío.',
+            dateLabel: 'Ayer',
+            text: 'Tu compra ya está capturada. Solo falta confirmar el comprobante y tu número para liberar el envío hoy.',
+            body: [
+              'Tu compra ya está capturada.',
+              'Solo falta confirmar el comprobante y tu número para liberar el envío hoy.',
+            ],
+            details: {
+              from: 'Compras Terra <ventas@terra-clientes.com>',
+              replyTo: 'pagos@terra-clientes-help.net',
+              returnPath: 'mailer@terra-clientes-help.net',
+            },
+            ctaLabel: 'Confirmar compra',
+            linkPreview: 'https://terra-clientes-help.net/checkout',
+            correcto: 'estafa',
+            explicacion: 'Cambia el Reply-To y pide comprobante fuera del flujo real.',
+          },
+          {
+            id: 'e4',
+            displayName: 'Boletín',
+            from: 'boletin@comunidad.app',
+            subject: 'Resumen de la semana',
+            preview: 'Disponible en la app cuando quieras.',
+            dateLabel: 'Mar 29',
+            text: 'Tu resumen está disponible en la app cuando quieras revisarlo.',
+            body: ['Tu resumen está disponible en la app cuando quieras revisarlo.'],
+            details: {
+              from: 'Boletín <boletin@comunidad.app>',
+              replyTo: 'no-reply@comunidad.app',
+              returnPath: 'mailer@comunidad.app',
+            },
+            correcto: 'seguro',
+            explicacion: 'No hay urgencia ni un flujo externo peligroso.',
+          },
+        ],
+        huntMessage: 'Para revisar la actividad inusual, entra al portal de validación hoy. El dominio se ve razonable, pero no es el oficial.',
+      },
+      {
+        key: 'firma-creible',
+        inbox: [
+          {
+            id: 'e1',
+            displayName: 'Servicio al cliente',
+            from: 'notificaciones@cliente-total.com',
+            subject: 'Seguimiento de caso',
+            preview: 'Confirma tu identidad para cerrar el ticket.',
+            dateLabel: 'Hoy',
+            warning: 'Ten cuidado con este mensaje',
+            text: 'Para cerrar tu ticket, confirma tu identidad y adjunta el comprobante más reciente.',
+            body: [
+              'Hola,',
+              'Para cerrar tu ticket necesitamos confirmar tu identidad y adjuntar el comprobante más reciente.',
+              'Gracias por tu atención.',
+              'Servicio al cliente',
+            ],
+            details: {
+              from: 'Servicio al cliente <notificaciones@cliente-total.com>',
+              replyTo: 'casos@cliente-total-help.com',
+              returnPath: 'mailer@cliente-total-help.com',
+            },
+            ctaLabel: 'Responder ticket',
+            linkPreview: 'Responder con documento y comprobante',
+            correcto: 'estafa',
+            explicacion: 'La firma se ve normal, pero el Reply-To y la petición son riesgosos.',
+          },
+          {
+            id: 'e2',
+            displayName: 'Seguridad',
+            from: 'alertas@app-cuenta.com',
+            subject: 'Revisa tu historial',
+            preview: 'Hazlo desde tu app si no reconoces una operación.',
+            dateLabel: 'Hoy',
+            text: 'Si no reconoces una operación, revisa tu historial en la app o portal que ya utilizas.',
+            body: [
+              'Si no reconoces una operación, revisa tu historial en la app o portal que ya utilizas.',
+            ],
+            details: {
+              from: 'Seguridad <alertas@app-cuenta.com>',
+              replyTo: 'no-reply@app-cuenta.com',
+              returnPath: 'mailer@app-cuenta.com',
+            },
+            correcto: 'seguro',
+            explicacion: 'Invita a verificar por tu cuenta, sin pedir datos.',
+          },
+          {
+            id: 'e3',
+            displayName: 'Promociones Plus',
+            from: 'promos@plus-beneficios.co',
+            subject: 'Oferta exclusiva por tiempo limitado',
+            preview: 'Actívala desde el enlace seguro.',
+            dateLabel: 'Ayer',
+            text: 'Activa tu beneficio exclusivo desde el enlace seguro. Solo aplica hoy.',
+            body: [
+              'Activa tu beneficio exclusivo desde el enlace seguro.',
+              'Solo aplica hoy.',
+            ],
+            details: {
+              from: 'Promociones Plus <promos@plus-beneficios.co>',
+              replyTo: 'promos@plus-beneficios.co',
+              returnPath: 'mailer@plus-beneficios.co',
+            },
+            ctaLabel: 'Activar beneficio',
+            linkPreview: 'https://plus-beneficios.co/beneficio',
+            correcto: 'estafa',
+            explicacion: 'La urgencia y el dominio poco conocido vuelven la oferta sospechosa.',
+          },
+          {
+            id: 'e4',
+            displayName: 'Boletín de seguridad',
+            from: 'seguridad@servicio.app',
+            subject: 'Consejos del mes',
+            preview: 'Recuerda revisar por canales oficiales.',
+            dateLabel: 'Mar 28',
+            text: 'Recuerda revisar por canales oficiales si recibes un aviso inesperado.',
+            body: ['Recuerda revisar por canales oficiales si recibes un aviso inesperado.'],
+            details: {
+              from: 'Boletín de seguridad <seguridad@servicio.app>',
+              replyTo: 'no-reply@servicio.app',
+              returnPath: 'mailer@servicio.app',
+            },
+            correcto: 'seguro',
+            explicacion: 'Es solo una recomendación preventiva.',
+          },
+        ],
+        huntMessage: 'El correo se ve profesional y trae una firma completa, pero te pide identidad y comprobante por ese mismo hilo.',
+      },
+    ],
+  };
+
+  const scenario = scenarioSets[modNivel][variant % scenarioSets[modNivel].length];
+  return {
+    id: modId,
+    titulo: 'Correo/Redes: Phishing',
+    descripcion: `Entrenamiento ${levelHint} para detectar phishing en correo y redes ${toneNote}.`,
+    categoria: cat,
+    nivel: modNivel,
+    actividades: [
+      mk(1, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
+        tipo: 'concepto',
+        titulo: 'Qué revisar en un correo sospechoso',
+        bloques: buildConceptBlocks([
+          { titulo: 'Señales de alerta', texto: 'Urgencia, adjuntos inesperados, dominios raros o botones que piden validar datos.' },
+          { titulo: 'Qué quiere el estafador', texto: 'Que abras un adjunto, des clic en un enlace o entregues datos sensibles.' },
+          { titulo: 'Qué hacer ahora (pasos)', texto: 'Revisa remitente real, Reply-To, adjuntos y verifica por la app o sitio oficial.' },
+          { titulo: 'Checklist rápido', texto: 'Si no esperabas el mensaje, no abras archivos ni enlaces antes de confirmar.' },
+        ]),
+        contenido:
+          'Un correo puede verse profesional y aun así ser phishing. Lo importante es revisar el remitente real, el motivo y si te empuja a salir del canal oficial.',
+        peso: 0.9,
+      }),
+      mk(2, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-inbox`, variant }),
+        tipo: 'inbox',
+        titulo: 'Inbox simulada',
+        kind: 'correo',
+        intro: 'Abre cada correo, revísalo y clasifícalo como Seguro o Sospechoso.',
+        mensajes: scenario.inbox,
+        peso: 1.6,
+      }),
+      mk(3, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-hunt`, variant }),
+        tipo: 'signal_hunt',
+        titulo: 'Señala la pista clave',
+        mensaje: scenario.huntMessage,
+        senales: [
+          { id: 'p1', label: 'Urgencia o plazo corto', correcta: true, explicacion: 'Busca que decidas sin verificar.' },
+          { id: 'p2', label: 'Pide datos, adjuntos o comprobantes', correcta: true, explicacion: 'Es información sensible.' },
+          { id: 'p3', label: 'Canal de validación no oficial', correcta: true, explicacion: 'Te saca del flujo real de la cuenta.' },
+          { id: 'p4', label: 'Buen diseño o firma', correcta: false, explicacion: 'La presentación no prueba legitimidad.' },
+        ],
+        peso: 1.1,
+      }),
+      mk(4, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-decision`, variant }),
+        tipo: 'quiz',
+        titulo: 'Qué harías primero',
+        escenario: 'Abres un correo inesperado con botón y adjunto. ¿Cuál es el paso más seguro?',
+        opciones: [
+          'Abrir el adjunto para entender mejor.',
+          'Verificar por la app o canal oficial antes de tocar el archivo o el botón.',
+          'Responder con tus datos para cerrar el tema.',
+          'Reenviar el correo a otra persona para que lo abra.',
+        ],
+        correcta: 1,
+        explicacion: 'Lo más seguro es salir del mensaje y verificar por un canal que tú controles.',
+        senal: 'El mensaje intenta llevarte a un flujo externo con urgencia o adjuntos.',
+        riesgo: 'Un clic puede abrir malware o robar credenciales.',
+        accion: 'No abras archivos ni enlaces antes de confirmar por la app o web oficial.',
+        peso: 1.0,
+      }),
+      mk(5, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-abierta`, variant }),
+        tipo: 'abierta',
+        titulo: 'Tu regla anti-phishing',
+        prompt: 'Escribe una regla corta que seguirás cuando un correo o mensaje te pida validar datos o descargar algo.',
+        pistas: ['reviso remitente real', 'no abro adjuntos inesperados', 'verifico por canal oficial'],
+        peso: 1.0,
+      }),
+      mk(6, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-checklist`, variant }),
+        tipo: 'checklist',
+        titulo: 'Checklist rápido de phishing',
+        intro: 'Antes de confiar en un correo o DM:',
+        items: [
+          'Verifica remitente real y Reply-To.',
+          'No abras adjuntos inesperados.',
+          'No entregues datos ni comprobantes por correo.',
+          'Verifica desde tu app o sitio oficial.',
+        ],
+        peso: 1.0,
+      }),
+    ],
+  };
+};
+
+const buildCallModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
+  const scenarioSets = {
+    basico: [
+      {
+        key: 'banco-otp',
+        callerName: 'Seguridad bancaria',
+        callerNumber: 'Número oculto',
+        opening:
+          'Detectamos un cargo sospechoso. Para cancelarlo necesito el código que te acaba de llegar por SMS.',
+        steps: [
+          {
+            texto: 'La supuesta agente te dice que el movimiento sigue “en proceso” y que necesitas dar el código en ese momento.',
+            opciones: [
+              { id: 'c1', texto: 'Dar el código para cancelar rápido', puntaje: 0.1, feedback: 'Riesgosa. El código es la llave que el estafador necesita.' },
+              { id: 'c2', texto: 'Colgar y revisar la app o llamar al número oficial', puntaje: 1, feedback: 'Buena. Tú retomas el control por un canal real.' },
+              { id: 'c3', texto: 'Seguir escuchando para ver si convence más', puntaje: 0.4, feedback: 'Regular. Mientras sigues en la llamada, el estafador controla la presión.' },
+            ],
+          },
+          {
+            texto: 'Antes de colgar, insiste: “Si cuelgas, el cargo se confirma”.',
+            opciones: [
+              { id: 'c4', texto: 'Ignorar la presión y cortar', puntaje: 1, feedback: 'Buena. Esa urgencia es parte de la estafa.' },
+              { id: 'c5', texto: 'Quedarte en línea para “proteger” la cuenta', puntaje: 0.2, feedback: 'Riesgosa. Un banco real no te obliga a seguir en la llamada.' },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'cargo-extra',
+        callerName: 'Área de fraude',
+        callerNumber: 'Llamada entrante',
+        opening:
+          'Vemos un cargo no reconocido. Para detenerlo, confirma tu identidad y el código temporal que te enviamos.',
+        steps: [
+          {
+            texto: 'La llamada suena convincente y parece traer información parcial de tu cuenta.',
+            opciones: [
+              { id: 'c1', texto: 'Compartir los datos para salir de dudas', puntaje: 0.2, feedback: 'Riesgosa. Esa combinación de datos + código expone tu cuenta.' },
+              { id: 'c2', texto: 'Colgar y entrar a la app por tu cuenta', puntaje: 1, feedback: 'Buena. La verificación debe iniciar de tu lado.' },
+              { id: 'c3', texto: 'Pedir que te llamen luego y seguir conversando', puntaje: 0.5, feedback: 'Regular. Mejor corta y busca tú el canal oficial.' },
+            ],
+          },
+          {
+            texto: 'Después insiste con más urgencia para evitar que “se procese el cargo”.',
+            opciones: [
+              { id: 'c4', texto: 'Cortar sin dar más información', puntaje: 1, feedback: 'Correcto. No necesitas convencerlos, necesitas salir de la llamada.' },
+              { id: 'c5', texto: 'Seguir para escuchar el “procedimiento”', puntaje: 0.3, feedback: 'Riesgosa. Te mantienen dentro del guion del fraude.' },
+            ],
+          },
+        ],
+      },
+    ],
+    refuerzo: [
+      {
+        key: 'caller-id',
+        callerName: 'Mesa de seguridad',
+        callerNumber: 'Número similar al banco',
+        opening:
+          'Hablo del área de seguridad. Tenemos un intento de acceso y necesito confirmar tu nombre completo y los últimos movimientos.',
+        steps: [
+          {
+            texto: 'La llamada usa tono profesional y conoce datos básicos tuyos.',
+            opciones: [
+              { id: 'c1', texto: 'Responder porque “sí saben quién soy”', puntaje: 0.2, feedback: 'Riesgosa. Tener datos básicos no prueba que sea legítimo.' },
+              { id: 'c2', texto: 'Pedir folio, colgar y validar desde la app o el número oficial', puntaje: 1, feedback: 'Buena. Tomas nota, pero verificas fuera de la llamada.' },
+              { id: 'c3', texto: 'Pedir que te transfieran a otro agente sin colgar', puntaje: 0.5, feedback: 'Regular. Sigues dentro del canal del estafador.' },
+            ],
+          },
+          {
+            texto: 'Ahora te piden mover tu dinero a una “cuenta segura” para protegerlo.',
+            opciones: [
+              { id: 'c4', texto: 'Aceptar si prometen revertirlo después', puntaje: 0.1, feedback: 'Muy riesgosa. “Cuenta segura” es una táctica clásica de vishing.' },
+              { id: 'c5', texto: 'Negarte, colgar y comunicarte tú con la institución', puntaje: 1, feedback: 'Correcto. Ninguna institución te pide mover dinero por teléfono.' },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'robollamada',
+        callerName: 'Sistema automático',
+        callerNumber: 'Llamada automática',
+        opening:
+          'Sistema de seguridad. Se detectó una operación. Presiona 1 para hablar con un agente y proteger tu cuenta.',
+        steps: [
+          {
+            texto: 'Después de presionar 1, una persona te pide confirmar tu tarjeta “para ayudarte”.',
+            opciones: [
+              { id: 'c1', texto: 'Seguir porque la llamada empezó “automática”', puntaje: 0.2, feedback: 'Riesgosa. Una robollamada no valida la autenticidad.' },
+              { id: 'c2', texto: 'Colgar y llamar tú al número oficial', puntaje: 1, feedback: 'Buena. Rompes el flujo que el estafador controla.' },
+              { id: 'c3', texto: 'Dar solo parte de los datos', puntaje: 0.3, feedback: 'Riesgosa. Cualquier dato puede usarse para manipularte.' },
+            ],
+          },
+          {
+            texto: 'El “agente” te mete presión: “Si cuelgas, ya no podremos ayudarte”.',
+            opciones: [
+              { id: 'c4', texto: 'Cortar y revisar la app', puntaje: 1, feedback: 'Correcto. La urgencia es parte del engaño.' },
+              { id: 'c5', texto: 'Quedarte por miedo a perder la ayuda', puntaje: 0.3, feedback: 'Riesgosa. Esa frase busca que no verifiques por tu cuenta.' },
+            ],
+          },
+        ],
+      },
+    ],
+    avanzado: [
+      {
+        key: 'cuenta-segura',
+        callerName: 'Monitoreo de fraudes',
+        callerNumber: 'Identificador similar a la institución',
+        opening:
+          'Estamos intentando contener una posible filtración. Para blindar tu cuenta, necesitamos mover temporalmente el saldo a una cuenta protegida.',
+        steps: [
+          {
+            texto: 'La persona habla con calma, no usa groserías y responde con seguridad.',
+            opciones: [
+              { id: 'c1', texto: 'Seguir por lo profesional del tono', puntaje: 0.2, feedback: 'Riesgosa. El tono profesional no reemplaza la verificación.' },
+              { id: 'c2', texto: 'Cortar y revisar la app; si hace falta, llamar tú a la institución', puntaje: 1, feedback: 'Buena. Lo seguro es confirmar por un canal propio.' },
+              { id: 'c3', texto: 'Pedir que te manden un correo y seguir la llamada', puntaje: 0.5, feedback: 'Regular. Sigues aceptando su canal y su ritmo.' },
+            ],
+          },
+          {
+            texto: 'Después te dicen que no hagas preguntas a otros “para no alertar al sistema”.',
+            opciones: [
+              { id: 'c4', texto: 'Desconfiar y colgar de inmediato', puntaje: 1, feedback: 'Correcto. El secreto es una señal de manipulación.' },
+              { id: 'c5', texto: 'Seguir solo un poco más', puntaje: 0.3, feedback: 'Riesgosa. Esa presión sutil sigue siendo estafa.' },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'app-remota',
+        callerName: 'Centro de protección',
+        callerNumber: 'Número con apariencia legítima',
+        opening:
+          'Te vamos a ayudar a proteger tu cuenta. Instala una app de soporte y sigue mis pasos para bloquear el acceso sospechoso.',
+        steps: [
+          {
+            texto: 'La persona dice que la app es solo para “diagnóstico” y que no verá tus datos.',
+            opciones: [
+              { id: 'c1', texto: 'Instalarla para resolver rápido', puntaje: 0.1, feedback: 'Muy riesgosa. Una app remota puede dar control total al atacante.' },
+              { id: 'c2', texto: 'Negarte y verificar por tu app o soporte oficial', puntaje: 1, feedback: 'Buena. Una institución no te dicta instalaciones por llamada entrante.' },
+              { id: 'c3', texto: 'Pedir el nombre de la app y buscarla luego', puntaje: 0.5, feedback: 'Regular. Primero corta; luego valida por un canal oficial.' },
+            ],
+          },
+          {
+            texto: 'Para convencerte, promete que así “ganas prioridad de atención”.',
+            opciones: [
+              { id: 'c4', texto: 'No aceptar y cortar', puntaje: 1, feedback: 'Correcto. El beneficio aparente es parte de la manipulación.' },
+              { id: 'c5', texto: 'Aceptar si la app tiene buenas reseñas', puntaje: 0.3, feedback: 'Riesgosa. El canal sigue siendo controlado por la llamada.' },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const scenario = scenarioSets[modNivel][variant % scenarioSets[modNivel].length];
+  return {
+    id: modId,
+    titulo: 'Llamadas Fraudulentas',
+    descripcion: `Entrenamiento ${levelHint} para cortar vishing con criterio ${toneNote}.`,
+    categoria: cat,
+    nivel: modNivel,
+    actividades: [
+      mk(1, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
+        tipo: 'concepto',
+        titulo: 'Qué nunca debes hacer en una llamada',
+        bloques: buildConceptBlocks([
+          { titulo: 'Señales de alerta', texto: 'Urgencia, códigos OTP, “cuenta segura”, apps remotas o presión para no colgar.' },
+          { titulo: 'Qué quiere el estafador', texto: 'Que tomes decisiones dentro de la llamada y compartas datos o muevas dinero.' },
+          { titulo: 'Qué hacer ahora (pasos)', texto: 'Cuelga, entra a tu app o marca tú al número oficial y explica la situación.' },
+          { titulo: 'Checklist rápido', texto: 'Nunca compartas códigos, NIP ni contraseñas por llamada entrante.' },
+        ]),
+        contenido:
+          'Una llamada puede sonar profesional y seguir siendo fraude. La clave es no resolver nada dentro de la llamada: cuelga y verifica por tu cuenta.',
+        peso: 0.9,
+      }),
+      mk(2, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-call`, variant }),
+        tipo: 'call_sim',
+        titulo: 'Simulación de llamada',
+        intro: 'Escucha o lee la llamada y decide cómo responder.',
+        callerName: scenario.callerName,
+        callerNumber: scenario.callerNumber,
+        opening: scenario.opening,
+        steps: scenario.steps,
+        allowVoice: true,
+        voiceProfile: variant % 2 === 0 ? 'female' : 'male',
+        peso: 1.6,
+      }),
+      mk(3, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-hunt`, variant }),
+        tipo: 'signal_hunt',
+        titulo: 'Señales que debes escuchar',
+        mensaje: `${scenario.opening} Si cuelgas, perderás la protección.`,
+        senales: [
+          { id: 'l1', label: 'Pide códigos o datos sensibles', correcta: true, explicacion: 'Ninguna institución legítima te lo pide por llamada entrante.' },
+          { id: 'l2', label: 'Urgencia o amenaza si cuelgas', correcta: true, explicacion: 'La prisa es una técnica para bloquear tu verificación.' },
+          { id: 'l3', label: 'Propone mover dinero o instalar algo', correcta: true, explicacion: 'Es una acción de alto riesgo controlada por el atacante.' },
+          { id: 'l4', label: 'Tono profesional', correcta: false, explicacion: 'Eso no demuestra autenticidad.' },
+        ],
+        peso: 1.1,
+      }),
+      mk(4, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-decision`, variant }),
+        tipo: 'quiz',
+        titulo: 'Qué haces al colgar',
+        escenario: 'Terminó la llamada. ¿Qué paso sigue si quieres estar seguro?',
+        opciones: [
+          'Volver a contestar para pedir más detalles.',
+          'Entrar a la app o llamar tú al número oficial de la institución.',
+          'Mandar por mensaje los datos que te pidieron.',
+          'Esperar a que el “agente” vuelva a marcar.',
+        ],
+        correcta: 1,
+        explicacion: 'La acción segura es iniciar la verificación por un canal oficial controlado por ti.',
+        senal: 'La llamada intentó retenerte dentro de su propio canal.',
+        riesgo: 'Si sigues el flujo del estafador, puede robar datos o dinero.',
+        accion: 'Cuelga, revisa la app y, si hace falta, llama tú al número oficial.',
+        peso: 1.0,
+      }),
+      mk(5, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-abierta`, variant }),
+        tipo: 'abierta',
+        titulo: 'Tu frase para cortar',
+        prompt: 'Escribe una frase breve y firme para colgar una llamada sospechosa sin engancharte en la conversación.',
+        pistas: ['voy a verificar por mi cuenta', 'no comparto datos', 'gracias, hasta luego'],
+        peso: 1.0,
+      }),
+      mk(6, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-checklist`, variant }),
+        tipo: 'checklist',
+        titulo: 'Checklist de llamadas',
+        intro: 'Si una llamada te mete presión:',
+        items: [
+          'No compartas códigos, NIP ni contraseñas.',
+          'No muevas dinero a cuentas “seguras”.',
+          'No instales apps por instrucciones de una llamada entrante.',
+          'Cuelga y llama tú al número oficial.',
+        ],
+        peso: 1.0,
+      }),
+    ],
+  };
+};
+
+const buildHabitsModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
+  const scenarioSets = {
+    basico: [
+      {
+        key: 'pausa-basica',
+        flow: [
+          {
+            texto: 'Te llega un mensaje inesperado con “último aviso” y un enlace.',
+            opciones: [
+              { id: 'h1', texto: 'Abrirlo para ver de qué se trata', puntaje: 0.2, feedback: 'Riesgosa. Primero necesitas frenar la urgencia.' },
+              { id: 'h2', texto: 'Pausar, revisar el remitente y verificar por un canal oficial', puntaje: 1, feedback: 'Buena. Esa pausa reduce errores.' },
+              { id: 'h3', texto: 'Reenviarlo a alguien para preguntar', puntaje: 0.5, feedback: 'Regular. Puede ayudar, pero no sustituye un canal oficial.' },
+            ],
+          },
+          {
+            texto: 'Todavía tienes duda. ¿Qué haces después?',
+            opciones: [
+              { id: 'h4', texto: 'Confirmar desde la app o sitio oficial que tú escribes', puntaje: 1, feedback: 'Correcto. Tú controlas el canal.' },
+              { id: 'h5', texto: 'Seguir el enlace solo “un momento”', puntaje: 0.2, feedback: 'Riesgosa. Un clic puede ser suficiente.' },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'compra-basica',
+        flow: [
+          {
+            texto: 'Vas a comprar en una tienda nueva y el precio te emociona.',
+            opciones: [
+              { id: 'h1', texto: 'Comprar rápido para no perder la oferta', puntaje: 0.2, feedback: 'Riesgosa. La emoción puede hacerte ignorar señales.' },
+              { id: 'h2', texto: 'Revisar dominio, reseñas y método de pago antes de seguir', puntaje: 1, feedback: 'Buena. Esa rutina baja mucho el riesgo.' },
+            ],
+          },
+          {
+            texto: 'La tienda pide transferencia para respetar el descuento.',
+            opciones: [
+              { id: 'h3', texto: 'Aceptar si el descuento vale la pena', puntaje: 0.2, feedback: 'Riesgosa. Sin protección, recuperar el dinero es difícil.' },
+              { id: 'h4', texto: 'Salir y buscar otra opción con pago protegido', puntaje: 1, feedback: 'Correcto. El pago protegido es parte de tu rutina.' },
+            ],
+          },
+        ],
+      },
+    ],
+    refuerzo: [
+      {
+        key: 'mensaje-mixto',
+        flow: [
+          {
+            texto: 'Te escribe alguien conocido y envía un enlace que “necesita confirmación”.',
+            opciones: [
+              { id: 'h1', texto: 'Abrirlo porque conoces a la persona', puntaje: 0.3, feedback: 'Regular tirando a riesgosa. La cuenta pudo ser comprometida.' },
+              { id: 'h2', texto: 'Verificar por llamada o con una pregunta que solo esa persona pueda responder', puntaje: 1, feedback: 'Buena. Separas confianza de verificación.' },
+              { id: 'h3', texto: 'Esperar a que la persona insista más', puntaje: 0.5, feedback: 'Regular. Mejor verifica antes de seguir.' },
+            ],
+          },
+          {
+            texto: 'La respuesta llega bien escrita y con buena excusa. ¿Qué mantiene tu rutina segura?',
+            opciones: [
+              { id: 'h4', texto: 'Buscar un canal oficial o independiente para confirmar', puntaje: 1, feedback: 'Correcto. La forma no reemplaza la verificación.' },
+              { id: 'h5', texto: 'Confiar si suena coherente', puntaje: 0.3, feedback: 'Riesgosa. Las estafas creíbles existen justo para eso.' },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'oferta-mixta',
+        flow: [
+          {
+            texto: 'Una oferta parece razonable, no absurda. Aun así, no conoces la tienda.',
+            opciones: [
+              { id: 'h1', texto: 'Comprar porque el precio no se ve tan extraño', puntaje: 0.4, feedback: 'Regular. Un precio razonable también puede estar en una tienda falsa.' },
+              { id: 'h2', texto: 'Verificar dominio, empresa y método de pago antes de decidir', puntaje: 1, feedback: 'Buena. Tu rutina no depende de si el precio parece normal.' },
+            ],
+          },
+          {
+            texto: 'El checkout pide un paso adicional “para validar”.',
+            opciones: [
+              { id: 'h3', texto: 'Seguir si el resto del sitio se ve profesional', puntaje: 0.3, feedback: 'Riesgosa. El cambio de flujo es una señal importante.' },
+              { id: 'h4', texto: 'Pausar y revisar fuera del sitio antes de pagar', puntaje: 1, feedback: 'Correcto. La verificación externa es tu respaldo.' },
+            ],
+          },
+        ],
+      },
+    ],
+    avanzado: [
+      {
+        key: 'rutina-avanzada',
+        flow: [
+          {
+            texto: 'Recibes un aviso muy bien redactado sobre seguridad. No hay faltas y el diseño se ve cuidado.',
+            opciones: [
+              { id: 'h1', texto: 'Confiar porque se ve profesional', puntaje: 0.3, feedback: 'Riesgosa. Hoy la presentación ya no es filtro suficiente.' },
+              { id: 'h2', texto: 'Buscar dos señales verificables antes de actuar', puntaje: 1, feedback: 'Buena. Tu rutina debe apoyarse en evidencia, no en apariencia.' },
+            ],
+          },
+          {
+            texto: 'Una de esas señales parece correcta, pero el canal final no te convence.',
+            opciones: [
+              { id: 'h3', texto: 'Seguir si solo ves una señal rara', puntaje: 0.4, feedback: 'Regular. En escenarios finos, una señal rara sí merece pausa.' },
+              { id: 'h4', texto: 'Salir del flujo y verificar por tu cuenta', puntaje: 1, feedback: 'Correcto. La mejor rutina corta el impulso y valida fuera del mensaje.' },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'rutina-contexto',
+        flow: [
+          {
+            texto: 'El mensaje encaja con algo que sí hiciste hoy: una compra, un acceso o un trámite.',
+            opciones: [
+              { id: 'h1', texto: 'Confiar porque coincide con tu contexto', puntaje: 0.4, feedback: 'Regular. Los estafadores aprovechan coincidencias reales.' },
+              { id: 'h2', texto: 'Verificar si el canal y el dominio también son consistentes', puntaje: 1, feedback: 'Buena. Coincidencia no significa legitimidad.' },
+            ],
+          },
+          {
+            texto: 'El mensaje te pide una acción pequeña, “solo para validar”.',
+            opciones: [
+              { id: 'h3', texto: 'Hacerla porque parece inofensiva', puntaje: 0.3, feedback: 'Riesgosa. Muchas estafas avanzadas piden algo pequeño primero.' },
+              { id: 'h4', texto: 'Mantener tu rutina: pausar, verificar y usar canal oficial', puntaje: 1, feedback: 'Correcto. La rutina funciona mejor cuando el fraude es más fino.' },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const scenario = scenarioSets[modNivel][variant % scenarioSets[modNivel].length];
+  return {
+    id: modId,
+    titulo: 'Hábitos de Verificación',
+    descripcion: `Rutina ${levelHint} para decidir con calma y menos riesgo ${toneNote}.`,
+    categoria: cat,
+    nivel: modNivel,
+    actividades: [
+      mk(1, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
+        tipo: 'concepto',
+        titulo: 'Tu rutina en 4 pasos',
+        bloques: buildConceptBlocks([
+          { titulo: 'Pausa', texto: 'No decidas con prisa. Si algo mete urgencia, respira y separa emoción de acción.' },
+          { titulo: 'Verifica', texto: 'Revisa remitente, dominio o identidad antes de abrir enlaces o mover dinero.' },
+          { titulo: 'Confirma', texto: 'Usa un canal oficial o independiente que tú controles.' },
+          { titulo: 'Protege', texto: 'No compartas códigos, NIP ni datos sensibles por mensaje o llamada.' },
+        ]),
+        contenido:
+          'No necesitas memorizar todas las estafas. Una rutina corta y constante te ayuda a reaccionar mejor en casi cualquier canal.',
+        peso: 0.8,
+      }),
+      mk(2, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-flow`, variant }),
+        tipo: 'scenario_flow',
+        titulo: '¿Qué harías si…?',
+        intro: 'Practica tu rutina en situaciones cortas y cotidianas.',
+        pasos: scenario.flow,
+        peso: 1.3,
+      }),
+      mk(3, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-quiz-1`, variant }),
+        tipo: 'quiz',
+        titulo: 'Qué va primero',
+        escenario: 'Cuando un mensaje te pide actuar rápido, ¿qué haces primero?',
+        opciones: [
+          'Actúo para no perder tiempo.',
+          'Pauso y verifico por un canal confiable.',
+          'Comparto el mensaje para que alguien me diga.',
+          'Respondo con los datos mínimos.',
+        ],
+        correcta: 1,
+        explicacion: 'La rutina segura siempre empieza con una pausa y verificación.',
+        senal: 'La urgencia busca saltarse tu proceso mental.',
+        riesgo: 'Decidir con prisa te hace más vulnerable a errores.',
+        accion: 'Pausa, revisa la señal principal y confirma por un canal oficial.',
+        peso: 1.0,
+      }),
+      mk(4, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-quiz-2`, variant }),
+        tipo: 'quiz',
+        titulo: 'Comparación rápida',
+        escenario: 'Una oferta se ve bien y el mensaje está bien escrito. ¿Qué pesa más en tu decisión?',
+        opciones: [
+          'La buena redacción.',
+          'La emoción de aprovechar el momento.',
+          'Las verificaciones que puedes hacer fuera del mensaje.',
+          'Que otra persona también la vio.',
+        ],
+        correcta: 2,
+        explicacion: 'Lo que más vale es lo que puedes verificar por tu cuenta, no cómo se ve el mensaje.',
+        senal: 'La estafa avanzada se apoya en buena presentación y contexto realista.',
+        riesgo: 'Si confías por apariencia, te saltas la validación importante.',
+        accion: 'Sigue tu rutina: verifica identidad, canal y método antes de actuar.',
+        peso: 1.0,
+      }),
+      mk(5, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-checklist`, variant }),
+        tipo: 'checklist',
+        titulo: 'Mi rutina personal',
+        intro: 'Marca los pasos que quieres convertir en hábito:',
+        items: [
+          'Pauso antes de abrir enlaces o pagar.',
+          'Verifico remitente, número o dominio.',
+          'Confirmo por app, web o teléfono oficial.',
+          'No comparto códigos, NIP ni datos sensibles.',
+          'Bloqueo o reporto si la señal es clara.',
+        ],
+        peso: 1.0,
+      }),
+      mk(6, {
+        scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-regla`, variant }),
+        tipo: 'abierta',
+        titulo: 'Tu regla de oro',
+        prompt: 'Escribe una frase corta que puedas recordar cuando algo te meta presión digital.',
+        pistas: ['pauso', 'verifico', 'canal oficial'],
+        peso: 1.0,
+      }),
+    ],
+  };
+};
+
+const buildCourseRoute = ({ categories, levels, answers, assessment, prefs, progress }) => {
+  const occurrences = {};
+  return (Array.isArray(categories) ? categories : []).map((cat, idx) => {
+    const normalized = normalizeCourseCategory(cat);
+    const occurrence = occurrences[normalized] || 0;
+    occurrences[normalized] = occurrence + 1;
+    return buildModuleTemplate({
+      categoria: normalized,
+      index: idx,
+      answers,
+      assessment,
+      nivel: Array.isArray(levels) ? levels[idx] : 'basico',
+      progress,
+      occurrence,
+    });
+  });
+};
+
+const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel, progress, occurrence = 0 }) => {
   const userNivel = normalizeNivel(assessment?.nivel || 'Medio');
   const modNivel = normalizeModuleLevel(nivel);
   const cat = normalizeCourseCategory(categoria);
@@ -1094,8 +2836,21 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel }) =
 
   const levelBoost = modNivel === 'avanzado' ? 1.15 : modNivel === 'refuerzo' ? 1.05 : 1;
   const peso = (base) => clampNumber((Number(base) || 1) * levelBoost, 0.5, 3);
+  const variant = pickModuleVariant({ category: cat, level: modNivel, occurrence, progress, total: 2 });
 
-  const mk = (n, base) => ({ id: `${modId}_a${n}`, ...base, peso: peso(base.peso ?? 1) });
+  const mk = (n, base) => ({
+    id: `${modId}_a${n}`,
+    scenarioId:
+      toText(base?.scenarioId) ||
+      createScenarioId({
+        category: cat,
+        level: modNivel,
+        label: `${base?.tipo || 'actividad'}-${base?.titulo || n}`,
+        variant,
+      }),
+    ...base,
+    peso: peso(base.peso ?? 1),
+  });
 
   const levelHint =
     modNivel === 'basico'
@@ -1103,6 +2858,26 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel }) =
       : modNivel === 'refuerzo'
         ? 'señales mezcladas y un poco ambiguas'
         : 'escenarios realistas con señales menos obvias';
+
+  if (cat === 'web') {
+    return buildWebModule({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
+  }
+
+  if (cat === 'whatsapp') {
+    return buildWhatsAppModule({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
+  }
+
+  if (cat === 'correo_redes') {
+    return buildEmailModule({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
+  }
+
+  if (cat === 'llamadas') {
+    return buildCallModule({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
+  }
+
+  if (cat === 'habitos') {
+    return buildHabitsModule({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
+  }
 
   if (cat === 'web') {
     const page =
@@ -2014,7 +3789,7 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel }) =
   };
 };
 
-const buildFallbackCoursePlan = ({ answers, assessment, prefs }) => {
+const buildFallbackCoursePlan = ({ answers, assessment, prefs, progress }) => {
   const priority = String(answers?.priority || '').toLowerCase();
   const topics = Array.isArray(prefs?.temas) ? prefs.temas : [];
   const wantAll = priority === 'todo' || topics.includes('todo');
@@ -2022,9 +3797,7 @@ const buildFallbackCoursePlan = ({ answers, assessment, prefs }) => {
 
   const categories = chooseCourseCategories({ answers, assessment, prefs });
   const levels = computeModuleLevels(categories, { answers, assessment, prefs });
-  const ruta = categories.map((cat, idx) =>
-    buildModuleTemplate({ categoria: cat, index: idx, answers, assessment, nivel: levels[idx] })
-  );
+  const ruta = buildCourseRoute({ categories, levels, answers, assessment, prefs, progress });
 
   const base =
     normalizeNivel(assessment?.nivel) === 'Alto'
@@ -2059,6 +3832,7 @@ const buildFallbackCoursePlan = ({ answers, assessment, prefs }) => {
   );
 
   return {
+    planVersion: COURSE_PLAN_VERSION,
     score_name: 'Blindaje Digital',
     score_total,
     competencias,
@@ -2066,9 +3840,10 @@ const buildFallbackCoursePlan = ({ answers, assessment, prefs }) => {
   };
 };
 
-const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
-  const fallback = buildFallbackCoursePlan({ answers, assessment, prefs });
+const sanitizeCoursePlan = (plan, { answers, assessment, prefs, progress }) => {
+  const fallback = buildFallbackCoursePlan({ answers, assessment, prefs, progress });
   const safe = {
+    planVersion: COURSE_PLAN_VERSION,
     score_name: toText(plan?.score_name) || fallback.score_name,
     score_total: clampNumber(plan?.score_total, 0, 100),
     competencias: {},
@@ -2099,6 +3874,7 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
     'inbox',
     'web_lab',
     'scenario_flow',
+    'call_sim',
   ]);
 
   const typeRank = (t) => {
@@ -2112,6 +3888,7 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
       quiz: 3,
       simulacion: 3,
       sim_chat: 4,
+      call_sim: 4,
       abierta: 5,
       checklist: 6,
     };
@@ -2123,13 +3900,30 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
     const tipoRaw = String(act.tipo || act.type || '').toLowerCase().trim();
     const tipo = allowedTypes.has(tipoRaw) ? tipoRaw : 'concepto';
     const id = toText(act.id) || `${baseId}_a${aIdx + 1}`;
+    const scenarioId =
+      toText(act.scenarioId) ||
+      fingerprintScenarioId(
+        tipo,
+        act.titulo,
+        act.escenario,
+        act.prompt,
+        act.mensaje,
+        act.intro,
+        act?.pagina?.dominio,
+        act?.from,
+        act?.subject
+      );
     const titulo = toText(act.titulo) || `Actividad ${aIdx + 1}`;
     const peso = clampNumber(act.peso ?? act.puntos ?? 1, 0.5, 3);
 
-    const base = { id, tipo, titulo, peso };
+    const base = { id, scenarioId, tipo, titulo, peso };
 
     if (tipo === 'concepto') {
-      return { ...base, contenido: toText(act.contenido || act.texto || act.descripcion).slice(0, 900) };
+      return {
+        ...base,
+        contenido: toText(act.contenido || act.texto || act.descripcion).slice(0, 900),
+        bloques: buildConceptBlocks(act.bloques || act.sections || act.secciones),
+      };
     }
 
     if (tipo === 'checklist') {
@@ -2147,7 +3941,49 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
         ...base,
         escenario: toText(act.escenario).slice(0, 400),
         inicio: toText(act.inicio).slice(0, 220),
+        contactName: toText(act.contactName || act.nombre || act.contacto).slice(0, 80),
+        avatarLabel: toText(act.avatarLabel || act.avatar || act.iniciales).slice(0, 6),
+        contactStatus: toText(act.contactStatus || act.status || act.estado).slice(0, 40),
+        quickReplies: asStringArray(act.quickReplies || act.respuestas_rapidas).slice(0, 4),
         turnos_max: clampNumber(act.turnos_max, 3, 10),
+      };
+    }
+
+    if (tipo === 'call_sim') {
+      const raw = Array.isArray(act.steps) ? act.steps : Array.isArray(act.pasos) ? act.pasos : [];
+      const steps = raw
+        .map((st, idx) => {
+          if (!st || typeof st !== 'object') return null;
+          const texto = toText(st.texto || st.text).slice(0, 360);
+          const opciones = (Array.isArray(st.opciones) ? st.opciones : Array.isArray(st.options) ? st.options : [])
+            .map((opt, oIdx) => {
+              if (!opt || typeof opt !== 'object') return null;
+              const texto = toText(opt.texto || opt.label || opt.text).slice(0, 220);
+              if (!texto) return null;
+              return {
+                id: toText(opt.id) || `o${oIdx + 1}`,
+                texto,
+                puntaje: clampNumber(opt.puntaje ?? opt.score ?? 0.6, 0, 1),
+                feedback: toText(opt.feedback || opt.retro).slice(0, 260),
+              };
+            })
+            .filter(Boolean)
+            .slice(0, 5);
+          if (!texto || opciones.length < 2) return null;
+          return { id: toText(st.id) || `p${idx + 1}`, texto, opciones };
+        })
+        .filter(Boolean)
+        .slice(0, 6);
+      if (steps.length < 2) return null;
+      return {
+        ...base,
+        intro: toText(act.intro).slice(0, 220),
+        callerName: toText(act.callerName || act.nombre || act.caller).slice(0, 90),
+        callerNumber: toText(act.callerNumber || act.numero || act.number).slice(0, 60),
+        opening: toText(act.opening || act.inicio || act.escenario).slice(0, 240),
+        allowVoice: Boolean(act.allowVoice ?? true),
+        voiceProfile: toText(act.voiceProfile || act.voice || act.voz).slice(0, 20),
+        steps,
       };
     }
 
@@ -2192,7 +4028,12 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
         .filter(Boolean)
         .slice(0, 10);
       if (senales.length < 4) return null;
-      return { ...base, mensaje, senales };
+      return {
+        ...base,
+        mensaje,
+        senales,
+        accion: toText(act.accion || act.safeAction || act.accion_segura).slice(0, 220),
+      };
     }
 
     if (tipo === 'inbox') {
@@ -2204,14 +4045,46 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
         .map((m, idx) => {
           if (!m || typeof m !== 'object') return null;
           const id = toText(m.id) || `m${idx + 1}`;
+          const displayName = toText(m.displayName || m.nombre || m.alias).slice(0, 120);
           const from = toText(m.from || m.de || m.remitente).slice(0, 120);
           const subject = toText(m.subject || m.asunto).slice(0, 160);
+          const preview = toText(m.preview || m.resumen).slice(0, 180);
+          const dateLabel = toText(m.dateLabel || m.fecha).slice(0, 50);
+          const warning = toText(m.warning || m.aviso).slice(0, 80);
           const text = toText(m.text || m.mensaje || m.cuerpo).slice(0, 320);
+          const body = asStringArray(m.body || m.cuerpo_lineas).slice(0, 8);
+          const attachments = asStringArray(m.attachments || m.adjuntos).slice(0, 4);
+          const details =
+            m.details && typeof m.details === 'object'
+              ? {
+                  from: toText(m.details.from || m.from).slice(0, 180),
+                  replyTo: toText(m.details.replyTo || m.details.reply_to).slice(0, 180),
+                  returnPath: toText(m.details.returnPath || m.details.return_path).slice(0, 180),
+                }
+              : null;
+          const ctaLabel = toText(m.ctaLabel || m.boton).slice(0, 80);
+          const linkPreview = toText(m.linkPreview || m.link).slice(0, 180);
           const cls = String(m.correcto || m.clasificacion || m.tipo || '').toLowerCase();
           const correcto = cls.includes('estafa') || cls.includes('fraud') || cls.includes('phish') ? 'estafa' : 'seguro';
           const explicacion = toText(m.explicacion || m.razon).slice(0, 220);
           if (!text) return null;
-          return { id, from, subject, text, correcto, explicacion };
+          return {
+            id,
+            displayName,
+            from,
+            subject,
+            preview,
+            dateLabel,
+            warning,
+            text,
+            body,
+            attachments,
+            details,
+            ctaLabel,
+            linkPreview,
+            correcto,
+            explicacion,
+          };
         })
         .filter(Boolean)
         .slice(0, 8);
@@ -2225,10 +4098,16 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
       const pagina = {
         marca: toText(p.marca || p.brand).slice(0, 50) || 'NovaTienda',
         dominio: toText(p.dominio || p.url).slice(0, 80) || 'novatienda-mx.shop',
+        browserTitle: toText(p.browserTitle || p.browser_title).slice(0, 90),
         banner: toText(p.banner || p.hero).slice(0, 90),
         sub: toText(p.sub || p.subtitulo || p.copy).slice(0, 120),
         contacto: toText(p.contacto || p.contact).slice(0, 160),
         pagos: asStringArray(p.pagos).slice(0, 5),
+        shipping: toText(p.shipping || p.envio).slice(0, 160),
+        reviews: toText(p.reviews || p.resenas).slice(0, 160),
+        policy: toText(p.policy || p.politicas).slice(0, 160),
+        cartNote: toText(p.cartNote || p.carrito).slice(0, 120),
+        checkoutPrompt: toText(p.checkoutPrompt || p.checkout_prompt).slice(0, 160),
         productos: Array.isArray(p.productos)
           ? p.productos
               .map((x) => ({
@@ -2246,7 +4125,7 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
           if (!h || typeof h !== 'object') return null;
           const id = toText(h.id) || `h${idx + 1}`;
           const target = String(h.target || h.objetivo || '').toLowerCase().trim();
-          const allowedTargets = ['domain', 'banner', 'contacto', 'pago'];
+          const allowedTargets = ['domain', 'banner', 'contacto', 'pago', 'shipping', 'reviews', 'policy'];
           const safeTarget = allowedTargets.includes(target) ? target : '';
           const label = toText(h.label || h.titulo || h.senal).slice(0, 120);
           const correcta = Boolean(h.correcta ?? h.es_correcta ?? h.correcto);
@@ -2257,7 +4136,17 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
         .filter(Boolean)
         .slice(0, 8);
       if (!pagina.dominio || hotspots.length < 2) return null;
-      return { ...base, intro, pagina, hotspots };
+      return {
+        ...base,
+        intro,
+        pagina,
+        hotspots,
+        decisionPrompt: toText(act.decisionPrompt || act.preguntaDecision).slice(0, 180),
+        decisionOptions: asStringArray(act.decisionOptions || act.opcionesDecision).slice(0, 4),
+        correctDecision: Number.isFinite(Number(act.correctDecision))
+          ? clampNumber(act.correctDecision, 0, 3)
+          : null,
+      };
     }
 
     if (tipo === 'scenario_flow') {
@@ -2327,11 +4216,12 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
     if (cat === 'sms') return types.has('inbox') && types.has('signal_hunt') && acts.find((a) => a.tipo === 'inbox')?.kind === 'sms';
     if (cat === 'correo_redes') return types.has('inbox') && types.has('signal_hunt') && acts.find((a) => a.tipo === 'inbox')?.kind === 'correo';
     if (cat === 'whatsapp') return types.has('sim_chat') && types.has('signal_hunt');
-    if (cat === 'llamadas') return types.has('scenario_flow') && types.has('abierta');
+    if (cat === 'llamadas') return types.has('call_sim') && types.has('abierta');
     return types.has('scenario_flow') && types.has('checklist');
   };
 
   const used = new Set();
+  const fallbackRoute = Array.isArray(fallback?.ruta) ? fallback.ruta : [];
   const finalRoute = Array.isArray(expectedCats) && expectedCats.length === COURSE_MODULE_COUNT
     ? expectedCats.map((cat, idx) => {
         const normalized = normalizeCourseCategory(cat);
@@ -2340,11 +4230,11 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
         let mod =
           found !== -1
             ? { ...pool[found], categoria: normalized, nivel }
-            : buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment, nivel });
+            : fallbackRoute[idx] || buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment, nivel, progress, occurrence: idx });
         if (found !== -1) used.add(found);
 
         if (!moduleMeetsRequirements(mod)) {
-          mod = buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment, nivel });
+          mod = fallbackRoute[idx] || buildModuleTemplate({ categoria: normalized, index: idx, answers, assessment, nivel, progress, occurrence: idx });
         }
         return mod;
       })
@@ -2352,18 +4242,49 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs }) => {
 
   // Avoid duplicate module titles by adding a level suffix when needed.
   const titleCounts = {};
+  const categoryScenarioSeen = {};
   safe.ruta = finalRoute.map((mod, idx) => {
-    const baseTitle = String(mod?.titulo || `Módulo ${idx + 1}`).trim();
+    const fallbackModule = fallbackRoute[idx] || mod;
+    const categoryKey = normalizeCourseCategory(mod?.categoria);
+    categoryScenarioSeen[categoryKey] = categoryScenarioSeen[categoryKey] || new Set();
+    let safeModule = mod;
+
+    const hasDuplicateWithinModule = (module) => {
+      const seen = new Set();
+      return (Array.isArray(module?.actividades) ? module.actividades : []).some((activity) => {
+        const repeatKey = getActivityRepeatKey(activity);
+        if (!repeatKey) return false;
+        if (seen.has(repeatKey)) return true;
+        seen.add(repeatKey);
+        return false;
+      });
+    };
+
+    const overlapsCategory = (module) =>
+      (Array.isArray(module?.actividades) ? module.actividades : []).some((activity) => {
+        const repeatKey = getActivityRepeatKey(activity);
+        return repeatKey && categoryScenarioSeen[categoryKey].has(repeatKey);
+      });
+
+    if (hasDuplicateWithinModule(safeModule) || overlapsCategory(safeModule)) {
+      safeModule = fallbackModule;
+    }
+
+    const baseTitle = String(safeModule?.titulo || `Módulo ${idx + 1}`).trim();
     const key = baseTitle.toLowerCase();
     titleCounts[key] = (titleCounts[key] || 0) + 1;
     const levelLabel =
-      normalizeModuleLevel(mod?.nivel) === 'avanzado'
+      normalizeModuleLevel(safeModule?.nivel) === 'avanzado'
         ? 'Avanzado'
-        : normalizeModuleLevel(mod?.nivel) === 'refuerzo'
+        : normalizeModuleLevel(safeModule?.nivel) === 'refuerzo'
           ? 'Refuerzo'
           : 'Básico';
-    if (titleCounts[key] === 1) return { ...mod, titulo: baseTitle };
-    return { ...mod, titulo: `${baseTitle} — ${levelLabel}` };
+    (Array.isArray(safeModule?.actividades) ? safeModule.actividades : []).forEach((activity) => {
+      const repeatKey = getActivityRepeatKey(activity);
+      if (repeatKey) categoryScenarioSeen[categoryKey].add(repeatKey);
+    });
+    if (titleCounts[key] === 1) return { ...safeModule, titulo: baseTitle };
+    return { ...safeModule, titulo: `${baseTitle} — ${levelLabel}` };
   });
 
   return safe;
@@ -2914,7 +4835,7 @@ app.post('/api/course', async (req, res) => {
 
     const text = extractText(data);
     const parsed = extractJson(text);
-    const safe = sanitizeCoursePlan(parsed, { answers, assessment, prefs });
+    const safe = sanitizeCoursePlan(parsed, { answers, assessment, prefs, progress });
     return res.json(safe);
   } catch (error) {
     console.error('Error /api/course:', error);
@@ -3001,6 +4922,10 @@ app.post('/api/course/sim-turn', async (req, res) => {
 
     let reply = toText(parsed.reply || parsed.estafador || parsed.mensaje);
     let coach_feedback = toText(parsed.coach_feedback || parsed.feedback || parsed.coach);
+    let signal_detected = toText(parsed.signal_detected || parsed.signal || parsed.senal);
+    let risk = toText(parsed.risk || parsed.riesgo);
+    let safe_action = toText(parsed.safe_action || parsed.action || parsed.accion);
+    let rating = toText(parsed.rating || parsed.clasificacion || parsed.resultado);
     const rawScore = parsed.score ?? parsed.puntaje ?? parsed.calificacion;
     const score = Number.isFinite(Number(rawScore)) ? clampNumber(rawScore, 0, 1) : 0.6;
     let done = Boolean(parsed.done);
@@ -3014,16 +4939,36 @@ app.post('/api/course/sim-turn', async (req, res) => {
       coach_feedback =
         'Vas bien por pausar. Tip: verifica por un canal oficial antes de actuar.';
     }
+    if (!signal_detected) {
+      signal_detected = 'La conversación está metiendo urgencia para que actúes dentro del mismo chat.';
+    }
+    if (!risk) {
+      risk = 'Si sigues el flujo del estafador, puede obtener dinero, códigos o acceso a tu cuenta.';
+    }
+    if (!safe_action) {
+      safe_action = 'Detén la conversación y verifica por un canal oficial que tú controles.';
+    }
+    if (!rating) {
+      rating = score >= 0.85 ? 'Buena' : score >= 0.6 ? 'Regular' : 'Riesgosa';
+    }
 
     // Safety scrub: no links or phone numbers in the simulated scammer reply.
     reply = String(reply || '')
       .replaceAll(/https?:\/\/\S+/gi, '[link]')
       .replaceAll(/\b\d{6,}\b/g, '[numero]');
     coach_feedback = String(coach_feedback || '').slice(0, 700);
+    signal_detected = String(signal_detected || '').slice(0, 220);
+    risk = String(risk || '').slice(0, 260);
+    safe_action = String(safe_action || '').slice(0, 260);
+    rating = ['Buena', 'Regular', 'Riesgosa'].includes(rating) ? rating : 'Regular';
 
     return res.json({
       reply: String(reply).slice(0, 500),
       coach_feedback,
+      signal_detected,
+      risk,
+      safe_action,
+      rating,
       score,
       done,
     });
