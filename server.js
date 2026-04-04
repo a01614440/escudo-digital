@@ -1133,6 +1133,111 @@ const buildConceptBlocks = (items) =>
     .filter(Boolean)
     .slice(0, 5);
 
+const MODULE_ACTIVITY_SEQUENCES = {
+  web: {
+    basico: [
+      [1, 2, 3, 4, 6, 5],
+      [1, 3, 2, 4, 6, 5],
+    ],
+    refuerzo: [
+      [3, 2, 1, 4, 5, 6],
+      [2, 3, 1, 4, 6, 5],
+    ],
+    avanzado: [
+      [4, 2, 3, 1, 5, 6],
+      [3, 4, 2, 1, 6, 5],
+    ],
+  },
+  whatsapp: {
+    basico: [
+      [1, 2, 3, 4, 6, 5],
+      [1, 3, 2, 4, 6, 5],
+    ],
+    refuerzo: [
+      [2, 3, 1, 4, 5, 6],
+      [3, 2, 1, 4, 6, 5],
+    ],
+    avanzado: [
+      [4, 2, 3, 1, 5, 6],
+      [2, 4, 3, 1, 6, 5],
+    ],
+  },
+  correo_redes: {
+    basico: [
+      [1, 2, 3, 4, 6, 5],
+      [1, 3, 2, 4, 6, 5],
+    ],
+    refuerzo: [
+      [2, 3, 1, 4, 5, 6],
+      [3, 2, 1, 4, 6, 5],
+    ],
+    avanzado: [
+      [4, 2, 3, 1, 5, 6],
+      [2, 4, 3, 1, 6, 5],
+    ],
+  },
+  llamadas: {
+    basico: [
+      [1, 2, 3, 4, 6, 5],
+      [1, 3, 2, 4, 6, 5],
+    ],
+    refuerzo: [
+      [2, 3, 1, 4, 5, 6],
+      [3, 2, 1, 4, 6, 5],
+    ],
+    avanzado: [
+      [4, 2, 3, 1, 5, 6],
+      [2, 4, 3, 1, 6, 5],
+    ],
+  },
+  habitos: {
+    basico: [
+      [1, 2, 3, 4, 5, 6],
+      [1, 3, 2, 4, 5, 6],
+    ],
+    refuerzo: [
+      [2, 1, 3, 4, 5, 6],
+      [2, 3, 1, 4, 6, 5],
+    ],
+    avanzado: [
+      [3, 2, 1, 4, 5, 6],
+      [2, 3, 1, 4, 6, 5],
+    ],
+  },
+};
+
+const arrangeModuleActivities = ({ category, level, variant = 0, activities }) => {
+  const items = Array.isArray(activities) ? activities.filter(Boolean) : [];
+  if (!items.length) return items;
+
+  const categorySequences = MODULE_ACTIVITY_SEQUENCES[normalizeCourseCategory(category)] || {};
+  const levelSequences = categorySequences[normalizeModuleLevel(level)] || [];
+  const sequence = levelSequences.length ? levelSequences[Math.abs(Number(variant) || 0) % levelSequences.length] : null;
+
+  if (!Array.isArray(sequence) || !sequence.length) {
+    return items;
+  }
+
+  const ordered = [];
+  const usedIndexes = new Set();
+
+  sequence.forEach((position) => {
+    const index = Number(position) - 1;
+    if (Number.isInteger(index) && index >= 0 && index < items.length && !usedIndexes.has(index)) {
+      ordered.push(items[index]);
+      usedIndexes.add(index);
+    }
+  });
+
+  items.forEach((activity, index) => {
+    if (!usedIndexes.has(index)) {
+      ordered.push(activity);
+    }
+  });
+
+  return ordered;
+};
+
 const buildWhatsAppModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
   const scenarioSets = {
     basico: [
@@ -1290,7 +1395,11 @@ const buildWhatsAppModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, va
     descripcion: `Práctica ${levelHint} para reconocer engaños en WhatsApp ${toneNote}.`,
     categoria: cat,
     nivel: modNivel,
-    actividades: [
+    actividades: arrangeModuleActivities({
+      category: cat,
+      level: modNivel,
+      variant,
+      activities: [
       mk(1, {
         scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
         tipo: 'concepto',
@@ -1365,7 +1474,8 @@ const buildWhatsAppModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, va
         ],
         peso: 1.0,
       }),
-    ],
+      ],
+    }),
   };
 };
 
@@ -1565,7 +1675,11 @@ const buildWebModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant
     descripcion: `Laboratorio ${levelHint} para comprar con más criterio ${toneNote}.`,
     categoria: cat,
     nivel: modNivel,
-    actividades: [
+    actividades: arrangeModuleActivities({
+      category: cat,
+      level: modNivel,
+      variant,
+      activities: [
       mk(1, {
         scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
         tipo: 'concepto',
@@ -1645,7 +1759,8 @@ const buildWebModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant
         ],
         peso: 1.0,
       }),
-    ],
+      ],
+    }),
   };
 };
 
@@ -2209,7 +2324,11 @@ const buildEmailModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, varia
     descripcion: `Entrenamiento ${levelHint} para detectar phishing en correo y redes ${toneNote}.`,
     categoria: cat,
     nivel: modNivel,
-    actividades: [
+    actividades: arrangeModuleActivities({
+      category: cat,
+      level: modNivel,
+      variant,
+      activities: [
       mk(1, {
         scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
         tipo: 'concepto',
@@ -2285,7 +2404,8 @@ const buildEmailModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, varia
         ],
         peso: 1.0,
       }),
-    ],
+      ],
+    }),
   };
 };
 
@@ -2450,7 +2570,11 @@ const buildCallModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, varian
     descripcion: `Entrenamiento ${levelHint} para cortar vishing con criterio ${toneNote}.`,
     categoria: cat,
     nivel: modNivel,
-    actividades: [
+    actividades: arrangeModuleActivities({
+      category: cat,
+      level: modNivel,
+      variant,
+      activities: [
       mk(1, {
         scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
         tipo: 'concepto',
@@ -2530,7 +2654,8 @@ const buildCallModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, varian
         ],
         peso: 1.0,
       }),
-    ],
+      ],
+    }),
   };
 };
 
@@ -2667,7 +2792,11 @@ const buildHabitsModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, vari
     descripcion: `Rutina ${levelHint} para decidir con calma y menos riesgo ${toneNote}.`,
     categoria: cat,
     nivel: modNivel,
-    actividades: [
+    actividades: arrangeModuleActivities({
+      category: cat,
+      level: modNivel,
+      variant,
+      activities: [
       mk(1, {
         scenarioId: createScenarioId({ category: cat, level: modNivel, label: `${scenario.key}-concepto`, variant }),
         tipo: 'concepto',
@@ -2748,7 +2877,8 @@ const buildHabitsModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, vari
         pistas: ['pauso', 'verifico', 'canal oficial'],
         peso: 1.0,
       }),
-    ],
+      ],
+    }),
   };
 };
 
