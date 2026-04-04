@@ -5,6 +5,27 @@
 body {
   min-width: 320px;
   overflow-x: hidden;
+  transition: background 0.25s ease, color 0.25s ease;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at top left, rgba(96, 146, 255, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(111, 177, 255, 0.1), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(47, 107, 255, 0.08), transparent 32%);
+}
+
+body[data-theme='dark']::before {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(69, 133, 255, 0.14), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(83, 124, 255, 0.12), transparent 34%);
 }
 
 img,
@@ -33,6 +54,39 @@ canvas {
 
 .panel {
   overflow-wrap: anywhere;
+}
+
+.panel,
+.question-card,
+.module-card,
+.summary-card,
+.lesson-card,
+.admin-card,
+.stat-card,
+.chat-drawer,
+.course-settings {
+  background:
+    radial-gradient(circle at top left, rgba(47, 107, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.97));
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+.hero,
+.auth-shell,
+.auth-panel,
+.dashboard-shell,
+.lesson-shell,
+.course-layout,
+.course-summary-grid,
+.dashboard-grid,
+.analytics-grid,
+.admin-grid {
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 .session-bar-compact {
@@ -73,7 +127,9 @@ canvas {
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 15px 18px;
-  background: rgba(255, 255, 255, 0.84);
+  background:
+    radial-gradient(circle at top left, rgba(47, 107, 255, 0.06), transparent 34%),
+    rgba(255, 255, 255, 0.84);
 }
 
 .session-detail-card span {
@@ -242,7 +298,8 @@ canvas {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: white;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.94));
   color: var(--ink);
   cursor: pointer;
   font: inherit;
@@ -1176,9 +1233,85 @@ canvas {
   line-height: 1.25;
 }
 
+.panel p,
+.question-card p,
+.lesson-card p,
+.summary-card p,
+.admin-card p,
+.stat-card p,
+.module-card p,
+.session-detail-card p,
+.activity-copy p,
+.hint,
+.lead {
+  line-height: 1.6;
+}
+
+.session-identity h2,
+.lesson-title,
+.activity-title,
+.hero h1,
+.auth-hero h1,
+.result-title,
+.course-hero-title,
+.dashboard-panel h3,
+.summary-card h3,
+.admin-card h3 {
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.eyebrow,
+.question-eyebrow,
+.module-eyebrow,
+.course-section-label,
+.feedback-score span,
+.review-card-meta {
+  letter-spacing: 0.1em;
+}
+
+.btn.ghost,
+.btn.primary,
+.dashboard-tab,
+.level-pill,
+.activity-pill,
+.badge,
+.pill {
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+}
+
+.btn.ghost:hover,
+.dashboard-tab:hover,
+.level-pill:hover {
+  box-shadow: 0 10px 24px rgba(47, 107, 255, 0.12);
+}
+
 body[data-theme='dark'] .session-bar-compact {
   background:
     radial-gradient(circle at top left, rgba(114, 160, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(15, 24, 40, 0.96));
+}
+
+body[data-theme='dark'] .panel,
+body[data-theme='dark'] .question-card,
+body[data-theme='dark'] .module-card,
+body[data-theme='dark'] .summary-card,
+body[data-theme='dark'] .lesson-card,
+body[data-theme='dark'] .admin-card,
+body[data-theme='dark'] .stat-card,
+body[data-theme='dark'] .chat-drawer,
+body[data-theme='dark'] .course-settings,
+body[data-theme='dark'] .auth-panel,
+body[data-theme='dark'] .auth-shell,
+body[data-theme='dark'] .hero {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.14), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(64, 111, 255, 0.08), transparent 30%),
     linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(15, 24, 40, 0.96));
 }
 
@@ -1195,6 +1328,14 @@ body[data-theme='dark'] .module-accordion {
     linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(15, 24, 40, 0.96));
 }
 
+body[data-theme='dark'] .question-card,
+body[data-theme='dark'] .module-card,
+body[data-theme='dark'] .summary-card,
+body[data-theme='dark'] .admin-card,
+body[data-theme='dark'] .stat-card {
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+}
+
 body[data-theme='dark'] .shield-summary-tile,
 body[data-theme='dark'] .focus-metric,
 body[data-theme='dark'] .module-fact,
@@ -1207,6 +1348,31 @@ body[data-theme='dark'] .message-review-card,
 body[data-theme='dark'] .web-lab-brief,
 body[data-theme='dark'] .feedback-score {
   background: rgba(255, 255, 255, 0.03);
+}
+
+body[data-theme='dark'] .session-detail-card,
+body[data-theme='dark'] .session-detail-actions,
+body[data-theme='dark'] .option,
+body[data-theme='dark'] .domain-btn,
+body[data-theme='dark'] .option-btn,
+body[data-theme='dark'] .store-banner-button,
+body[data-theme='dark'] .store-section-button,
+body[data-theme='dark'] .wa-bubble.bot,
+body[data-theme='dark'] .wa-bubble.user,
+body[data-theme='dark'] .email-list-item,
+body[data-theme='dark'] .email-body-card,
+body[data-theme='dark'] .email-details,
+body[data-theme='dark'] .browser-url,
+body[data-theme='dark'] .store-product-card,
+body[data-theme='dark'] .store-decision-box,
+body[data-theme='dark'] .call-screen,
+body[data-theme='dark'] .call-bubble,
+body[data-theme='dark'] .flow,
+body[data-theme='dark'] .signal-row,
+body[data-theme='dark'] .message-box {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+  border-color: var(--border);
 }
 
 body[data-theme='dark'] .dashboard-tabs,
@@ -1225,6 +1391,12 @@ body[data-theme='dark'] .badge.subtle,
 body[data-theme='dark'] .badge.level {
   background: rgba(255, 255, 255, 0.06);
   color: var(--ink);
+}
+
+body[data-theme='dark'] .btn.ghost:hover,
+body[data-theme='dark'] .dashboard-tab:hover,
+body[data-theme='dark'] .level-pill:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
 }
 
 body[data-theme='dark'] .activity-pill.soft,
@@ -1264,6 +1436,65 @@ body[data-theme='dark'] .email-list-item.correct {
 body[data-theme='dark'] .email-list-item.wrong,
 body[data-theme='dark'] .email-list-item.missed {
   background: rgba(242, 87, 87, 0.12);
+}
+
+body[data-theme='dark'] textarea,
+body[data-theme='dark'] input[type='text'],
+body[data-theme='dark'] input[type='email'],
+body[data-theme='dark'] input[type='password'],
+body[data-theme='dark'] select,
+body[data-theme='dark'] .wa-inputbar input,
+body[data-theme='dark'] .chat-form input {
+  background: rgba(7, 14, 26, 0.78);
+  color: var(--ink);
+  border-color: rgba(159, 181, 221, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body[data-theme='dark'] textarea::placeholder,
+body[data-theme='dark'] input::placeholder {
+  color: rgba(158, 177, 207, 0.82);
+}
+
+body[data-theme='dark'] .analytics-table,
+body[data-theme='dark'] .analytics-table th,
+body[data-theme='dark'] .analytics-table td,
+body[data-theme='dark'] .admin-table,
+body[data-theme='dark'] .admin-table th,
+body[data-theme='dark'] .admin-table td {
+  border-color: rgba(159, 181, 221, 0.14);
+}
+
+body[data-theme='dark'] .analytics-table th,
+body[data-theme='dark'] .admin-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+body[data-theme='dark'] .table-wrap,
+body[data-theme='dark'] .admin-table-wrap {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(159, 181, 221, 0.12);
+  border-radius: 18px;
+}
+
+body[data-theme='dark'] .chat-drawer-head,
+body[data-theme='dark'] .email-reader-head,
+body[data-theme='dark'] .email-reader-footer,
+body[data-theme='dark'] .activity-head,
+body[data-theme='dark'] .module-accordion-head {
+  border-color: rgba(159, 181, 221, 0.14);
+}
+
+body[data-theme='dark'] .chat-fab {
+  background: linear-gradient(135deg, #5d8fff, #78b9ff);
+  box-shadow: 0 18px 36px rgba(39, 92, 235, 0.42);
+}
+
+body[data-theme='dark'] .backdrop {
+  background: rgba(4, 9, 17, 0.58);
+  backdrop-filter: blur(6px);
 }
 
 .topic-toggle-grid {
