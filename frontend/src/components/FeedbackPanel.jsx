@@ -1,3 +1,5 @@
+import { repairPossibleMojibake } from '../lib/course.js';
+
 function getFeedbackTone(feedback) {
   const score = Number(feedback?.score);
   if (Number.isFinite(score)) {
@@ -6,7 +8,7 @@ function getFeedbackTone(feedback) {
     return 'risk';
   }
 
-  const title = String(feedback?.title || '').toLowerCase();
+  const title = repairPossibleMojibake(String(feedback?.title || '').toLowerCase());
   if (title.includes('buena') || title.includes('correcto') || title.includes('complet')) {
     return 'good';
   }
@@ -33,7 +35,7 @@ export default function FeedbackPanel({ feedback }) {
       <div className="feedback">
         {feedback
           .split('\n')
-          .map((line) => line.trim())
+          .map((line) => repairPossibleMojibake(line).trim())
           .filter(Boolean)
           .map((line, index) => (
             <p key={`${line}-${index}`}>{line}</p>
@@ -44,12 +46,23 @@ export default function FeedbackPanel({ feedback }) {
 
   const tone = getFeedbackTone(feedback);
   const scoreLabel = formatScore(feedback.score);
+  const title = repairPossibleMojibake(feedback.title || '');
+  const signal = repairPossibleMojibake(feedback.signal || '');
+  const risk = repairPossibleMojibake(feedback.risk || '');
+  const action = repairPossibleMojibake(feedback.action || '');
+  const extra = repairPossibleMojibake(feedback.extra || '');
+  const detected = Array.isArray(feedback.detected)
+    ? feedback.detected.map((item) => repairPossibleMojibake(item)).filter(Boolean)
+    : [];
+  const missed = Array.isArray(feedback.missed)
+    ? feedback.missed.map((item) => repairPossibleMojibake(item)).filter(Boolean)
+    : [];
 
   return (
     <div className={`feedback feedback-${tone}`}>
-      {feedback.title || scoreLabel ? (
+      {title || scoreLabel ? (
         <div className="feedback-head">
-          {feedback.title ? <div className="feedback-pill">{feedback.title}</div> : null}
+          {title ? <div className="feedback-pill">{title}</div> : null}
           {scoreLabel ? (
             <div className="feedback-score">
               <strong>{scoreLabel}</strong>
@@ -59,50 +72,50 @@ export default function FeedbackPanel({ feedback }) {
         </div>
       ) : null}
 
-      {feedback.signal ? (
+      {signal ? (
         <div>
           <span className="feedback-label">Señal detectada</span>
-          <p>{feedback.signal}</p>
+          <p>{signal}</p>
         </div>
       ) : null}
 
-      {feedback.risk ? (
+      {risk ? (
         <div>
           <span className="feedback-label">Riesgo</span>
-          <p>{feedback.risk}</p>
+          <p>{risk}</p>
         </div>
       ) : null}
 
-      {feedback.action ? (
+      {action ? (
         <div>
           <span className="feedback-label">Acción segura</span>
-          <p>{feedback.action}</p>
+          <p>{action}</p>
         </div>
       ) : null}
 
-      {feedback.extra ? (
+      {extra ? (
         <div>
           <span className="feedback-label">Qué hacer ahora</span>
-          <p>{feedback.extra}</p>
+          <p>{extra}</p>
         </div>
       ) : null}
 
-      {Array.isArray(feedback.detected) && feedback.detected.length ? (
+      {detected.length ? (
         <div>
           <span className="feedback-label">Señales detectadas</span>
           <ul>
-            {feedback.detected.map((item) => (
+            {detected.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
       ) : null}
 
-      {Array.isArray(feedback.missed) && feedback.missed.length ? (
+      {missed.length ? (
         <div>
           <span className="feedback-label">Te faltó revisar</span>
           <ul>
-            {feedback.missed.map((item) => (
+            {missed.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>

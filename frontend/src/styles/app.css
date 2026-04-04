@@ -1716,6 +1716,462 @@ body[data-theme='dark'] .app-crash-detail {
   font-size: 0.92rem;
 }
 
+.activity-shell {
+  --activity-accent: var(--primary);
+  --activity-accent-rgb: 47, 107, 255;
+  --activity-ink: #10203b;
+  --activity-soft: rgba(47, 107, 255, 0.08);
+  --activity-soft-strong: rgba(47, 107, 255, 0.14);
+  --activity-border: rgba(47, 107, 255, 0.14);
+  --activity-surface:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 255, 0.98));
+}
+
+.activity-shell-whatsapp {
+  --activity-accent: #0f9f64;
+  --activity-accent-rgb: 15, 159, 100;
+  --activity-ink: #103829;
+  --activity-soft: rgba(15, 159, 100, 0.08);
+  --activity-soft-strong: rgba(15, 159, 100, 0.16);
+  --activity-border: rgba(15, 159, 100, 0.18);
+}
+
+.activity-shell-sms {
+  --activity-accent: #4f46e5;
+  --activity-accent-rgb: 79, 70, 229;
+  --activity-ink: #1f255b;
+  --activity-soft: rgba(79, 70, 229, 0.08);
+  --activity-soft-strong: rgba(79, 70, 229, 0.16);
+  --activity-border: rgba(79, 70, 229, 0.18);
+}
+
+.activity-shell-correo_redes {
+  --activity-accent: #2563eb;
+  --activity-accent-rgb: 37, 99, 235;
+  --activity-ink: #122d66;
+  --activity-soft: rgba(37, 99, 235, 0.08);
+  --activity-soft-strong: rgba(37, 99, 235, 0.16);
+  --activity-border: rgba(37, 99, 235, 0.18);
+}
+
+.activity-shell-llamadas {
+  --activity-accent: #f97316;
+  --activity-accent-rgb: 249, 115, 22;
+  --activity-ink: #5b2c08;
+  --activity-soft: rgba(249, 115, 22, 0.08);
+  --activity-soft-strong: rgba(249, 115, 22, 0.16);
+  --activity-border: rgba(249, 115, 22, 0.18);
+}
+
+.activity-shell-habitos {
+  --activity-accent: #0f8a83;
+  --activity-accent-rgb: 15, 138, 131;
+  --activity-ink: #0d4642;
+  --activity-soft: rgba(15, 138, 131, 0.08);
+  --activity-soft-strong: rgba(15, 138, 131, 0.16);
+  --activity-border: rgba(15, 138, 131, 0.18);
+}
+
+.activity-shell-basico {
+  --activity-level-rgb: 74, 122, 255;
+}
+
+.activity-shell-refuerzo {
+  --activity-level-rgb: 250, 173, 20;
+}
+
+.activity-shell-avanzado {
+  --activity-level-rgb: 225, 29, 72;
+}
+
+.activity-head-rich {
+  padding: 20px 22px;
+  border: 1px solid var(--activity-border);
+  border-radius: 26px;
+  background: var(--activity-surface);
+  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.06);
+}
+
+.activity-head-copy {
+  display: grid;
+  gap: 10px;
+  flex: 1 1 520px;
+  max-width: 780px;
+}
+
+.activity-head-rich .eyebrow,
+.activity-guide .eyebrow,
+.concept-kicker,
+.concept-card-index,
+.activity-summary-stat span {
+  color: var(--activity-accent);
+}
+
+.activity-head-blurb {
+  margin: 0;
+  max-width: 72ch;
+  color: rgba(17, 24, 39, 0.72);
+  line-height: 1.68;
+}
+
+.activity-head-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.activity-type,
+.activity-kicker-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--activity-border);
+  background: rgba(var(--activity-accent-rgb), 0.08);
+  color: var(--activity-ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.activity-kicker-pill.subtle {
+  background: rgba(var(--activity-level-rgb, 47, 107, 255), 0.08);
+  border-color: rgba(var(--activity-level-rgb, 47, 107, 255), 0.16);
+}
+
+.activity-shell .activity-guide,
+.activity-shell .activity-summary-stat,
+.activity-shell .concept-hero-card,
+.activity-shell .concept-detail-panel,
+.activity-shell .concept-takeaways,
+.activity-shell .concept-card,
+.activity-shell .concept-callout,
+.activity-shell .review-card,
+.activity-shell .message-review-card,
+.activity-shell .feedback-score,
+.activity-shell .activity-guide .summary-item {
+  border-color: var(--activity-border);
+}
+
+.activity-shell .activity-guide {
+  background:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.96));
+}
+
+.activity-shell .activity-summary-stat,
+.activity-shell .concept-card,
+.activity-shell .concept-callout,
+.activity-shell .feedback-score {
+  background:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.96));
+}
+
+.activity-shell .concept-hero-card,
+.activity-shell .concept-detail-panel,
+.activity-shell .concept-takeaways {
+  background:
+    radial-gradient(circle at top left, rgba(var(--activity-accent-rgb), 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.98));
+}
+
+.wa-experience {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.wa-side-panel,
+.wa-stage-banner,
+.inbox-stage-banner,
+.call-stage-banner,
+.habit-stage-banner,
+.email-sidebar-head,
+.call-warning-strip,
+.habit-flow-head {
+  border: 1px solid var(--activity-border);
+  background:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.98));
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
+}
+
+.wa-side-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+}
+
+.wa-side-panel h3,
+.inbox-stage-banner h3,
+.call-stage-banner h3,
+.habit-stage-banner h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.18;
+}
+
+.wa-side-panel p,
+.wa-stage-banner p,
+.inbox-stage-banner p,
+.call-stage-banner p,
+.habit-stage-banner p,
+.email-sidebar-head span,
+.call-warning-strip p {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(17, 24, 39, 0.72);
+}
+
+.wa-side-list {
+  display: grid;
+  gap: 10px;
+}
+
+.wa-side-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(var(--activity-accent-rgb), 0.07);
+  border: 1px solid rgba(var(--activity-accent-rgb), 0.1);
+}
+
+.wa-side-card span,
+.call-stage-meta,
+.habit-stage-meta,
+.inbox-stage-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.wa-side-card span {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--activity-accent);
+}
+
+.wa-phone-pro,
+.call-phone-pro,
+.email-sim.inbox-sim-mail,
+.email-sim.inbox-sim-sms {
+  border-radius: 30px;
+  border: 1px solid var(--activity-border);
+  background:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 249, 255, 0.98));
+}
+
+.wa-device-bar,
+.call-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(var(--activity-accent-rgb), 0.09);
+  border-bottom: 1px solid rgba(var(--activity-accent-rgb), 0.12);
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--activity-ink);
+}
+
+.wa-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(var(--activity-accent-rgb), 0.08), rgba(255, 255, 255, 0.86));
+}
+
+.wa-contact-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.wa-contact-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(var(--activity-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--activity-accent-rgb), 0.14);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--activity-ink);
+}
+
+.wa-contact-chip.subtle {
+  background: rgba(15, 23, 42, 0.05);
+  color: rgba(17, 24, 39, 0.68);
+}
+
+.wa-stage-banner,
+.inbox-stage-banner,
+.call-stage-banner,
+.habit-stage-banner {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 18px 20px;
+  border-radius: 24px;
+}
+
+.wa-stage-banner strong,
+.email-sidebar-head strong,
+.call-warning-strip strong {
+  color: var(--activity-ink);
+}
+
+.wa-bubble-time {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: rgba(17, 24, 39, 0.48);
+}
+
+.email-sim.inbox-sim-sms {
+  background:
+    radial-gradient(circle at top right, rgba(79, 70, 229, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(248, 249, 255, 0.99), rgba(243, 245, 255, 0.98));
+}
+
+.email-sim.inbox-sim-sms .email-sidebar {
+  background: linear-gradient(180deg, rgba(238, 242, 255, 0.94), rgba(247, 248, 255, 0.96));
+}
+
+.email-sim.inbox-sim-sms .email-list-item {
+  border-radius: 20px;
+}
+
+.email-sim.inbox-sim-sms .email-reader {
+  background:
+    radial-gradient(circle at top right, rgba(79, 70, 229, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 249, 255, 0.98));
+}
+
+.email-sim.inbox-sim-mail .email-sidebar {
+  background: linear-gradient(180deg, rgba(236, 243, 255, 0.92), rgba(248, 250, 255, 0.96));
+}
+
+.email-sidebar-head {
+  padding: 14px 16px;
+  border-radius: 20px;
+  margin: 12px 12px 0;
+}
+
+.call-phone-pro .call-screen {
+  display: grid;
+  gap: 16px;
+  padding: 0 0 18px;
+}
+
+.call-identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 0 18px;
+}
+
+.call-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(var(--activity-accent-rgb), 0.18), rgba(var(--activity-accent-rgb), 0.38));
+  color: var(--activity-ink);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.call-warning-strip {
+  margin: 0 18px;
+  padding: 14px 16px;
+  border-radius: 20px;
+}
+
+.habit-flow {
+  border: 1px solid var(--activity-border);
+  border-radius: 24px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 255, 0.98));
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
+}
+
+.habit-flow-head {
+  padding: 14px 16px;
+  border-radius: 18px;
+  margin-bottom: 14px;
+}
+
+.habit-option-btn {
+  min-height: 72px;
+}
+
+.activity-shell-whatsapp .option-btn,
+.activity-shell-sms .option-btn,
+.activity-shell-correo_redes .option-btn,
+.activity-shell-llamadas .option-btn,
+.activity-shell-habitos .option-btn {
+  border-color: var(--activity-border);
+}
+
+@media (max-width: 1024px) {
+  .wa-experience,
+  .wa-stage-banner,
+  .inbox-stage-banner,
+  .call-stage-banner,
+  .habit-stage-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-head-badges {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .activity-head-rich,
+  .wa-side-panel,
+  .wa-stage-banner,
+  .inbox-stage-banner,
+  .call-stage-banner,
+  .habit-stage-banner,
+  .habit-flow {
+    padding: 16px;
+  }
+
+  .wa-header,
+  .call-identity {
+    grid-template-columns: 1fr;
+  }
+
+  .wa-contact-badges {
+    justify-content: flex-start;
+  }
+}
+
 .web-lab-brief {
   padding: 16px 18px;
   border-radius: 20px;
@@ -2712,6 +3168,92 @@ body[data-theme='dark'] .fraud-store-shell.layout-minimal .fraud-store-reviews-s
     radial-gradient(circle at top left, rgba(114, 160, 255, 0.08), transparent 36%),
     linear-gradient(180deg, rgba(17, 20, 28, 0.98), rgba(12, 15, 22, 0.96));
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme='dark'] .activity-head-rich,
+body[data-theme='dark'] .activity-shell .activity-guide,
+body[data-theme='dark'] .activity-shell .activity-summary-stat,
+body[data-theme='dark'] .activity-shell .concept-hero-card,
+body[data-theme='dark'] .activity-shell .concept-detail-panel,
+body[data-theme='dark'] .activity-shell .concept-takeaways,
+body[data-theme='dark'] .activity-shell .concept-card,
+body[data-theme='dark'] .activity-shell .concept-callout,
+body[data-theme='dark'] .wa-side-panel,
+body[data-theme='dark'] .wa-stage-banner,
+body[data-theme='dark'] .inbox-stage-banner,
+body[data-theme='dark'] .call-stage-banner,
+body[data-theme='dark'] .habit-stage-banner,
+body[data-theme='dark'] .email-sidebar-head,
+body[data-theme='dark'] .call-warning-strip,
+body[data-theme='dark'] .habit-flow,
+body[data-theme='dark'] .habit-flow-head,
+body[data-theme='dark'] .wa-phone-pro,
+body[data-theme='dark'] .call-phone-pro,
+body[data-theme='dark'] .email-sim.inbox-sim-mail,
+body[data-theme='dark'] .email-sim.inbox-sim-sms {
+  background:
+    radial-gradient(circle at top right, rgba(var(--activity-accent-rgb), 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(14, 20, 31, 0.98), rgba(9, 14, 24, 0.98));
+  border-color: rgba(var(--activity-accent-rgb), 0.24);
+  color: #eef2ff;
+}
+
+body[data-theme='dark'] .activity-head-blurb,
+body[data-theme='dark'] .wa-side-panel p,
+body[data-theme='dark'] .wa-stage-banner p,
+body[data-theme='dark'] .inbox-stage-banner p,
+body[data-theme='dark'] .call-stage-banner p,
+body[data-theme='dark'] .habit-stage-banner p,
+body[data-theme='dark'] .email-sidebar-head span,
+body[data-theme='dark'] .call-warning-strip p,
+body[data-theme='dark'] .wa-contact-chip.subtle,
+body[data-theme='dark'] .wa-bubble-time {
+  color: rgba(226, 232, 240, 0.76);
+}
+
+body[data-theme='dark'] .activity-type,
+body[data-theme='dark'] .activity-kicker-pill,
+body[data-theme='dark'] .wa-contact-chip,
+body[data-theme='dark'] .wa-side-card,
+body[data-theme='dark'] .wa-device-bar,
+body[data-theme='dark'] .call-status-bar,
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-sidebar,
+body[data-theme='dark'] .email-sim.inbox-sim-mail .email-sidebar {
+  background: rgba(var(--activity-accent-rgb), 0.14);
+  border-color: rgba(var(--activity-accent-rgb), 0.24);
+  color: #f8fbff;
+}
+
+body[data-theme='dark'] .activity-kicker-pill.subtle {
+  background: rgba(var(--activity-level-rgb, 114, 160, 255), 0.14);
+  border-color: rgba(var(--activity-level-rgb, 114, 160, 255), 0.24);
+}
+
+body[data-theme='dark'] .wa-header {
+  background: linear-gradient(180deg, rgba(var(--activity-accent-rgb), 0.16), rgba(13, 18, 28, 0.92));
+}
+
+body[data-theme='dark'] .call-avatar {
+  color: #f8fbff;
+}
+
+body[data-theme='dark'] .activity-shell-whatsapp .option-btn,
+body[data-theme='dark'] .activity-shell-sms .option-btn,
+body[data-theme='dark'] .activity-shell-correo_redes .option-btn,
+body[data-theme='dark'] .activity-shell-llamadas .option-btn,
+body[data-theme='dark'] .activity-shell-habitos .option-btn {
+  border-color: rgba(var(--activity-accent-rgb), 0.18);
+  background: linear-gradient(180deg, rgba(19, 25, 38, 0.98), rgba(12, 17, 28, 0.96));
+  color: #eef2ff;
+}
+
+body[data-theme='dark'] .activity-shell-whatsapp .option-btn:hover,
+body[data-theme='dark'] .activity-shell-sms .option-btn:hover,
+body[data-theme='dark'] .activity-shell-correo_redes .option-btn:hover,
+body[data-theme='dark'] .activity-shell-llamadas .option-btn:hover,
+body[data-theme='dark'] .activity-shell-habitos .option-btn:hover {
+  border-color: rgba(var(--activity-accent-rgb), 0.28);
+  box-shadow: 0 12px 24px rgba(var(--activity-accent-rgb), 0.16);
 }
 
 @media (max-width: 1024px) {

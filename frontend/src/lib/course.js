@@ -34,6 +34,42 @@ export const ACTIVITY_LABELS = {
 
 export const COMP_KEYS = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
 
+export const repairPossibleMojibake = (value) => {
+  if (typeof value !== 'string') return value;
+  if (!/[ÃÂâ€œâ€â€™â€“â€”]/.test(value) && !/\bcontrasena\b/i.test(value)) return value;
+
+  try {
+    return decodeURIComponent(escape(value));
+  } catch {
+    return value
+      .replaceAll('Ã¡', 'á')
+      .replaceAll('Ã©', 'é')
+      .replaceAll('Ã­', 'í')
+      .replaceAll('Ã³', 'ó')
+      .replaceAll('Ãº', 'ú')
+      .replaceAll('Ã±', 'ñ')
+      .replaceAll('Ã', 'Á')
+      .replaceAll('Ã‰', 'É')
+      .replaceAll('Ã', 'Í')
+      .replaceAll('Ã“', 'Ó')
+      .replaceAll('Ãš', 'Ú')
+      .replaceAll('â€œ', '“')
+      .replaceAll('â€', '”')
+      .replaceAll('â€™', '’')
+      .replaceAll('â€“', '–')
+      .replaceAll('â€”', '—')
+      .replaceAll('Â¿', '¿')
+      .replaceAll('Â¡', '¡')
+      .replace(/\bcontrasena\b/gi, (match) => (match[0] === 'C' ? 'Contraseña' : 'contraseña'));
+  }
+};
+
+[CATEGORY_LABELS, LEVEL_LABELS, ACTIVITY_LABELS].forEach((dictionary) => {
+  Object.keys(dictionary).forEach((key) => {
+    dictionary[key] = repairPossibleMojibake(dictionary[key]);
+  });
+});
+
 export const normalizeRiskLevel = (value) => {
   const raw = String(value || '').trim();
   const lower = raw.toLowerCase();

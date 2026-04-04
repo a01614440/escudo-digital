@@ -4,13 +4,16 @@ import { useEffect } from 'react';
 import { splitParagraphs } from '../../lib/format.js';
 import {
   ACTIVITY_LABELS,
+  CATEGORY_LABELS,
   feedbackRatingLabel,
   feedbackToText,
+  LEVEL_LABELS,
+  repairPossibleMojibake,
 } from '../../lib/course.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
 
 function Paragraphs({ text, className = 'activity-copy' }) {
-  const lines = splitParagraphs(text);
+  const lines = splitParagraphs(repairPossibleMojibake(text));
   if (!lines.length) return null;
   return (
     <div className={className}>
@@ -101,14 +104,33 @@ function SimulationGuide({ activity }) {
   );
 }
 
-function ActivityChrome({ activity, children }) {
+function ActivityChrome({ module, activity, children }) {
+  const theme = moduleThemeMeta(module);
   return (
-    <div className="activity-shell">
-      <div className="activity-head">
-        <p className="activity-title">{activity.titulo || 'Actividad'}</p>
-        <span className="activity-type">
-          {ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}
-        </span>
+    <div
+      className={`activity-shell activity-shell-${theme.category} activity-shell-${theme.level}`.trim()}
+    >
+      <div className="activity-head activity-head-rich">
+        <div className="activity-head-copy">
+          <p className="eyebrow">{theme.eyebrow}</p>
+          <p className="activity-title">{repairPossibleMojibake(activity.titulo || 'Actividad')}</p>
+          <p className="activity-head-blurb">
+            {repairPossibleMojibake(
+              activity.intro ||
+                activity.escenario ||
+                activity.prompt ||
+                theme.blurb
+            )}
+          </p>
+        </div>
+        <div className="activity-head-badges">
+          <span className="activity-type">{ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}</span>
+          <span className="activity-kicker-pill">{CATEGORY_LABELS[theme.category] || theme.badge}</span>
+          <span className="activity-kicker-pill subtle">
+            {LEVEL_LABELS[theme.level] || theme.label}
+          </span>
+          <span className="activity-kicker-pill subtle">{theme.brief}</span>
+        </div>
       </div>
       <SimulationGuide activity={activity} />
       {children}
@@ -579,6 +601,23 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
   const [feedback, setFeedback] = useState(null);
   const quickReplies = Array.isArray(activity.quickReplies) ? activity.quickReplies : [];
   const userTurns = history.filter((message) => message.role === 'user').length;
+  const contactName = repairPossibleMojibake(activity.contactName || 'Contacto desconocido');
+  const contactStatus = repairPossibleMojibake(activity.contactStatus || 'en línea');
+  const avatarLabel = repairPossibleMojibake(
+    activity.avatarLabel || contactName.slice(0, 2).toUpperCase() || 'WA'
+  );
+  const threatNote =
+    userTurns > 0
+      ? 'El estafador ya consiguió mantenerte dentro del chat. Tu meta ahora es cerrar el canal sin justificarte de más.'
+      : 'La presión empieza desde el primer mensaje. Responde como si fuera un chat real, pero sin darle control a la conversación.';
+
+  const chatTimestamp = (index) => {
+    const baseMinutes = 22;
+    const totalMinutes = baseMinutes + index * 2;
+    const hour = 11 + Math.floor(totalMinutes / 60);
+    const minutes = String(totalMinutes % 60).padStart(2, '0');
+    return `${hour}:${minutes}`;
+  };
 
   const finishSimulation = () => {
     const score = bestScore || (userTurns ? 0.72 : 0.45);
@@ -657,63 +696,114 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
 
   return (
     <>
-      {activity.escenario ? <Paragraphs text={activity.escenario} /> : null}
       <ActivitySummaryBar
         items={[
-          { label: 'Turnos usados', value: `${turns}/${activity.turnos_max || 6}`, caption: 'Puedes cerrar cuando ya marcaste un límite claro.' },
-          { label: 'Objetivo', value: 'Frenar y verificar', caption: 'No necesitas convencer al atacante para hacerlo bien.' },
+          {
+            label: 'Turnos usados',
+            value: `${turns}/${activity.turnos_max || 6}`,
+            caption: 'Puedes cerrar cuando ya fijaste un límite claro.',
+          },
+          {
+            label: 'Objetivo',
+            value: 'Frenar y verificar',
+            caption: 'No necesitas convencer al atacante para hacerlo bien.',
+          },
+          {
+            label: 'Nivel de presión',
+            value: turns >= 3 ? 'Alta' : 'En aumento',
+            caption: 'Mientras más sigas en el chat, más margen tiene para manipular.',
+          },
         ]}
       />
-      <div className="wa-phone">
-        <div className="wa-header">
-          <div className="wa-avatar">
-            {activity.avatarLabel || (activity.contactName || 'ED').slice(0, 2).toUpperCase()}
+      <div className="wa-experience">
+        <aside className="wa-side-panel">
+          <p className="eyebrow">Qué estás entrenando</p>
+          <h3>Salir del chat sin seguirle el ritmo</h3>
+          <p>{threatNote}</p>
+          <div className="wa-side-list">
+            <article className="wa-side-card">
+              <span>Busca</span>
+              <strong>Urgencia, secreto o petición de dinero/códigos</strong>
+            </article>
+            <article className="wa-side-card">
+              <span>Evita</span>
+              <strong>Explicarte de más o resolver dentro del mismo chat</strong>
+            </article>
+            <article className="wa-side-card">
+              <span>Salida segura</span>
+              <strong>Llamar al contacto real o verificar desde una app oficial</strong>
+            </article>
           </div>
-          <div className="wa-contact">
-            <p className="wa-contact-name">{activity.contactName || 'Contacto'}</p>
-            <p className="wa-contact-status">{activity.contactStatus || 'en linea'}</p>
+        </aside>
+        <div className="wa-phone wa-phone-pro">
+          <div className="wa-device-bar">
+            <span>9:41</span>
+            <span>{done ? 'Chat cerrado' : 'WhatsApp'}</span>
+            <span>{`${Math.max(1, activity.turnos_max || 6) - turns} turnos`}</span>
           </div>
-        </div>
-        <div className="wa-screen">
-          {history.map((message, index) => (
-            <div className={`wa-row ${message.role === 'user' ? 'user' : 'bot'}`} key={`${message.role}-${index}`}>
-              <div className={`wa-bubble ${message.role === 'user' ? 'user' : 'bot'}`}>
-                <p>{message.content}</p>
-              </div>
+          <div className="wa-header">
+            <div className="wa-avatar">{avatarLabel}</div>
+            <div className="wa-contact">
+              <p className="wa-contact-name">{contactName}</p>
+              <p className="wa-contact-status">{contactStatus}</p>
             </div>
-          ))}
-        </div>
-        <div className="wa-quick-replies">
-          {quickReplies.map((reply) => (
-            <button
-              key={reply}
-              className="btn ghost compact"
-              type="button"
+            <div className="wa-contact-badges">
+              <span className="wa-contact-chip">No verificado</span>
+              <span className="wa-contact-chip subtle">Respuesta rápida</span>
+            </div>
+          </div>
+          <div className="wa-stage-banner">
+            <strong>Chat activo</strong>
+            <p>
+              {repairPossibleMojibake(activity.escenario) ||
+                'Responde con una salida firme. Si dudas, corta y verifica por fuera.'}
+            </p>
+          </div>
+          <div className="wa-screen">
+            {history.map((message, index) => (
+              <div
+                className={`wa-row ${message.role === 'user' ? 'user' : 'bot'}`}
+                key={`${message.role}-${index}`}
+              >
+                <div className={`wa-bubble ${message.role === 'user' ? 'user' : 'bot'}`}>
+                  <p>{repairPossibleMojibake(message.content)}</p>
+                  <span className="wa-bubble-time">{chatTimestamp(index)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="wa-quick-replies">
+            {quickReplies.map((reply) => (
+              <button
+                key={reply}
+                className="btn ghost compact"
+                type="button"
+                disabled={busy || done}
+                onClick={() => sendMessage(reply)}
+              >
+                {repairPossibleMojibake(reply)}
+              </button>
+            ))}
+          </div>
+          <div className="wa-inputbar">
+            <input
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Escribe una respuesta breve, firme y segura"
               disabled={busy || done}
-              onClick={() => sendMessage(reply)}
-            >
-              {reply}
+            />
+            <button className="btn primary" type="button" disabled={busy || done} onClick={() => sendMessage()}>
+              {busy ? 'Enviando...' : 'Enviar'}
             </button>
-          ))}
-        </div>
-        <div className="wa-inputbar">
-          <input
-            type="text"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Escribe tu respuesta segura"
-            disabled={busy || done}
-          />
-          <button className="btn primary" type="button" disabled={busy || done} onClick={() => sendMessage()}>
-            {busy ? '...' : 'Enviar'}
-          </button>
+          </div>
         </div>
       </div>
       <FeedbackPanel feedback={feedback} />
       <div className="activity-actions">
         {!done && userTurns > 0 ? (
           <button className="btn ghost" type="button" onClick={finishSimulation} disabled={busy}>
-            Cerrar simulacion de forma segura
+            Cerrar simulación de forma segura
           </button>
         ) : null}
         {done ? (
@@ -1027,10 +1117,26 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
   };
 
   const selectedReview = result?.review?.find((item) => item.id === selectedMessage?.id) || null;
+  const inboxTitle =
+    kind === 'sms' ? 'Bandeja de mensajes' : 'Bandeja de correo';
+  const inboxLead =
+    kind === 'sms'
+      ? 'Revisa cada mensaje como si estuvieras en tu teléfono. Marca solo lo que de verdad te haría frenar.'
+      : 'Abre, revisa y clasifica cada correo como si estuvieras en una bandeja real. Busca señales concretas, no solo apariencia.';
 
   return (
     <>
-      {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <section className={`inbox-stage-banner ${kind === 'sms' ? 'is-sms' : 'is-mail'}`}>
+        <div>
+          <p className="eyebrow">{inboxTitle}</p>
+          <h3>{kind === 'sms' ? 'Analiza la conversación antes de tocar el enlace' : 'Analiza remitente, cuerpo y ruta del mensaje'}</h3>
+          <p>{repairPossibleMojibake(activity.intro || inboxLead)}</p>
+        </div>
+        <div className="inbox-stage-badges">
+          <span className="activity-kicker-pill">{kind === 'sms' ? 'Teléfono' : 'Correo'}</span>
+          <span className="activity-kicker-pill subtle">{messages.length} mensajes</span>
+        </div>
+      </section>
       <ActivitySummaryBar
         items={[
           {
@@ -1050,8 +1156,12 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
           },
         ]}
       />
-      <div className={`email-sim ${kind === 'sms' ? 'is-sms' : ''}`}>
+      <div className={`email-sim ${kind === 'sms' ? 'is-sms inbox-sim-sms' : 'inbox-sim-mail'}`}>
         <div className="email-sidebar">
+          <div className="email-sidebar-head">
+            <strong>{kind === 'sms' ? 'Conversaciones' : 'Inbox principal'}</strong>
+            <span>{Object.keys(selections).length} revisados</span>
+          </div>
           {messages.map((message) => {
             const picked = selections[message.id];
             const reviewItem = result?.review?.find((item) => item.id === message.id);
@@ -1067,11 +1177,17 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                 }}
               >
                 <div className="email-list-top">
-                  <span className="email-list-name">{message.displayName || message.from || 'Mensaje'}</span>
+                  <span className="email-list-name">
+                    {repairPossibleMojibake(message.displayName || message.from || 'Mensaje')}
+                  </span>
                   <span className="email-list-date">{message.dateLabel || ''}</span>
                 </div>
-                <p className="email-list-subject">{message.subject || message.text}</p>
-                <p className="email-list-preview">{message.preview || message.text}</p>
+                <p className="email-list-subject">
+                  {repairPossibleMojibake(message.subject || message.text)}
+                </p>
+                <p className="email-list-preview">
+                  {repairPossibleMojibake(message.preview || message.text)}
+                </p>
                 <span className={`email-list-status ${picked || 'empty'} ${resultClass}`.trim()}>
                   {resultClass === 'correct'
                     ? 'Acierto'
@@ -1094,10 +1210,10 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
               <div className="email-open-top">
                 <div>
                   <h4 className="email-open-subject">
-                    {selectedMessage.subject || selectedMessage.displayName || 'Mensaje'}
+                    {repairPossibleMojibake(selectedMessage.subject || selectedMessage.displayName || 'Mensaje')}
                   </h4>
                   <p className="email-open-meta">
-                    {`${selectedMessage.displayName || selectedMessage.from || 'Mensaje'} · ${
+                    {`${repairPossibleMojibake(selectedMessage.displayName || selectedMessage.from || 'Mensaje')} · ${
                       selectedMessage.dateLabel || ''
                     }`.trim()}
                   </p>
@@ -1119,20 +1235,23 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
             </div>
 
             <div className="email-reader-body">
-              {selectedMessage.warning ? <div className="email-warning">{selectedMessage.warning}</div> : null}
+              {selectedMessage.warning ? (
+                <div className="email-warning">{repairPossibleMojibake(selectedMessage.warning)}</div>
+              ) : null}
               {showDetails ? (
                 <div className="email-details">
                   <p>
-                    <strong>From:</strong> {selectedMessage.details?.from || selectedMessage.from || 'Sin dato'}
+                    <strong>From:</strong>{' '}
+                    {repairPossibleMojibake(selectedMessage.details?.from || selectedMessage.from || 'Sin dato')}
                   </p>
                   {selectedMessage.details?.replyTo ? (
                     <p>
-                      <strong>Reply-To:</strong> {selectedMessage.details.replyTo}
+                      <strong>Reply-To:</strong> {repairPossibleMojibake(selectedMessage.details.replyTo)}
                     </p>
                   ) : null}
                   {selectedMessage.details?.returnPath ? (
                     <p>
-                      <strong>Return-Path:</strong> {selectedMessage.details.returnPath}
+                      <strong>Return-Path:</strong> {repairPossibleMojibake(selectedMessage.details.returnPath)}
                     </p>
                   ) : null}
                 </div>
@@ -1140,24 +1259,24 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
 
               <div className="email-body-card">
                 <p className="email-body-from">
-                  {`${selectedMessage.displayName || 'Mensaje'} <${selectedMessage.from || ''}>`}
+                  {`${repairPossibleMojibake(selectedMessage.displayName || 'Mensaje')} <${repairPossibleMojibake(selectedMessage.from || '')}>`}
                 </p>
                 {(selectedMessage.body?.length ? selectedMessage.body : [selectedMessage.text]).map((line) => (
                   <p className="email-body-line" key={`${selectedMessage.id}-${line}`}>
-                    {line}
+                    {repairPossibleMojibake(line)}
                   </p>
                 ))}
                 {selectedMessage.attachments?.length ? (
                   <div className="email-attachments">
                     {selectedMessage.attachments.map((item) => (
                       <span className="email-attachment" key={item}>
-                        {item}
+                        {repairPossibleMojibake(item)}
                       </span>
                     ))}
                   </div>
                 ) : null}
                 {selectedMessage.linkPreview ? (
-                  <div className="email-link-preview">{selectedMessage.linkPreview}</div>
+                  <div className="email-link-preview">{repairPossibleMojibake(selectedMessage.linkPreview)}</div>
                 ) : null}
               </div>
             </div>
@@ -1271,33 +1390,62 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
   );
 }
 
-const repairPossibleMojibake = (value) => {
-  if (typeof value !== 'string') return value;
-  if (!/[ÃÂâ€œâ€â€™â€“â€”]/.test(value)) return value;
-  try {
-    return decodeURIComponent(escape(value));
-  } catch {
-    return value
-      .replaceAll('Ã¡', 'á')
-      .replaceAll('Ã©', 'é')
-      .replaceAll('Ã­', 'í')
-      .replaceAll('Ã³', 'ó')
-      .replaceAll('Ãº', 'ú')
-      .replaceAll('Ã±', 'ñ')
-      .replaceAll('Ã', 'Á')
-      .replaceAll('Ã‰', 'É')
-      .replaceAll('Ã', 'Í')
-      .replaceAll('Ã“', 'Ó')
-      .replaceAll('Ãš', 'Ú')
-      .replaceAll('â€œ', '“')
-      .replaceAll('â€', '”')
-      .replaceAll('â€™', '’')
-      .replaceAll('â€“', '–')
-      .replaceAll('â€”', '—')
-      .replaceAll('Â¿', '¿')
-      .replaceAll('Â¡', '¡');
+function sanitizeDeep(value) {
+  if (typeof value === 'string') return repairPossibleMojibake(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeDeep(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, sanitizeDeep(entry)])
+    );
   }
-};
+  return value;
+}
+
+function moduleThemeMeta(module) {
+  const category = String(module?.categoria || module?.category || 'habitos');
+  const level = String(module?.nivel || module?.level || 'basico');
+
+  const byCategory = {
+    whatsapp: {
+      eyebrow: 'Simulación conversacional',
+      blurb: 'Entrena respuestas firmes frente a suplantación, cobros urgentes y enlaces sospechosos dentro de un chat que se siente real.',
+      badge: 'WhatsApp',
+    },
+    sms: {
+      eyebrow: 'Bandeja móvil',
+      blurb: 'Lee SMS como lo harías en tu teléfono: detecta premios falsos, bloqueos, cobros y enlaces que quieren apurarte.',
+      badge: 'SMS',
+    },
+    correo_redes: {
+      eyebrow: 'Inbox y phishing',
+      blurb: 'Analiza remitentes, asuntos, adjuntos y enlaces como si revisaras una bandeja real de correo o notificaciones sociales.',
+      badge: 'Correo / Redes',
+    },
+    llamadas: {
+      eyebrow: 'Vishing y voz',
+      blurb: 'Practica llamadas convincentes donde lo importante es cortar el canal, no seguirle el juego al supuesto agente.',
+      badge: 'Llamadas',
+    },
+    habitos: {
+      eyebrow: 'Rutina de verificación',
+      blurb: 'Convierte decisiones seguras en una rutina corta, repetible y útil aunque el fraude cambie de canal o de tono.',
+      badge: 'Hábitos',
+    },
+  };
+
+  const byLevel = {
+    basico: { label: 'Básico', brief: 'Señales claras y decisiones directas.' },
+    refuerzo: { label: 'Refuerzo', brief: 'Casos mixtos con más ambigüedad.' },
+    avanzado: { label: 'Avanzado', brief: 'Escenarios finos con pocas pistas visibles.' },
+  };
+
+  return {
+    category,
+    level,
+    ...(byCategory[category] || byCategory.habitos),
+    ...(byLevel[level] || byLevel.basico),
+  };
+}
 
 function WebLabActivity({ activity, startedAtRef, onComplete }) {
   const page = useMemo(() => {
@@ -2224,6 +2372,8 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
     ? scores.reduce((total, value) => total + value, 0) / scores.length
     : 1;
   const safeDecisions = scores.filter((value) => value >= 0.8).length;
+  const callMinutes = String(Math.min(59, 1 + stepIndex)).padStart(2, '0');
+  const callSeconds = String((stepIndex * 17) % 60).padStart(2, '0');
 
   const chooseOption = (option) => {
     if (!currentStep || finished) return;
@@ -2252,7 +2402,20 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <section className="call-stage-banner">
+        <div>
+          <p className="eyebrow">Pantalla de llamada</p>
+          <h3>No resuelvas nada dentro de la llamada</h3>
+          <p>
+            {repairPossibleMojibake(activity.intro) ||
+              'Escucha la presión, detecta la manipulación y decide cómo cortar el riesgo a tiempo.'}
+          </p>
+        </div>
+        <div className="call-stage-meta">
+          <span className="activity-kicker-pill">Llamada en curso</span>
+          <span className="activity-kicker-pill subtle">{`00:${callMinutes}:${callSeconds}`}</span>
+        </div>
+      </section>
       <ActivitySummaryBar
         items={[
           {
@@ -2272,16 +2435,35 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
           },
         ]}
       />
-      <div className="call-phone">
+      <div className="call-phone call-phone-pro">
         <div className="call-screen">
-          <p className="call-chip">Llamada entrante</p>
-          <h3 className="call-name">{activity.callerName || 'Llamada'}</h3>
-          <p className="call-number">{activity.callerNumber || 'Número no verificado'}</p>
+          <div className="call-status-bar">
+            <span>Señal segura</span>
+            <span>{`00:${callMinutes}:${callSeconds}`}</span>
+          </div>
+          <p className="call-chip">Llamada sospechosa</p>
+          <div className="call-identity">
+            <div className="call-avatar">
+              {repairPossibleMojibake(activity.callerName || 'LL')
+                .slice(0, 2)
+                .toUpperCase()}
+            </div>
+            <div>
+              <h3 className="call-name">{repairPossibleMojibake(activity.callerName || 'Llamada')}</h3>
+              <p className="call-number">
+                {repairPossibleMojibake(activity.callerNumber || 'Número no verificado')}
+              </p>
+            </div>
+          </div>
+          <div className="call-warning-strip">
+            <strong>Meta de esta práctica</strong>
+            <p>Cortar el canal, no convencer al supuesto agente.</p>
+          </div>
           <div className="call-transcript">
             {transcript.map((entry, index) => (
               <div className={`call-bubble ${entry.speaker}`} key={`${entry.speaker}-${index}`}>
                 <strong>{entry.speaker === 'caller' ? 'Llamada' : 'Tú'}</strong>
-                <p>{entry.text}</p>
+                <p>{repairPossibleMojibake(entry.text)}</p>
               </div>
             ))}
           </div>
@@ -2401,7 +2583,20 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <section className="habit-stage-banner">
+        <div>
+          <p className="eyebrow">Decisión guiada</p>
+          <h3>Convierte criterio en una rutina repetible</h3>
+          <p>
+            {repairPossibleMojibake(activity.intro) ||
+              'Cada situación cambia un poco, pero tu secuencia segura debe mantenerse estable.'}
+          </p>
+        </div>
+        <div className="habit-stage-meta">
+          <span className="activity-kicker-pill">Hábitos</span>
+          <span className="activity-kicker-pill subtle">{`${safeChoices}/${scores.length || 0} decisiones firmes`}</span>
+        </div>
+      </section>
       <ActivitySummaryBar
         items={[
           {
@@ -2422,24 +2617,31 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
         ]}
       />
       {currentStep ? (
-        <div className="flow">
-          <p className="flow-text">{currentStep.texto}</p>
+        <div className="flow habit-flow">
+          <div className="habit-flow-head">
+            <div>
+              <p className="eyebrow">Situación actual</p>
+              <h4>¿Qué haces primero?</h4>
+            </div>
+            <span className="activity-kicker-pill subtle">{`Paso ${stepIndex + 1}`}</span>
+          </div>
+          <p className="flow-text">{repairPossibleMojibake(currentStep.texto)}</p>
           <div className="option-grid">
             {currentStep.opciones.map((option) => (
               <button
                 key={option.id}
-                className="option-btn"
+                className="option-btn habit-option-btn"
                 type="button"
                 disabled={Boolean(feedback)}
                 onClick={() => chooseOption(currentStep, option)}
               >
-                {option.texto}
+                {repairPossibleMojibake(option.texto)}
               </button>
             ))}
           </div>
         </div>
       ) : (
-        <div className="flow">
+        <div className="flow habit-flow">
           <p className="flow-text">
             Terminaste este escenario. Ya puedes registrar tu resultado y volver al tablero.
           </p>
@@ -2514,6 +2716,8 @@ export default function ActivityRenderer({
   onComplete,
 }) {
   const startedAtRef = useRef(Date.now());
+  const safeModule = useMemo(() => sanitizeDeep(module || {}), [module]);
+  const safeActivity = useMemo(() => sanitizeDeep(activity || {}), [activity]);
   const knownTypes = [
     'concepto',
     'quiz',
@@ -2530,55 +2734,55 @@ export default function ActivityRenderer({
   ];
 
   return (
-    <ActivityChrome activity={activity}>
-      {activity.tipo === 'concepto' ? (
-        <ConceptActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+    <ActivityChrome module={safeModule} activity={safeActivity}>
+      {safeActivity.tipo === 'concepto' ? (
+        <ConceptActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'quiz' || activity.tipo === 'simulacion' ? (
-        <QuizActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'quiz' || safeActivity.tipo === 'simulacion' ? (
+        <QuizActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'checklist' ? (
-        <ChecklistActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'checklist' ? (
+        <ChecklistActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'abierta' ? (
+      {safeActivity.tipo === 'abierta' ? (
         <OpenAnswerActivity
-          module={module}
-          activity={activity}
+          module={safeModule}
+          activity={safeActivity}
           answers={answers}
           assessment={assessment}
           startedAtRef={startedAtRef}
           onComplete={onComplete}
         />
       ) : null}
-      {activity.tipo === 'sim_chat' ? (
+      {safeActivity.tipo === 'sim_chat' ? (
         <WhatsAppSimulation
-          activity={activity}
+          activity={safeActivity}
           answers={answers}
           assessment={assessment}
           startedAtRef={startedAtRef}
           onComplete={onComplete}
         />
       ) : null}
-      {activity.tipo === 'compare_domains' ? (
-        <CompareDomainsActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'compare_domains' ? (
+        <CompareDomainsActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'signal_hunt' ? (
-        <SignalHuntActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'signal_hunt' ? (
+        <SignalHuntActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'inbox' ? (
-        <InboxActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'inbox' ? (
+        <InboxActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'web_lab' ? (
-        <WebLabActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'web_lab' ? (
+        <WebLabActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'call_sim' ? (
-        <CallSimActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'call_sim' ? (
+        <CallSimActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {activity.tipo === 'scenario_flow' ? (
-        <ScenarioFlowActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {safeActivity.tipo === 'scenario_flow' ? (
+        <ScenarioFlowActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
-      {!knownTypes.includes(activity.tipo) ? (
-        <ConceptActivity activity={activity} startedAtRef={startedAtRef} onComplete={onComplete} />
+      {!knownTypes.includes(safeActivity.tipo) ? (
+        <ConceptActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
     </ActivityChrome>
   );
