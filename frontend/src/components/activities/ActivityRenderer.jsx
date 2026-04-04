@@ -1644,10 +1644,126 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
   };
 
   const renderStage = () => {
+    const featuredProduct = products[0] || null;
+    const secondaryProducts = (layoutVariant === 'editorial' || layoutVariant === 'minimal')
+      ? products.slice(1)
+      : products;
+    const searchPlaceholder =
+      themeVariant === 'neon'
+        ? 'Buscar cámaras, audio y setups...'
+        : themeVariant === 'street'
+          ? 'Buscar drops, smartphones y audio...'
+          : themeVariant === 'premium'
+            ? 'Buscar hogar, audio y selección curada...'
+            : themeVariant === 'sage'
+              ? 'Buscar escritorio, audio y objetos studio...'
+              : 'Buscar productos, marcas y categorías...';
+    const renderProductCard = (product, index, featured = false) => (
+      <article
+        className={`fraud-product-card ${featured ? 'featured' : ''} ${targetState(`product_${index}`)}`.trim()}
+        key={`${product.nombre}-${index}`}
+      >
+        <button
+          className="fraud-product-media"
+          type="button"
+          onClick={() =>
+            registerClick(
+              `product_${index}`,
+              'El producto por sí solo no confirma fraude. Lo importante es revisar pagos, dominio, urgencia y políticas.'
+            )
+          }
+        >
+          <span>{(product.nombre || 'P').slice(0, 1)}</span>
+        </button>
+        <div className="fraud-product-copy">
+          <div className="fraud-product-top">
+            <strong>{product.nombre || 'Producto'}</strong>
+            <span className="fraud-discount-badge">{product.badge || '87% OFF'}</span>
+          </div>
+          <p className="fraud-product-pricing">
+            {product.antes ? <span>{product.antes}</span> : null}
+            <strong>{product.precio || '$0'}</strong>
+          </p>
+          <div className="fraud-product-notes">
+            {product.caption ? <span>{product.caption}</span> : null}
+            <span>{themeVariant === 'premium' || themeVariant === 'sage' ? 'Entrega curada' : 'Envío express'}</span>
+            <span>{themeVariant === 'street' ? 'Drop limitado' : 'Compra protegida'}</span>
+          </div>
+          {renderInlineNote(`product_${index}`)}
+        </div>
+        <button className="fraud-primary-btn" type="button" onClick={() => addToCart(product)}>
+          {featured ? 'Agregar selección principal' : 'Agregar al carrito'}
+        </button>
+      </article>
+    );
+    const reviewsPanel = (
+      <section className="fraud-store-reviews-shell">
+        <div className="fraud-store-section-head">
+          <h4>{page.reviewsLabel || 'Lo que dicen nuestros clientes'}</h4>
+          <span>4.9 / 5</span>
+        </div>
+        <button
+          className={`fraud-store-review-strip ${targetState('reviews')}`.trim()}
+          type="button"
+          onClick={() => registerClick('reviews', 'Las reseñas pueden ser útiles, pero no siempre una tira de testimonios es prueba suficiente.')}
+        >
+          <strong>★★★★★</strong>
+          <span>{page.reviews || 'Testimonios muy positivos y poco verificables.'}</span>
+          {renderInlineNote('reviews')}
+        </button>
+      </section>
+    );
+    const utilityCards = (
+      <section className={`fraud-store-utility-grid ${layoutVariant === 'minimal' ? 'compact' : ''}`.trim()}>
+        <button
+          className={`fraud-utility-card ${targetState('contacto')}`.trim()}
+          type="button"
+          onClick={() =>
+            registerClick(
+              'contacto',
+              'Un módulo de atención no es suficiente si no muestra empresa, razón social o domicilio verificable.'
+            )
+          }
+        >
+          <span className="fraud-utility-label">Soporte del vendedor</span>
+          <strong>{page.contacto || 'Atención rápida por chat y formulario'}</strong>
+          {renderInlineNote('contacto')}
+        </button>
+        <button
+          className={`fraud-utility-card ${targetState('shipping')}`.trim()}
+          type="button"
+          onClick={() =>
+            registerClick(
+              'shipping',
+              'El envío puede ser normal, pero aquí se presenta con una promesa ambigua y sin respaldo claro.'
+            )
+          }
+        >
+          <span className="fraud-utility-label">Entrega y protección</span>
+          <strong>{page.shipping || 'Entrega asegurada con costo adicional'}</strong>
+          {renderInlineNote('shipping')}
+        </button>
+        <button
+          className={`fraud-utility-card ${targetState('policy')}`.trim()}
+          type="button"
+          onClick={() =>
+            registerClick(
+              'policy',
+              'Las políticas ambiguas son una señal muy importante cuando compras en una tienda nueva.'
+            )
+          }
+        >
+          <span className="fraud-utility-label">Cambios y devoluciones</span>
+          <strong>{page.policy || 'Devoluciones sujetas a validación interna'}</strong>
+          {renderInlineNote('policy')}
+        </button>
+      </section>
+    );
+
     if (stage === 'product') {
       return (
         <>
-          <section className="fraud-store-hero">
+          <section className={`fraud-store-hero ${layoutVariant}`.trim()}>
             <div className="fraud-store-sale-copy">
               <span className="fraud-store-sale-chip">{page.sealLabel || page.banner || 'Liquidación total hoy'}</span>
               <h3>{page.heroTitle || (page.marca ? `${page.marca} remata tecnología y hogar` : 'Hasta 85% de descuento hoy')}</h3>
@@ -1668,104 +1784,41 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
               {renderInlineNote('banner')}
             </button>
           </section>
-
-          <section className="fraud-store-utility-grid">
-            <button
-              className={`fraud-utility-card ${targetState('contacto')}`.trim()}
-              type="button"
-              onClick={() =>
-                registerClick(
-                  'contacto',
-                  'Un módulo de atención no es suficiente si no muestra empresa, razón social o domicilio verificable.'
-                )
-              }
-            >
-              <span className="fraud-utility-label">Soporte del vendedor</span>
-              <strong>{page.contacto || 'Atención rápida por chat y formulario'}</strong>
-              {renderInlineNote('contacto')}
-            </button>
-            <button
-              className={`fraud-utility-card ${targetState('shipping')}`.trim()}
-              type="button"
-              onClick={() =>
-                registerClick(
-                  'shipping',
-                  'El envío puede ser normal, pero aquí se presenta con una promesa ambigua y sin respaldo claro.'
-                )
-              }
-            >
-              <span className="fraud-utility-label">Entrega y protección</span>
-              <strong>{page.shipping || 'Entrega asegurada con costo adicional'}</strong>
-              {renderInlineNote('shipping')}
-            </button>
-            <button
-              className={`fraud-utility-card ${targetState('policy')}`.trim()}
-              type="button"
-              onClick={() =>
-                registerClick(
-                  'policy',
-                  'Las políticas ambiguas son una señal muy importante cuando compras en una tienda nueva.'
-                )
-              }
-            >
-              <span className="fraud-utility-label">Cambios y devoluciones</span>
-              <strong>{page.policy || 'Devoluciones sujetas a validación interna'}</strong>
-              {renderInlineNote('policy')}
-            </button>
-          </section>
-
-          <section className="fraud-store-product-grid">
-            {products.map((product, index) => (
-              <article className={`fraud-product-card ${targetState(`product_${index}`)}`.trim()} key={`${product.nombre}-${index}`}>
-                <button
-                  className="fraud-product-media"
-                  type="button"
-                  onClick={() =>
-                    registerClick(
-                      `product_${index}`,
-                      'El producto por sí solo no confirma fraude. Lo importante es revisar pagos, dominio, urgencia y políticas.'
-                    )
-                  }
-                >
-                  <span>{(product.nombre || 'P').slice(0, 1)}</span>
-                </button>
-                <div className="fraud-product-copy">
-                  <div className="fraud-product-top">
-                    <strong>{product.nombre || 'Producto'}</strong>
-                    <span className="fraud-discount-badge">{product.badge || '87% OFF'}</span>
-                  </div>
-                  <p className="fraud-product-pricing">
-                    {product.antes ? <span>{product.antes}</span> : null}
-                    <strong>{product.precio || '$0'}</strong>
-                  </p>
-                  <div className="fraud-product-notes">
-                    {product.caption ? <span>{product.caption}</span> : null}
-                    <span>{themeVariant === 'premium' || themeVariant === 'sage' ? 'Entrega curada' : 'Envío express'}</span>
-                    <span>{themeVariant === 'street' ? 'Drop limitado' : 'Compra protegida'}</span>
-                  </div>
-                  {renderInlineNote(`product_${index}`)}
-                </div>
-                <button className="fraud-primary-btn" type="button" onClick={() => addToCart(product)}>
-                  Agregar al carrito
-                </button>
-              </article>
-            ))}
-          </section>
-          <section className="fraud-store-reviews-shell">
-            <div className="fraud-store-section-head">
-              <h4>{page.reviewsLabel || 'Lo que dicen nuestros clientes'}</h4>
-              <span>4.9 / 5</span>
-            </div>
-            <button
-              className={`fraud-store-review-strip ${targetState('reviews')}`.trim()}
-              type="button"
-              onClick={() => registerClick('reviews', 'Las reseñas pueden ser útiles, pero no siempre una tira de testimonios es prueba suficiente.')}
-            >
-              <strong>★★★★★</strong>
-              <span>{page.reviews || 'Testimonios muy positivos y poco verificables.'}</span>
-              {renderInlineNote('reviews')}
-            </button>
-          </section>
+          {layoutVariant === 'editorial' ? (
+            <section className="fraud-editorial-layout">
+              <div className="fraud-editorial-main">
+                {featuredProduct ? renderProductCard(featuredProduct, 0, true) : null}
+                {secondaryProducts.length ? (
+                  <section className="fraud-store-product-grid editorial-secondary">
+                    {secondaryProducts.map((product, offset) => renderProductCard(product, offset + 1))}
+                  </section>
+                ) : null}
+              </div>
+              <aside className="fraud-editorial-side">
+                {utilityCards}
+                {reviewsPanel}
+              </aside>
+            </section>
+          ) : layoutVariant === 'minimal' ? (
+            <section className="fraud-minimal-layout">
+              {featuredProduct ? renderProductCard(featuredProduct, 0, true) : null}
+              {utilityCards}
+              {secondaryProducts.length ? (
+                <section className="fraud-store-product-grid minimal-secondary">
+                  {secondaryProducts.map((product, offset) => renderProductCard(product, offset + 1))}
+                </section>
+              ) : null}
+              {reviewsPanel}
+            </section>
+          ) : (
+            <>
+              {utilityCards}
+              <section className="fraud-store-product-grid">
+                {products.map((product, index) => renderProductCard(product, index))}
+              </section>
+              {reviewsPanel}
+            </>
+          )}
         </>
       );
     }
@@ -1791,7 +1844,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
             </button>
           </section>
 
-          <div className="fraud-cart-layout">
+          <div className={`fraud-cart-layout ${layoutVariant}`.trim()}>
             <div className="fraud-cart-list">
               {items.map((item, index) => (
                 <article className="fraud-cart-item" key={item.cartId || `${item.nombre}-${index}`}>
@@ -1819,18 +1872,18 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 <span>Total</span>
                 <strong>{items[0]?.precio || '$3,499'}</strong>
               </div>
-              <button className="fraud-primary-btn wide" type="button" onClick={goToCheckout} disabled={checkoutBusy}>
-                {checkoutBusy ? 'Preparando checkout...' : 'Ir al checkout'}
-              </button>
-            </aside>
-          </div>
+                <button className="fraud-primary-btn wide" type="button" onClick={goToCheckout} disabled={checkoutBusy}>
+                  {checkoutBusy ? 'Preparando checkout...' : 'Ir al checkout'}
+                </button>
+              </aside>
+            </div>
         </>
       );
     }
 
     return (
       <>
-        <div className="fraud-checkout-layout">
+        <div className={`fraud-checkout-layout ${layoutVariant}`.trim()}>
           <section className="fraud-checkout-main">
             <div className="fraud-store-section-head">
                 <h4>{page.checkoutHeadline || 'Datos de envío'}</h4>
@@ -2020,7 +2073,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
               type="button"
               onClick={() => registerClick('search', 'La barra de búsqueda no es una señal de fraude por sí sola.')}
             >
-              Buscar productos, marcas y categorías...
+              {searchPlaceholder}
             </button>
 
             <button

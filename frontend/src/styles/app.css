@@ -1729,6 +1729,24 @@ canvas {
   --store-alert: #ff4d4f;
   --store-soft: #fff7cf;
   --store-ui: #f3f4f6;
+  --lab-shell-bg: linear-gradient(180deg, #fafafa, #f1f3f7);
+  --lab-shell-border: rgba(17, 24, 39, 0.08);
+  --lab-header-bg: linear-gradient(135deg, #111111, #242424);
+  --lab-hero-bg: linear-gradient(135deg, rgba(255, 215, 0, 0.22), rgba(255, 77, 79, 0.08));
+  --lab-hero-border: rgba(255, 191, 31, 0.18);
+  --lab-accent-bg: linear-gradient(135deg, #111111, #303030);
+  --lab-accent-fg: #ffffff;
+  --lab-logo-bg: linear-gradient(135deg, #ffd700, #ffb700);
+  --lab-logo-fg: #111827;
+  --lab-active-tab-bg: linear-gradient(135deg, #ffd700, #ffbf1f);
+  --lab-active-tab-color: #111827;
+  --lab-active-tab-border: rgba(255, 191, 31, 0.5);
+  --lab-active-tab-shadow: 0 12px 24px rgba(255, 191, 31, 0.24);
+  --lab-badge-bg: rgba(255, 77, 79, 0.12);
+  --lab-badge-color: #b42318;
+  --lab-product-media-bg: linear-gradient(135deg, #242424, #444);
+  --lab-browser-bg: linear-gradient(135deg, #0d0f14, #1e2532);
+  --lab-browser-accent: #fff5c2;
   display: grid;
   gap: 16px;
   padding: 18px;
@@ -1833,8 +1851,8 @@ canvas {
   gap: 16px;
   padding: 18px;
   border-radius: 28px;
-  background: linear-gradient(180deg, #fafafa, #f1f3f7);
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: var(--lab-shell-bg);
+  border: 1px solid var(--lab-shell-border);
 }
 
 .fraud-store-header {
@@ -1844,7 +1862,7 @@ canvas {
   align-items: center;
   padding: 16px 18px;
   border-radius: 24px;
-  background: linear-gradient(135deg, #111111, #242424);
+  background: var(--lab-header-bg);
   color: #f9fafb;
 }
 
@@ -1863,8 +1881,8 @@ canvas {
   width: 42px;
   height: 42px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #ffd700, #ffb700);
-  color: #111827;
+  background: var(--lab-logo-bg);
+  color: var(--lab-logo-fg);
   font-weight: 900;
 }
 
@@ -1917,8 +1935,8 @@ canvas {
   justify-self: end;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(17, 24, 39, 0.94);
-  color: #fff5d2;
+  background: var(--lab-accent-bg);
+  color: var(--lab-accent-fg);
   font-size: 0.9rem;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
@@ -1938,9 +1956,10 @@ canvas {
 }
 
 .fraud-store-tab.active {
-  background: linear-gradient(135deg, #ffd700, #ffbf1f);
-  border-color: rgba(255, 191, 31, 0.5);
-  box-shadow: 0 12px 24px rgba(255, 191, 31, 0.24);
+  background: var(--lab-active-tab-bg);
+  color: var(--lab-active-tab-color);
+  border-color: var(--lab-active-tab-border);
+  box-shadow: var(--lab-active-tab-shadow);
 }
 
 .fraud-store-stage,
@@ -1967,8 +1986,8 @@ canvas {
   align-items: center;
   padding: 20px 22px;
   border-radius: 24px;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.22), rgba(255, 77, 79, 0.08));
-  border: 1px solid rgba(255, 191, 31, 0.18);
+  background: var(--lab-hero-bg);
+  border: 1px solid var(--lab-hero-border);
 }
 
 .fraud-store-sale-copy,
@@ -2063,11 +2082,18 @@ canvas {
   padding: 16px;
 }
 
+.fraud-product-card.featured {
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+}
+
 .fraud-product-media {
   min-height: 150px;
   border: 0;
   border-radius: 18px;
-  background: linear-gradient(135deg, #242424, #444);
+  background: var(--lab-product-media-bg);
 }
 
 .fraud-product-top,
@@ -2087,8 +2113,8 @@ canvas {
   align-items: center;
   border-radius: 999px;
   padding: 8px 10px;
-  background: rgba(255, 77, 79, 0.12);
-  color: #b42318;
+  background: var(--lab-badge-bg);
+  color: var(--lab-badge-color);
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -2122,8 +2148,8 @@ canvas {
   border: 0;
   border-radius: 999px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #111111, #303030);
-  color: white;
+  background: var(--lab-accent-bg);
+  color: var(--lab-accent-fg);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -2171,6 +2197,28 @@ canvas {
 .fraud-cart-layout,
 .fraud-checkout-layout {
   grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+}
+
+.fraud-editorial-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.fraud-editorial-main,
+.fraud-editorial-side,
+.fraud-minimal-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.fraud-store-product-grid.editorial-secondary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fraud-store-product-grid.minimal-secondary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .fraud-cart-item {
@@ -2265,159 +2313,112 @@ canvas {
 }
 
 .web-lab-immersive.theme-neon {
+  --lab-shell-bg: linear-gradient(180deg, #f9f8ff, #edf1ff);
+  --lab-shell-border: rgba(111, 91, 255, 0.18);
+  --lab-header-bg: linear-gradient(135deg, #181a3f, #233069);
+  --lab-hero-bg: linear-gradient(135deg, rgba(111, 91, 255, 0.22), rgba(54, 200, 255, 0.16));
+  --lab-hero-border: rgba(111, 91, 255, 0.24);
+  --lab-accent-bg: linear-gradient(135deg, #6f5bff, #36c8ff);
+  --lab-accent-fg: #f8fbff;
+  --lab-logo-bg: linear-gradient(135deg, #6f5bff, #36c8ff);
+  --lab-logo-fg: #f8fbff;
+  --lab-active-tab-bg: linear-gradient(135deg, #6f5bff, #8d7cff);
+  --lab-active-tab-color: #f8fbff;
+  --lab-active-tab-border: rgba(111, 91, 255, 0.28);
+  --lab-active-tab-shadow: 0 12px 24px rgba(111, 91, 255, 0.24);
+  --lab-badge-bg: rgba(111, 91, 255, 0.14);
+  --lab-badge-color: #4332c7;
+  --lab-product-media-bg: linear-gradient(135deg, #171a33, #32448e);
+  --lab-browser-bg: linear-gradient(135deg, #10152e, #202a59);
+  --lab-browser-accent: #dfe6ff;
   background:
     radial-gradient(circle at top left, rgba(111, 91, 255, 0.22), transparent 32%),
     radial-gradient(circle at top right, rgba(54, 200, 255, 0.16), transparent 24%),
     linear-gradient(180deg, #f7f8ff, #eef2ff);
 }
 
-.web-lab-immersive.theme-neon .fraud-store-shell {
-  background: linear-gradient(180deg, #faf9ff, #eef1ff);
-  border-color: rgba(111, 91, 255, 0.14);
-}
-
-.web-lab-immersive.theme-neon .fraud-store-header,
-.web-lab-immersive.theme-neon .web-lab-browser-bar {
-  background: linear-gradient(135deg, #171a33, #242b4e);
-}
-
-.web-lab-immersive.theme-neon .fraud-store-logo > span,
-.web-lab-immersive.theme-neon .fraud-live-toast,
-.web-lab-immersive.theme-neon .web-lab-detective-count,
-.web-lab-immersive.theme-neon .fraud-primary-btn {
-  background: linear-gradient(135deg, #6f5bff, #36c8ff);
-  color: #f8fbff;
-}
-
-.web-lab-immersive.theme-neon .fraud-store-hero,
-.web-lab-immersive.theme-neon .fraud-cart-banner {
-  background: linear-gradient(135deg, rgba(111, 91, 255, 0.18), rgba(54, 200, 255, 0.08));
-  border-color: rgba(111, 91, 255, 0.18);
-}
-
-.web-lab-immersive.theme-neon .fraud-discount-badge,
-.web-lab-immersive.theme-neon .fraud-store-tab.active {
-  background: linear-gradient(135deg, rgba(111, 91, 255, 0.16), rgba(54, 200, 255, 0.16));
-  color: #3e41a8;
-  border-color: rgba(111, 91, 255, 0.16);
-  box-shadow: 0 12px 24px rgba(111, 91, 255, 0.18);
-}
-
 .web-lab-immersive.theme-street {
+  --lab-shell-bg: linear-gradient(180deg, #fffaf5, #f8efe6);
+  --lab-shell-border: rgba(255, 133, 67, 0.18);
+  --lab-header-bg: linear-gradient(135deg, #2c1a13, #4a2a1c);
+  --lab-hero-bg: linear-gradient(135deg, rgba(255, 133, 67, 0.22), rgba(255, 202, 92, 0.16));
+  --lab-hero-border: rgba(255, 133, 67, 0.22);
+  --lab-accent-bg: linear-gradient(135deg, #ff8543, #ffba58);
+  --lab-accent-fg: #2a180f;
+  --lab-logo-bg: linear-gradient(135deg, #ff8543, #ffba58);
+  --lab-logo-fg: #2a180f;
+  --lab-active-tab-bg: linear-gradient(135deg, #ff8543, #ffba58);
+  --lab-active-tab-color: #2a180f;
+  --lab-active-tab-border: rgba(255, 133, 67, 0.28);
+  --lab-active-tab-shadow: 0 12px 24px rgba(255, 133, 67, 0.22);
+  --lab-badge-bg: rgba(255, 133, 67, 0.16);
+  --lab-badge-color: #8a4200;
+  --lab-product-media-bg: linear-gradient(135deg, #3d2017, #7d3f22);
+  --lab-browser-bg: linear-gradient(135deg, #20130f, #3b241d);
+  --lab-browser-accent: #ffe7c6;
   background:
     radial-gradient(circle at top left, rgba(255, 133, 67, 0.2), transparent 30%),
     radial-gradient(circle at top right, rgba(255, 202, 92, 0.14), transparent 22%),
     linear-gradient(180deg, #fff8f2, #f7efe8);
 }
 
-.web-lab-immersive.theme-street .fraud-store-shell {
-  background: linear-gradient(180deg, #fffaf6, #f9f0ea);
-  border-color: rgba(255, 133, 67, 0.14);
-}
-
-.web-lab-immersive.theme-street .fraud-store-header,
-.web-lab-immersive.theme-street .web-lab-browser-bar {
-  background: linear-gradient(135deg, #211a17, #44302a);
-}
-
-.web-lab-immersive.theme-street .fraud-store-logo > span,
-.web-lab-immersive.theme-street .fraud-live-toast,
-.web-lab-immersive.theme-street .web-lab-detective-count,
-.web-lab-immersive.theme-street .fraud-primary-btn {
-  background: linear-gradient(135deg, #ff8543, #ffba58);
-  color: #1f1410;
-}
-
-.web-lab-immersive.theme-street .fraud-store-hero,
-.web-lab-immersive.theme-street .fraud-cart-banner {
-  background: linear-gradient(135deg, rgba(255, 133, 67, 0.18), rgba(255, 202, 92, 0.1));
-  border-color: rgba(255, 133, 67, 0.18);
-}
-
-.web-lab-immersive.theme-street .fraud-discount-badge,
-.web-lab-immersive.theme-street .fraud-store-tab.active {
-  background: linear-gradient(135deg, rgba(255, 133, 67, 0.16), rgba(255, 202, 92, 0.18));
-  color: #8a4200;
-  border-color: rgba(255, 133, 67, 0.16);
-  box-shadow: 0 12px 24px rgba(255, 133, 67, 0.16);
-}
-
 .web-lab-immersive.theme-premium {
+  --lab-shell-bg: linear-gradient(180deg, #fbfdfc, #edf4f1);
+  --lab-shell-border: rgba(31, 143, 122, 0.16);
+  --lab-header-bg: linear-gradient(135deg, #173033, #244b4f);
+  --lab-hero-bg: linear-gradient(135deg, rgba(31, 143, 122, 0.18), rgba(104, 191, 174, 0.16));
+  --lab-hero-border: rgba(31, 143, 122, 0.22);
+  --lab-accent-bg: linear-gradient(135deg, #1f8f7a, #68bfae);
+  --lab-accent-fg: #f6fffb;
+  --lab-logo-bg: linear-gradient(135deg, #1f8f7a, #68bfae);
+  --lab-logo-fg: #f6fffb;
+  --lab-active-tab-bg: linear-gradient(135deg, #1f8f7a, #68bfae);
+  --lab-active-tab-color: #f6fffb;
+  --lab-active-tab-border: rgba(31, 143, 122, 0.26);
+  --lab-active-tab-shadow: 0 12px 24px rgba(31, 143, 122, 0.22);
+  --lab-badge-bg: rgba(31, 143, 122, 0.14);
+  --lab-badge-color: #1f675a;
+  --lab-product-media-bg: linear-gradient(135deg, #173033, #35716d);
+  --lab-browser-bg: linear-gradient(135deg, #122528, #224144);
+  --lab-browser-accent: #d5f7ef;
   background:
     radial-gradient(circle at top left, rgba(31, 143, 122, 0.16), transparent 30%),
     radial-gradient(circle at top right, rgba(168, 196, 188, 0.18), transparent 24%),
     linear-gradient(180deg, #f7faf8, #edf4f1);
 }
 
-.web-lab-immersive.theme-premium .fraud-store-shell {
-  background: linear-gradient(180deg, #fbfdfc, #eef4f1);
-  border-color: rgba(31, 143, 122, 0.14);
-}
-
-.web-lab-immersive.theme-premium .fraud-store-header,
-.web-lab-immersive.theme-premium .web-lab-browser-bar {
-  background: linear-gradient(135deg, #132225, #20363a);
-}
-
-.web-lab-immersive.theme-premium .fraud-store-logo > span,
-.web-lab-immersive.theme-premium .fraud-live-toast,
-.web-lab-immersive.theme-premium .web-lab-detective-count,
-.web-lab-immersive.theme-premium .fraud-primary-btn {
-  background: linear-gradient(135deg, #1f8f7a, #68bfae);
-  color: #f6fffb;
-}
-
-.web-lab-immersive.theme-premium .fraud-store-hero,
-.web-lab-immersive.theme-premium .fraud-cart-banner {
-  background: linear-gradient(135deg, rgba(31, 143, 122, 0.14), rgba(168, 196, 188, 0.18));
-  border-color: rgba(31, 143, 122, 0.18);
-}
-
-.web-lab-immersive.theme-premium .fraud-discount-badge,
-.web-lab-immersive.theme-premium .fraud-store-tab.active {
-  background: linear-gradient(135deg, rgba(31, 143, 122, 0.16), rgba(168, 196, 188, 0.18));
-  color: #1f675a;
-  border-color: rgba(31, 143, 122, 0.14);
-  box-shadow: 0 12px 24px rgba(31, 143, 122, 0.16);
-}
-
 .web-lab-immersive.theme-sage {
+  --lab-shell-bg: linear-gradient(180deg, #fafbf7, #eef2ea);
+  --lab-shell-border: rgba(114, 134, 90, 0.16);
+  --lab-header-bg: linear-gradient(135deg, #223027, #334239);
+  --lab-hero-bg: linear-gradient(135deg, rgba(114, 134, 90, 0.18), rgba(188, 198, 168, 0.18));
+  --lab-hero-border: rgba(114, 134, 90, 0.22);
+  --lab-accent-bg: linear-gradient(135deg, #72865a, #9fb28b);
+  --lab-accent-fg: #f7fbf2;
+  --lab-logo-bg: linear-gradient(135deg, #72865a, #9fb28b);
+  --lab-logo-fg: #f7fbf2;
+  --lab-active-tab-bg: linear-gradient(135deg, #72865a, #9fb28b);
+  --lab-active-tab-color: #f7fbf2;
+  --lab-active-tab-border: rgba(114, 134, 90, 0.26);
+  --lab-active-tab-shadow: 0 12px 24px rgba(114, 134, 90, 0.22);
+  --lab-badge-bg: rgba(114, 134, 90, 0.16);
+  --lab-badge-color: #546042;
+  --lab-product-media-bg: linear-gradient(135deg, #253126, #506151);
+  --lab-browser-bg: linear-gradient(135deg, #1b241b, #2d382c);
+  --lab-browser-accent: #edf6e6;
   background:
     radial-gradient(circle at top left, rgba(114, 134, 90, 0.18), transparent 30%),
     radial-gradient(circle at top right, rgba(188, 198, 168, 0.18), transparent 24%),
     linear-gradient(180deg, #f7f8f3, #eef1e7);
 }
 
-.web-lab-immersive.theme-sage .fraud-store-shell {
-  background: linear-gradient(180deg, #fafbf7, #eff2ea);
-  border-color: rgba(114, 134, 90, 0.14);
+.web-lab-browser-bar {
+  background: var(--lab-browser-bg);
 }
 
-.web-lab-immersive.theme-sage .fraud-store-header,
-.web-lab-immersive.theme-sage .web-lab-browser-bar {
-  background: linear-gradient(135deg, #1b2219, #2d3729);
-}
-
-.web-lab-immersive.theme-sage .fraud-store-logo > span,
-.web-lab-immersive.theme-sage .fraud-live-toast,
-.web-lab-immersive.theme-sage .web-lab-detective-count,
-.web-lab-immersive.theme-sage .fraud-primary-btn {
-  background: linear-gradient(135deg, #72865a, #9fb28b);
-  color: #fbfdf8;
-}
-
-.web-lab-immersive.theme-sage .fraud-store-hero,
-.web-lab-immersive.theme-sage .fraud-cart-banner {
-  background: linear-gradient(135deg, rgba(114, 134, 90, 0.14), rgba(188, 198, 168, 0.18));
-  border-color: rgba(114, 134, 90, 0.18);
-}
-
-.web-lab-immersive.theme-sage .fraud-discount-badge,
-.web-lab-immersive.theme-sage .fraud-store-tab.active {
-  background: linear-gradient(135deg, rgba(114, 134, 90, 0.16), rgba(188, 198, 168, 0.18));
-  color: #546042;
-  border-color: rgba(114, 134, 90, 0.14);
-  box-shadow: 0 12px 24px rgba(114, 134, 90, 0.16);
+.web-lab-browser-meta strong,
+.web-lab-domain {
+  color: var(--lab-browser-accent);
 }
 
 .fraud-store-shell.layout-market .fraud-store-stage {
@@ -2444,6 +2445,11 @@ canvas {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.fraud-store-shell.layout-split .fraud-cart-layout,
+.fraud-store-shell.layout-split .fraud-checkout-layout {
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+}
+
 .fraud-store-shell.layout-editorial .fraud-store-stage {
   gap: 22px;
 }
@@ -2455,6 +2461,14 @@ canvas {
 .fraud-store-shell.layout-editorial .fraud-store-product-grid,
 .fraud-store-shell.layout-editorial .fraud-store-utility-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fraud-store-shell.layout-editorial .fraud-store-reviews-shell,
+.fraud-store-shell.layout-minimal .fraud-store-reviews-shell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.96));
+  border-radius: 24px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  padding: 18px;
 }
 
 .fraud-store-shell.layout-minimal .fraud-store-stage {
@@ -2472,6 +2486,10 @@ canvas {
 
 .fraud-store-shell.layout-minimal .fraud-product-card {
   gap: 10px;
+}
+
+.fraud-store-shell.layout-minimal .fraud-product-card.featured {
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr);
 }
 
 body[data-theme='dark'] .web-lab-progress-card,
@@ -2628,6 +2646,14 @@ body[data-theme='dark'] .web-lab-immersive.theme-sage .fraud-primary-btn {
   color: #f7fbf2;
 }
 
+body[data-theme='dark'] .fraud-store-shell.layout-editorial .fraud-store-reviews-shell,
+body[data-theme='dark'] .fraud-store-shell.layout-minimal .fraud-store-reviews-shell {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.08), transparent 36%),
+    linear-gradient(180deg, rgba(17, 20, 28, 0.98), rgba(12, 15, 22, 0.96));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 @media (max-width: 1024px) {
   .web-lab-mission,
   .fraud-store-hero,
@@ -2639,9 +2665,15 @@ body[data-theme='dark'] .web-lab-immersive.theme-sage .fraud-primary-btn {
 
   .fraud-store-utility-grid,
   .fraud-store-product-grid,
+  .fraud-store-product-grid.editorial-secondary,
+  .fraud-store-product-grid.minimal-secondary,
   .fraud-decision-options,
   .fraud-form-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .fraud-editorial-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2654,7 +2686,8 @@ body[data-theme='dark'] .web-lab-immersive.theme-sage .fraud-primary-btn {
   .fraud-store-header,
   .web-lab-detective-bar,
   .fraud-store-hero,
-  .fraud-cart-banner {
+  .fraud-cart-banner,
+  .fraud-product-card.featured {
     grid-template-columns: 1fr;
   }
 
