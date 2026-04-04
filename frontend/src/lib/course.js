@@ -122,6 +122,9 @@ export const ensureCourseState = (plan) => {
   const safe = plan && typeof plan === 'object' ? cloneJson(plan) : {};
   safe.planVersion = Number.isFinite(Number(safe.planVersion)) ? Number(safe.planVersion) : 0;
   safe.score_name = String(safe.score_name || 'Blindaje Digital').trim() || 'Blindaje Digital';
+  safe.planScope = String(safe.planScope || 'standard').trim() || 'standard';
+  safe.adminMode = Boolean(safe.adminMode);
+  safe.routeMode = String(safe.routeMode || '').trim();
   safe.competencias =
     safe.competencias && typeof safe.competencias === 'object' ? safe.competencias : {};
 

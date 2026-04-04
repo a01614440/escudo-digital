@@ -185,6 +185,19 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
+const resolveOptionalAuth = async (req) => {
+  const token = getBearerToken(req);
+  if (!token) return null;
+  await deleteExpiredSessions();
+  const auth = await getSessionWithUser(token);
+  if (!auth) return null;
+  return {
+    token,
+    session: auth.session,
+    user: auth.user,
+  };
+};
+
 const requireAdmin = async (req, res, next) => {
   await requireAuth(req, res, () => {
     if (req.auth?.user?.role !== 'admin') {
@@ -998,6 +1011,7 @@ const COURSE_MODULE_COUNT = 7;
 const COURSE_PLAN_VERSION = 4;
 
 const MODULE_LEVELS = ['basico', 'refuerzo', 'avanzado'];
+const ADMIN_REVIEW_CATEGORIES = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
 
 const clampNumber = (value, min, max) => {
   const num = Number(value);
@@ -4116,6 +4130,35 @@ const buildFallbackCoursePlan = ({ answers, assessment, prefs, progress }) => {
   };
 };
 
+const buildAdminCoursePlan = ({ answers, assessment, prefs, progress }) => {
+  const basePlan = buildFallbackCoursePlan({ answers, assessment, prefs, progress });
+  const categories = [];
+  const levels = [];
+
+  MODULE_LEVELS.forEach((level) => {
+    ADMIN_REVIEW_CATEGORIES.forEach((category) => {
+      categories.push(category);
+      levels.push(level);
+    });
+  });
+
+  return {
+    ...basePlan,
+    planVersion: COURSE_PLAN_VERSION,
+    planScope: 'admin_full',
+    adminMode: true,
+    routeMode: 'review',
+    ruta: buildCourseRoute({
+      categories,
+      levels,
+      answers,
+      assessment,
+      prefs,
+      progress,
+    }),
+  };
+};
+
 const enrichAssessmentPayload = (assessment, answers) => {
   const safeAssessment = assessment && typeof assessment === 'object' ? deepCopy(assessment) : {};
   const fallbackPlan = buildFallbackCoursePlan({
@@ -5126,6 +5169,18 @@ app.post('/api/course', async (req, res) => {
     const assessment = req.body?.assessment || {};
     const prefs = req.body?.prefs || {};
     const progress = req.body?.progress || null;
+    const requestedAdminAccess = Boolean(req.body?.adminAccess);
+
+    if (requestedAdminAccess) {
+      const auth = await resolveOptionalAuth(req);
+      if (!auth) {
+        return res.status(401).json({ error: 'Sesión no válida para modo admin.', status: 401 });
+      }
+      if (auth.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'Acceso restringido.', status: 403 });
+      }
+      return res.json(buildAdminCoursePlan({ answers, assessment, prefs, progress }));
+    }
 
     const categories = chooseCourseCategories({ answers, assessment, prefs });
     const levels = computeModuleLevels(categories, { answers, assessment, prefs });

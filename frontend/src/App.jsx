@@ -115,6 +115,7 @@ export default function App() {
   const [chatBusy, setChatBusy] = useState(false);
   const [theme, setTheme] = useState(readThemePreference());
   const [adminPreviewAsUser, setAdminPreviewAsUser] = useState(false);
+  const wantsAdminCourseAccess = currentUser?.role === 'admin' && !adminPreviewAsUser;
 
   const visibleQuestions = useMemo(() => getVisibleQuestions(answers), [answers]);
 
@@ -313,18 +314,25 @@ export default function App() {
     }
 
     const normalizedPrefs = normalizeCoursePrefs(coursePrefs, answers);
+    const requestAdminAccess = Boolean(wantsAdminCourseAccess);
+    const seedProgress = reset ? null : courseProgress;
     setGeneratingCourse(true);
     try {
-      const response = await postJson('/api/course', {
-        answers,
-        assessment,
-        prefs: normalizedPrefs,
-        progress: reset ? null : courseProgress,
-      });
+      const response = await postJson(
+        '/api/course',
+        {
+          answers,
+          assessment,
+          prefs: normalizedPrefs,
+          progress: seedProgress,
+          adminAccess: requestAdminAccess,
+        },
+        { authToken }
+      );
       const safePlan = ensureCourseState(response);
       const safeProgress = ensureCourseProgress(safePlan, {
         reset,
-        seed: reset ? null : courseProgress,
+        seed: seedProgress,
       });
       setCoursePlan(safePlan);
       setCourseProgress(safeProgress);
@@ -340,7 +348,9 @@ export default function App() {
   };
 
   const handleTakeCourses = async () => {
-    if (!coursePlan || !courseProgress || coursePlan.planVersion !== COURSE_PLAN_VERSION) {
+    const planMatchesCurrentMode =
+      Boolean(coursePlan?.planScope === 'admin_full') === Boolean(wantsAdminCourseAccess);
+    if (!coursePlan || !courseProgress || coursePlan.planVersion !== COURSE_PLAN_VERSION || !planMatchesCurrentMode) {
       await generateCourse({ reset: true });
       return;
     }
@@ -566,6 +576,15 @@ export default function App() {
       setCurrentView(coursePlan && courseProgress ? 'courses' : 'survey');
     }
   }, [adminPreviewAsUser, coursePlan, courseProgress, currentView]);
+
+  useEffect(() => {
+    if (!assessment || !currentUser || generatingCourse) return;
+    const currentScope = coursePlan?.planScope === 'admin_full' ? 'admin_full' : 'standard';
+    const expectedScope = wantsAdminCourseAccess ? 'admin_full' : 'standard';
+    if (currentScope !== expectedScope) {
+      generateCourse({ reset: true });
+    }
+  }, [assessment, coursePlan?.planScope, currentUser, wantsAdminCourseAccess]);
 
   if (sessionLoading) {
     return (
