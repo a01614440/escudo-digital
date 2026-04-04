@@ -20,6 +20,82 @@ function Paragraphs({ text, className = 'activity-copy' }) {
   );
 }
 
+const SIMULATION_GUIDES = {
+  quiz: [
+    'Lee el escenario completo antes de responder.',
+    'Elige la opción más segura, no la más rápida.',
+    'Revisa el feedback para entender por qué esa decisión era mejor.',
+  ],
+  simulacion: [
+    'Lee el escenario completo antes de responder.',
+    'Elige la opción más segura, no la más rápida.',
+    'Revisa el feedback para entender por qué esa decisión era mejor.',
+  ],
+  sim_chat: [
+    'Responde como si fuera una conversación real.',
+    'La meta es detectar el riesgo, no agradar al contacto.',
+    'Si dudas, pausa y verifica por fuera del chat.',
+  ],
+  compare_domains: [
+    'Busca cambios mínimos en letras, terminaciones o estructura.',
+    'El dominio más confiable suele ser el más simple y coherente.',
+    'Si sigues dudando, escribe tú mismo la dirección oficial.',
+  ],
+  signal_hunt: [
+    'Marca solo las señales que realmente indiquen riesgo.',
+    'No necesitas marcar todo: importa la precisión.',
+    'Piensa qué parte del mensaje te quiere presionar o engañar.',
+  ],
+  inbox: [
+    'Abre el mensaje y revísalo antes de clasificarlo.',
+    'Fíjate en remitente, asunto, cuerpo y enlaces visibles.',
+    'No te guíes solo por el diseño: busca incoherencias concretas.',
+  ],
+  web_lab: [
+    'Recorre la página como si fueras a comprar o registrarte.',
+    'Marca hallazgos sospechosos mientras avanzas.',
+    'Al final decide si seguirías o saldrías del sitio.',
+  ],
+  call_sim: [
+    'Lee cada paso como si estuvieras en una llamada real.',
+    'Prioriza cortar, pausar o verificar por fuera de la llamada.',
+    'No compartas datos ni resuelvas bajo presión.',
+  ],
+  scenario_flow: [
+    'Cada decisión cambia el escenario siguiente.',
+    'Piensa en la rutina segura antes de responder.',
+    'La meta es reducir riesgo, no terminar rápido.',
+  ],
+  abierta: [
+    'Explica qué harías con tus propias palabras.',
+    'Incluye cómo pausarías, verificarías o cortarías el riesgo.',
+    'No hace falta escribir mucho, pero sí ser claro.',
+  ],
+  checklist: [
+    'Marca cada paso solo si realmente lo revisarías.',
+    'Úsalo como una rutina mínima de verificación.',
+    'La idea es convertirlo en hábito, no avanzar por avanzar.',
+  ],
+};
+
+function SimulationGuide({ activity }) {
+  const steps = SIMULATION_GUIDES[activity?.tipo];
+  if (!steps?.length) return null;
+
+  return (
+    <section className="panel summary-card activity-guide">
+      <p className="eyebrow">Cómo resolver esta actividad</p>
+      <div className="summary-list">
+        {steps.map((step) => (
+          <div className="summary-item" key={step}>
+            <p>{step}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ActivityChrome({ activity, children }) {
   return (
     <div className="activity-shell">
@@ -29,6 +105,7 @@ function ActivityChrome({ activity, children }) {
           {ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}
         </span>
       </div>
+      <SimulationGuide activity={activity} />
       {children}
     </div>
   );
@@ -103,21 +180,21 @@ function QuizActivity({ activity, startedAtRef, onComplete }) {
         signal:
           activity.senal ||
           (isCorrect
-            ? 'Detectaste la senal principal del escenario.'
-            : 'La senal clave estaba en la urgencia, el canal o la peticion.'),
+            ? 'Detectaste la señal principal del escenario.'
+            : 'La señal clave estaba en la urgencia, el canal o la petición.'),
         risk:
           activity.riesgo ||
           'Responder sin verificar puede exponerte a robo de datos, dinero o acceso.',
         action:
           activity.accion ||
           (options[correctIndex]
-            ? `La accion segura era: ${options[correctIndex]}`
+            ? `La acción segura era: ${options[correctIndex]}`
             : 'Verifica por un canal oficial antes de actuar.'),
         extra:
           activity.explicacion ||
           (isCorrect
-            ? 'Buena decision.'
-            : 'Valia la pena frenar y revisar mejor la situacion.'),
+            ? 'Buena decisión.'
+            : 'Valía la pena frenar y revisar mejor la situación.'),
       })
     );
   };
@@ -206,7 +283,7 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
       setFeedback(
         buildFeedback({
           title: 'Falta completar el checklist',
-          signal: 'Todavia no marcaste todos los pasos.',
+          signal: 'Todavía no marcaste todos los pasos.',
           action: 'Completa cada punto antes de avanzar para fijar la rutina.',
         })
       );
@@ -220,8 +297,8 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
         buildFeedback({
           title: 'Buena',
           signal: 'Repasaste los pasos clave sin saltarte ninguno.',
-          risk: 'Si omites un paso de verificacion, aumenta la probabilidad de actuar con prisa.',
-          action: 'Usa este checklist como rutina rapida cuando un mensaje o llamada te meta presion.',
+          risk: 'Si omites un paso de verificación, aumenta la probabilidad de actuar con prisa.',
+          action: 'Usa este checklist como rutina rápida cuando un mensaje o llamada te meta presión.',
         })
       ),
       { checkedItems: items, totalItems: items.length }
@@ -257,7 +334,7 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
 
   const submit = async () => {
     if (answer.trim().length < 6) {
-      setFeedback('Escribe un poco mas para poder evaluarlo.');
+      setFeedback('Escribe un poco más para poder evaluarlo.');
       return;
     }
 
@@ -276,9 +353,9 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
       setFeedback(
         buildFeedback({
           title: feedbackRatingLabel(score),
-          signal: 'Tu respuesta mostro como identificar o frenar el riesgo.',
+          signal: 'Tu respuesta mostró cómo identificar o frenar el riesgo.',
           risk: 'La idea es no resolver desde el canal sospechoso ni compartir datos.',
-          action: 'Quedate con una frase corta, clara y orientada a verificar por canales oficiales.',
+          action: 'Quédate con una frase corta, clara y orientada a verificar por canales oficiales.',
           extra: text,
         })
       );
@@ -286,7 +363,7 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
       setGradedScore(0.4);
       setFeedback(
         buildFeedback({
-          title: 'Sin evaluacion',
+          title: 'Sin evaluación',
           signal: 'No se pudo revisar esta respuesta con IA.',
           action:
             'Puedes reintentar y mantener la misma regla: no compartas datos y verifica por canales oficiales.',
@@ -406,7 +483,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
       setFeedback(
         buildFeedback({
           title: 'Sin respuesta',
-          signal: 'No pudimos continuar la simulacion en este momento.',
+          signal: 'No pudimos continuar la simulación en este momento.',
           action: 'Reintenta o continua aplicando la regla: pausa y verifica por un canal oficial.',
           extra: error.message || '',
         })
@@ -476,7 +553,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
                 startedAtRef,
                 onComplete,
                 bestScore || 0.6,
-                feedbackToText(feedback || 'Simulacion completada.'),
+                  feedbackToText(feedback || 'Simulación completada.'),
                 { history, turns }
               )
             }
@@ -514,7 +591,7 @@ function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <Paragraphs text={activity.prompt || 'Elige el dominio legitimo.'} />
+      <Paragraphs text={activity.prompt || 'Elige el dominio legítimo.'} />
       <div className="option-grid">
         {domains.map((domain, index) => {
           const status =
@@ -614,11 +691,11 @@ function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
     const score = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
     const payload = buildFeedback({
       title: feedbackRatingLabel(score),
-      signal: `Encontraste ${tp} de ${correctIds.size || 1} senales relevantes.`,
-      risk: 'Cuando una senal pasa desapercibida, es mas facil que el mensaje te arrastre al siguiente paso.',
+      signal: `Encontraste ${tp} de ${correctIds.size || 1} señales relevantes.`,
+      risk: 'Cuando una señal pasa desapercibida, es más fácil que el mensaje te arrastre al siguiente paso.',
       action:
         activity.accion ||
-        'Deten la conversacion y verifica por el canal oficial antes de abrir links, pagar o responder.',
+        'Detén la conversación y verifica por el canal oficial antes de abrir links, pagar o responder.',
       detected: signals.filter((signal) => selected.has(signal.id) && signal.correcta).map((signal) => signal.label),
       missed: signals.filter((signal) => signal.correcta && !selected.has(signal.id)).map((signal) => signal.label),
     });
@@ -631,7 +708,7 @@ function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <div className="message-box">{activity.mensaje || 'Detecta las senales de riesgo.'}</div>
+      <div className="message-box">{activity.mensaje || 'Detecta las señales de riesgo.'}</div>
       <div className="signal-list">
         {signals.map((signal) => {
           const chosen = selected.has(signal.id);
@@ -732,7 +809,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
         risk:
           kind === 'sms'
             ? 'Los SMS fraudulentos aprovechan urgencia, premios y enlaces acortados.'
-            : 'Los correos fraudulentos intentan parecer legitimos usando remitentes o asuntos creibles.',
+            : 'Los correos fraudulentos intentan parecer legítimos usando remitentes o asuntos creíbles.',
         action: 'Si dudas, no respondas ni abras el enlace desde el mismo canal. Verifica por una ruta oficial.',
         detected: messages
           .filter((message) => selections[message.id] === message.correcto)
@@ -849,7 +926,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
 
             <div className="email-reader-footer">
               <p className="email-classify-title">
-                {kind === 'correo' ? 'Como clasificarias este correo?' : 'Como clasificarias este mensaje?'}
+                {kind === 'correo' ? '¿Cómo clasificarías este correo?' : '¿Cómo clasificarías este mensaje?'}
               </p>
               <div className="email-classify-actions">
                 {['seguro', 'estafa'].map((choice) => (
@@ -1184,7 +1261,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
         title: feedbackRatingLabel(score),
         signal: currentStep.texto,
         risk: 'Las llamadas fraudulentas intentan forzar decisiones sin darte espacio para verificar.',
-        action: option.feedback || 'Cuelga y verifica por un canal oficial antes de compartir informacion.',
+        action: option.feedback || 'Cuelga y verifica por un canal oficial antes de compartir información.',
       })
     );
     setPendingNext(() => () => {
@@ -1206,7 +1283,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
         <div className="call-screen">
           <p className="call-chip">Llamada entrante</p>
           <h3 className="call-name">{activity.callerName || 'Llamada'}</h3>
-          <p className="call-number">{activity.callerNumber || 'Numero no verificado'}</p>
+          <p className="call-number">{activity.callerNumber || 'Número no verificado'}</p>
           <div className="call-transcript">
             {transcript.map((entry, index) => (
               <div className={`call-bubble ${entry.speaker}`} key={`${entry.speaker}-${index}`}>
@@ -1253,7 +1330,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
                     title: feedbackRatingLabel(finalScore),
                     signal: 'Aplicaste tu criterio frente a una llamada presionante.',
                     risk: 'El objetivo es que no resuelvas durante la llamada ni compartas datos sensibles.',
-                    action: 'Cuelga y confirma por un numero oficial que tu mismo busques.',
+                    action: 'Cuelga y confirma por un número oficial que tú mismo busques.',
                   })
                 ),
                 { transcript }
@@ -1348,9 +1425,9 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
                 feedbackToText(
                   buildFeedback({
                     title: feedbackRatingLabel(finalScore),
-                    signal: 'Aplicaste tu rutina de verificacion en una situacion cotidiana.',
+                    signal: 'Aplicaste tu rutina de verificación en una situación cotidiana.',
                     risk: 'Cuando la rutina se rompe, la urgencia o la confianza pueden tomar el control.',
-                    action: 'Manten la secuencia: pausa, verifica y confirma por canal oficial.',
+                    action: 'Mantén la secuencia: pausa, verifica y confirma por canal oficial.',
                   })
                 ),
                 { flowChoices }

@@ -21,7 +21,7 @@ export default function FeedbackPanel({ feedback }) {
 
       {feedback.signal ? (
         <div>
-          <span className="feedback-label">Senal detectada</span>
+          <span className="feedback-label">Señal detectada</span>
           <p>{feedback.signal}</p>
         </div>
       ) : null}
@@ -35,21 +35,21 @@ export default function FeedbackPanel({ feedback }) {
 
       {feedback.action ? (
         <div>
-          <span className="feedback-label">Accion segura</span>
+          <span className="feedback-label">Acción segura</span>
           <p>{feedback.action}</p>
         </div>
       ) : null}
 
       {feedback.extra ? (
         <div>
-          <span className="feedback-label">Que hacer ahora</span>
+          <span className="feedback-label">Qué hacer ahora</span>
           <p>{feedback.extra}</p>
         </div>
       ) : null}
 
       {Array.isArray(feedback.detected) && feedback.detected.length ? (
         <div>
-          <span className="feedback-label">Senales detectadas</span>
+          <span className="feedback-label">Señales detectadas</span>
           <ul>
             {feedback.detected.map((item) => (
               <li key={item}>{item}</li>
@@ -60,7 +60,7 @@ export default function FeedbackPanel({ feedback }) {
 
       {Array.isArray(feedback.missed) && feedback.missed.length ? (
         <div>
-          <span className="feedback-label">Te falto revisar</span>
+          <span className="feedback-label">Te faltó revisar</span>
           <ul>
             {feedback.missed.map((item) => (
               <li key={item}>{item}</li>

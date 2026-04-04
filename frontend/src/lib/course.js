@@ -8,11 +8,11 @@ export const CATEGORY_LABELS = {
   web: 'Web',
   llamadas: 'Llamadas',
   correo_redes: 'Correo/Redes',
-  habitos: 'Habitos',
+  habitos: 'Hábitos',
 };
 
 export const LEVEL_LABELS = {
-  basico: 'Basico',
+  basico: 'Básico',
   refuerzo: 'Refuerzo',
   avanzado: 'Avanzado',
 };
@@ -20,11 +20,11 @@ export const LEVEL_LABELS = {
 export const ACTIVITY_LABELS = {
   concepto: 'Concepto',
   quiz: 'Quiz',
-  simulacion: 'Simulacion',
+  simulacion: 'Simulación',
   abierta: 'Respuesta abierta',
-  sim_chat: 'Simulacion (chat)',
+  sim_chat: 'Simulación (chat)',
   checklist: 'Checklist',
-  compare_domains: 'Comparacion',
+  compare_domains: 'Comparación',
   signal_hunt: 'Modo detective',
   inbox: 'Inbox',
   web_lab: 'Laboratorio web',
@@ -834,15 +834,15 @@ export const feedbackToText = (payload) => {
   if (!payload || typeof payload !== 'object') return '';
   return [
     payload.title ? `Resultado: ${payload.title}` : '',
-    payload.signal ? `Senal detectada: ${payload.signal}` : '',
+    payload.signal ? `Señal detectada: ${payload.signal}` : '',
     payload.risk ? `Riesgo: ${payload.risk}` : '',
-    payload.action ? `Accion segura: ${payload.action}` : '',
+    payload.action ? `Acción segura: ${payload.action}` : '',
     payload.extra ? String(payload.extra) : '',
     Array.isArray(payload.detected) && payload.detected.length
-      ? `Senales detectadas: ${payload.detected.join(', ')}`
+      ? `Señales detectadas: ${payload.detected.join(', ')}`
       : '',
     Array.isArray(payload.missed) && payload.missed.length
-      ? `Te falto revisar: ${payload.missed.join(', ')}`
+      ? `Te faltó revisar: ${payload.missed.join(', ')}`
       : '',
   ]
     .filter(Boolean)

@@ -7,8 +7,8 @@ function LessonMeta({ module, activity, moduleIndex, activityIndex, totalActivit
   return (
     <header className="panel lesson-header">
       <div className="lesson-copy">
-        <p className="eyebrow">{`Modulo ${moduleIndex + 1}`}</p>
-        <h1 className="lesson-title">{module.titulo || `Modulo ${moduleIndex + 1}`}</h1>
+        <p className="eyebrow">{`Módulo ${moduleIndex + 1}`}</p>
+        <h1 className="lesson-title">{module.titulo || `Módulo ${moduleIndex + 1}`}</h1>
         <p className="lead">{module.descripcion || 'Actividad interactiva de seguridad digital.'}</p>
       </div>
 
@@ -35,10 +35,10 @@ function LessonMeta({ module, activity, moduleIndex, activityIndex, totalActivit
 function ModuleComplete({ module, onBack, onRetry }) {
   return (
     <section className="panel lesson-card">
-      <p className="eyebrow">Modulo completado</p>
+      <p className="eyebrow">Módulo completado</p>
       <h2>{module?.titulo || 'Buen trabajo'}</h2>
       <p className="lead">
-        Terminaste este modulo. Si quieres reforzarlo, puedes repasarlo completo o volver al
+        Terminaste este módulo. Si quieres reforzarlo, puedes repasarlo completo o volver al
         tablero para seguir con tu ruta.
       </p>
       <div className="actions">
@@ -46,7 +46,7 @@ function ModuleComplete({ module, onBack, onRetry }) {
           Volver a cursos
         </button>
         <button className="btn ghost" type="button" onClick={onRetry}>
-          Repasar modulo
+          Repasar módulo
         </button>
       </div>
     </section>
@@ -69,8 +69,8 @@ export default function LessonView({
     return (
       <section className="page">
         <section className="panel lesson-card">
-          <p className="eyebrow">Sin leccion</p>
-          <h2>No encontramos este modulo</h2>
+          <p className="eyebrow">Sin lección</p>
+          <h2>No encontramos este módulo</h2>
           <button className="btn primary" type="button" onClick={onBackToCourses}>
             Volver a cursos
           </button>
@@ -107,7 +107,7 @@ export default function LessonView({
       <section className="panel lesson-card">
         <div className="lesson-actions">
           <button className="btn ghost" type="button" onClick={onBackToCourses}>
-            Salir del modulo
+            Salir del módulo
           </button>
         </div>
 

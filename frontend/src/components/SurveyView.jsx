@@ -46,7 +46,7 @@ function renderInput(question, value, onChange) {
     return (
       <div className="question-body">
         <select value={value || ''} onChange={(event) => onChange(question.id, event.target.value)}>
-          <option value="">Selecciona una opcion</option>
+          <option value="">Selecciona una opción</option>
           {question.options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -60,7 +60,7 @@ function renderInput(question, value, onChange) {
   return (
     <div className="question-body">
       <textarea
-        placeholder={question.placeholder || 'Escribe aqui...'}
+        placeholder={question.placeholder || 'Escribe aquí...'}
         value={value || ''}
         onChange={(event) => onChange(question.id, event.target.value)}
       />
@@ -89,10 +89,10 @@ export default function SurveyView({
   return (
     <div id="surveyView">
       <header id="hero" className="hero">
-        <p className="eyebrow">Mexico | Prevencion de estafas digitales</p>
+        <p className="eyebrow">México | Prevención de estafas digitales</p>
         <h1>Escudo Digital</h1>
         <p className="lead">
-          Una encuesta rapida y dinamica para entender tu nivel de riesgo y recomendarte el
+          Una encuesta rápida y dinámica para entender tu nivel de riesgo y recomendarte el
           aprendizaje ideal.
         </p>
       </header>
@@ -101,7 +101,7 @@ export default function SurveyView({
         <div className="panel-header">
           <div>
             <p className="eyebrow">Encuesta inicial</p>
-            <h2>Conozcamos tu situacion</h2>
+            <h2>Conozcamos tu situación</h2>
             <p className="hint">
               Tus respuestas se analizan con IA para ajustar el contenido. No pedimos datos
               personales sensibles.
@@ -124,7 +124,7 @@ export default function SurveyView({
             <div className={`alert ${validationError ? '' : 'hidden'}`}>{validationError}</div>
             <div className="actions">
               <button className="btn ghost" type="button" onClick={onPrev} disabled={surveyIndex === 0}>
-                Atras
+                Atrás
               </button>
               <button className="btn primary" type="button" onClick={onNext}>
                 {surveyIndex === total - 1 ? 'Finalizar' : 'Siguiente'}
@@ -135,16 +135,16 @@ export default function SurveyView({
       </section>
 
       <section id="loadingSection" className={`panel ${surveyStage === 'loading' ? '' : 'hidden'}`}>
-        <p className="eyebrow">Analisis en curso</p>
+        <p className="eyebrow">Análisis en curso</p>
         <h2>Estamos revisando tus respuestas</h2>
         <p className="lead">
-          La IA esta evaluando tu perfil para darte un resultado mas preciso. Esto puede tardar unos
+          La IA está evaluando tu perfil para darte un resultado más preciso. Esto puede tardar unos
           segundos.
         </p>
         <div className="loader">
           <div className="loader-bar" />
         </div>
-        <p className="hint">No cierres la pagina.</p>
+        <p className="hint">No cierres la página.</p>
       </section>
 
       <section id="resultSection" className={`panel ${surveyStage === 'results' ? '' : 'hidden'}`}>
@@ -156,7 +156,7 @@ export default function SurveyView({
           <div className="result-card">
             <h3>Nivel estimado</h3>
             <p className="risk-level">{normalizeRiskLevel(assessment?.nivel || 'Medio')}</p>
-            <p className="hint">{assessment?.resumen || 'Todavia no tenemos un resultado disponible.'}</p>
+            <p className="hint">{assessment?.resumen || 'Todavía no tenemos un resultado disponible.'}</p>
             <div className="result-reco">
               <h4>Recomendaciones IA</h4>
               <ul className="result-list">
@@ -168,7 +168,7 @@ export default function SurveyView({
           </div>
 
           <div className="result-card">
-            <h3>Proximos pasos</h3>
+            <h3>Próximos pasos</h3>
             <div className="steps-grid">
               {(Array.isArray(assessment?.proximos_pasos) ? assessment.proximos_pasos : []).map((step, index) => (
                 <div key={step.titulo || step.title || index} className="summary-item">
@@ -195,17 +195,17 @@ export default function SurveyView({
           <h3>Tipos de estafa que cubrimos</h3>
           <div className="pill-row">
             <span className="pill">SMS con enlaces falsos</span>
-            <span className="pill">WhatsApp y suplantacion</span>
-            <span className="pill">Paginas web clonadas</span>
+            <span className="pill">WhatsApp y suplantación</span>
+            <span className="pill">Páginas web clonadas</span>
             <span className="pill">Llamadas fraudulentas</span>
             <span className="pill">Correos y phishing</span>
           </div>
         </div>
         <div>
-          <h3>Como funciona la IA</h3>
+          <h3>Cómo funciona la IA</h3>
           <p className="hint">
-            Analizamos habitos, exposicion y experiencia previa para estimar tu probabilidad de ser
-            victima. Con eso adaptamos el contenido a lo que mas necesitas.
+            Analizamos hábitos, exposición y experiencia previa para estimar tu probabilidad de ser
+            víctima. Con eso adaptamos el contenido a lo que más necesitas.
           </p>
         </div>
       </section>

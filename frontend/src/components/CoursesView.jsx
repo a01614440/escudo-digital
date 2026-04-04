@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatDate } from '../lib/format.js';
 import {
   ACTIVITY_LABELS,
@@ -20,7 +21,7 @@ const TOPIC_OPTIONS = COMP_KEYS.map((topic) => ({
 
 const PRIORITY_LABELS = {
   sms: 'detectar SMS falsos',
-  web: 'verificar paginas web',
+  web: 'verificar páginas web',
   llamadas: 'evitar llamadas fraudulentas',
   whatsapp: 'mejorar seguridad en WhatsApp',
   todo: 'cubrir todos los frentes',
@@ -29,8 +30,8 @@ const PRIORITY_LABELS = {
 function formatMinutesFromMs(value) {
   const minutes = Math.max(0, Math.round((Number(value) || 0) / 60000));
   if (!minutes) return 'Sin tiempo registrado';
-  if (minutes === 1) return '1 min de practica';
-  return `${minutes} min de practica`;
+  if (minutes === 1) return '1 min de práctica';
+  return `${minutes} min de práctica`;
 }
 
 function formatPercent(value) {
@@ -163,11 +164,10 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
     <article className="panel summary-card course-preferences-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Ruta personalizada</p>
-          <h3>Ajustes del curso</h3>
+          <p className="eyebrow">Configuración</p>
+          <h3>Ajustes de la ruta</h3>
           <p className="hint">
-            Puedes regenerar la ruta para priorizar otros temas o cambiar el ritmo de las
-            sesiones.
+            Regenera la ruta si quieres priorizar otros temas o cambiar el ritmo de las sesiones.
           </p>
         </div>
         <button
@@ -176,7 +176,7 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
           onClick={onGenerate}
           disabled={!canGenerate || generating}
         >
-          {generating ? 'Generando...' : 'Generar o actualizar ruta'}
+          {generating ? 'Generando...' : 'Actualizar ruta'}
         </button>
       </div>
 
@@ -188,8 +188,8 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
             onChange={(event) => patch({ estilo: event.target.value })}
           >
             <option value="mix">Mixto</option>
-            <option value="practico">Mas practico</option>
-            <option value="teorico">Mas guiado</option>
+            <option value="practico">Más práctico</option>
+            <option value="teorico">Más guiado</option>
           </select>
         </label>
 
@@ -199,15 +199,15 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
             value={value?.dificultad || 'auto'}
             onChange={(event) => patch({ dificultad: event.target.value })}
           >
-            <option value="auto">Automatica</option>
-            <option value="basico">Basica</option>
+            <option value="auto">Automática</option>
+            <option value="basico">Básica</option>
             <option value="refuerzo">Refuerzo</option>
             <option value="avanzado">Avanzada</option>
           </select>
         </label>
 
         <label>
-          Duracion por sesion
+          Duración por sesión
           <select
             value={value?.duracion || '5-10'}
             onChange={(event) => patch({ duracion: event.target.value })}
@@ -245,7 +245,6 @@ function CourseHero({
   answers,
   assessment,
   coursePlan,
-  route,
   completedCount,
   totalActivities,
   recommendedModule,
@@ -258,24 +257,24 @@ function CourseHero({
   const priorityLabel = getPrioritySummary(answers);
   const weaknessText = weakestTopic
     ? `${CATEGORY_LABELS[weakestTopic[0]] || weakestTopic[0]} (${weakestTopic[1]}%)`
-    : 'se seguira ajustando con tu progreso';
+    : 'se seguirá ajustando con tu progreso';
 
   return (
     <section className="course-hero-panel panel">
       <div className="course-hero-copy">
         <p className="eyebrow">Ruta activa</p>
-        <h1>Tu entrenamiento ya tiene direccion clara</h1>
+        <h1>Tu entrenamiento ya tiene dirección clara</h1>
         <p className="lead">
           Priorizamos {priorityLabel} para ayudarte desde {stateLabel}. Tu perfil actual se
-          encuentra en nivel {riskLabel}, y la ruta mezcla practica guiada con simulaciones para
-          reforzar donde mas te conviene.
+          encuentra en nivel {riskLabel}, y la ruta mezcla práctica guiada con simulaciones para
+          reforzar donde más te conviene.
         </p>
 
         <div className="hero-chip-row">
           <span className="pill">Riesgo actual: {riskLabel}</span>
           <span className="pill">Score base: {coursePlan?.score_name || 'Blindaje Digital'}</span>
           <span className="pill">Actividades completadas: {completedCount}/{totalActivities}</span>
-          <span className="pill">Enfoque critico: {weaknessText}</span>
+          <span className="pill">Enfoque crítico: {weaknessText}</span>
         </div>
 
         <div className="hero-actions">
@@ -286,12 +285,12 @@ function CourseHero({
       </div>
 
       <aside className="course-hero-aside">
-        <p className="eyebrow">Siguiente modulo sugerido</p>
+        <p className="eyebrow">Siguiente módulo sugerido</p>
         <h3>{recommendedModule?.titulo || 'Tu siguiente paso'}</h3>
         <p>{recommendedModule?.descripcion || 'Abriremos la siguiente actividad disponible.'}</p>
         <div className="hero-next-grid">
           <div className="hero-next-item">
-            <span>Categoria</span>
+            <span>Categoría</span>
             <strong>{CATEGORY_LABELS[recommendedModule?.categoria] || recommendedModule?.categoria}</strong>
           </div>
           <div className="hero-next-item">
@@ -338,14 +337,14 @@ function FocusPanel({ insights, snapshots, strongestTopic, weakestTopic, lastAcc
     <section className="course-focus-grid">
       <article className="panel summary-card">
         <p className="eyebrow">Enfoque recomendado</p>
-        <h3>Que conviene reforzar ahora</h3>
+        <h3>Qué conviene reforzar ahora</h3>
         <div className="focus-stack">
           <div className="summary-item">
             <strong>Fortaleza principal</strong>
             <p>
               {strongestTopic
                 ? `${CATEGORY_LABELS[strongestTopic[0]] || strongestTopic[0]} (${strongestTopic[1]}%)`
-                : 'Aun estamos recogiendo suficientes datos.'}
+                : 'Aún estamos recogiendo suficientes datos.'}
             </p>
           </div>
           <div className="summary-item">
@@ -353,40 +352,40 @@ function FocusPanel({ insights, snapshots, strongestTopic, weakestTopic, lastAcc
             <p>
               {weakestTopic
                 ? `${CATEGORY_LABELS[weakestTopic[0]] || weakestTopic[0]} (${weakestTopic[1]}%)`
-                : 'La ruta se ira afinando conforme avances.'}
+                : 'La ruta se irá afinando conforme avances.'}
             </p>
           </div>
           <div className="summary-item">
             <strong>Temas visibles</strong>
-            <p>{insights?.focus?.join(' | ') || 'La app definira esto con tus siguientes actividades.'}</p>
+            <p>{insights?.focus?.join(' | ') || 'La app definirá esto con tus siguientes actividades.'}</p>
           </div>
         </div>
       </article>
 
       <article className="panel summary-card">
-        <p className="eyebrow">Evolucion</p>
-        <h3>Senales recientes</h3>
+        <p className="eyebrow">Evolución</p>
+        <h3>Señales recientes</h3>
         <div className="focus-stack">
           <div className="summary-item">
-            <strong>Ultimo acceso</strong>
-            <p>{lastAccessAt ? formatDate(lastAccessAt) : 'Aun sin registro.'}</p>
+            <strong>Último acceso</strong>
+            <p>{lastAccessAt ? formatDate(lastAccessAt) : 'Aún sin registro.'}</p>
           </div>
           <div className="summary-item">
             <strong>Movimiento de blindaje</strong>
             <p>
               {delta === null
-                ? 'Todavia no hay suficientes hitos para comparar.'
+                ? 'Todavía no hay suficientes hitos para comparar.'
                 : delta >= 0
-                  ? `Subiste ${delta} puntos entre tus dos ultimos hitos.`
+                  ? `Subiste ${delta} puntos entre tus dos últimos hitos.`
                   : `Bajaste ${Math.abs(delta)} puntos; conviene repasar el bloque de refuerzo.`}
             </p>
           </div>
           <div className="summary-item">
-            <strong>Errores mas frecuentes</strong>
+            <strong>Errores más frecuentes</strong>
             <p>
               {insights?.mistakes?.length
                 ? insights.mistakes.join(' | ')
-                : 'Aun no vemos errores repetidos; eso es buena senal.'}
+                : 'Aún no vemos errores repetidos; eso es buena señal.'}
             </p>
           </div>
         </div>
@@ -401,7 +400,7 @@ function RouteMap({ route, progress, onOpenModule }) {
       <div className="panel-header">
         <div>
           <p className="eyebrow">Mapa de ruta</p>
-          <h3>Tu progreso modulo por modulo</h3>
+          <h3>Tu progreso módulo por módulo</h3>
           <p className="hint">Cada bloque prioriza un canal y evita repetir escenarios vistos.</p>
         </div>
       </div>
@@ -419,7 +418,7 @@ function RouteMap({ route, progress, onOpenModule }) {
               <span className="route-step-index">{String(moduleIndex + 1).padStart(2, '0')}</span>
               <div className="route-step-copy">
                 <div className="route-step-top">
-                  <strong>{module.titulo || `Modulo ${moduleIndex + 1}`}</strong>
+                  <strong>{module.titulo || `Módulo ${moduleIndex + 1}`}</strong>
                   <span className={`status-pill ${stats.status}`}>
                     {stats.status === 'completed'
                       ? 'Completado'
@@ -444,25 +443,27 @@ function RouteMap({ route, progress, onOpenModule }) {
   );
 }
 
-function ModuleCard({ module, moduleIndex, progress, onOpen }) {
+function ModuleCard({ module, moduleIndex, progress, onOpen, isRecommended }) {
   const stats = getModuleStats(module, progress);
   const label = stats.pct >= 100 ? 'Repasar' : stats.pct > 0 ? 'Continuar' : 'Empezar';
   const highlights = [
     stats.nextActivity
       ? `Sigue con: ${stats.nextActivity.titulo} (${ACTIVITY_LABELS[stats.nextActivity.tipo] || stats.nextActivity.tipo})`
-      : 'Modulo listo para repaso',
-    stats.avgScore === null ? 'Aun sin score promedio' : `Score promedio: ${stats.avgScore}%`,
+      : 'Módulo listo para repaso',
+    stats.avgScore === null ? 'Aún sin score promedio' : `Score promedio: ${stats.avgScore}%`,
     `${stats.visits} visitas registradas`,
     stats.durationLabel,
   ];
 
   return (
-    <article className={`module-card enhanced ${stats.status}`}>
-      <div className="module-step">Paso {moduleIndex + 1}</div>
+    <article className={`module-card enhanced ${stats.status} ${isRecommended ? 'recommended' : ''}`.trim()}>
+      <div className="module-step">
+        {isRecommended ? 'Recomendado ahora' : `Paso ${moduleIndex + 1}`}
+      </div>
       <div className="module-head">
         <div>
-          <p className="module-title">{module.titulo || `Modulo ${moduleIndex + 1}`}</p>
-          <p className="module-desc">{module.descripcion || 'Modulo personalizado por IA.'}</p>
+          <p className="module-title">{module.titulo || `Módulo ${moduleIndex + 1}`}</p>
+          <p className="module-desc">{module.descripcion || 'Módulo personalizado por IA.'}</p>
         </div>
         <div className="badges">
           <span className={`status-pill ${stats.status}`}>
@@ -525,6 +526,7 @@ export default function CoursesView({
   onGenerateCourse,
   onOpenModule,
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const hasPlan = Boolean(coursePlan && courseProgress);
   const computed = hasPlan
     ? computeCompetenciesFromProgress(coursePlan, courseProgress)
@@ -550,24 +552,27 @@ export default function CoursesView({
 
   const progressItems = [
     {
-      label: 'Modulos cerrados',
+      label: 'Módulos cerrados',
       value: `${completedModules}/${route.length || 0}`,
-      note: completedModules === route.length && route.length ? 'Ruta completada, lista para repaso.' : 'Cada modulo completo consolida tu blindaje.',
+      note:
+        completedModules === route.length && route.length
+          ? 'Ruta completada, lista para repaso.'
+          : 'Cada módulo completo consolida tu blindaje.',
     },
     {
       label: 'Actividades resueltas',
       value: `${completedCount}/${totalActivities || 0}`,
-      note: totalActivities ? 'El progreso se guarda automaticamente.' : 'Genera primero tu ruta personalizada.',
+      note: totalActivities ? 'El progreso se guarda automáticamente.' : 'Genera primero tu ruta personalizada.',
     },
     {
-      label: 'Tema mas fuerte',
-      value: strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] || strongestTopic[0] : 'Aun sin datos',
-      note: strongestTopic ? `${strongestTopic[1]}% de dominio estimado.` : 'Se definira con tus primeras actividades.',
+      label: 'Tema más fuerte',
+      value: strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] || strongestTopic[0] : 'Aún sin datos',
+      note: strongestTopic ? `${strongestTopic[1]}% de dominio estimado.` : 'Se definirá con tus primeras actividades.',
     },
     {
       label: 'Tema a reforzar',
       value: weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] || weakestTopic[0] : 'Sin prioridad',
-      note: weakestTopic ? `${weakestTopic[1]}% actual. Aqui conviene insistir.` : 'El sistema afinara esto conforme avances.',
+      note: weakestTopic ? `${weakestTopic[1]}% actual. Aquí conviene insistir.` : 'El sistema afinará esto conforme avances.',
     },
   ];
 
@@ -583,22 +588,12 @@ export default function CoursesView({
         </p>
       </header>
 
-      <CoursePreferences
-        answers={answers}
-        value={coursePrefs}
-        onChange={onCoursePrefsChange}
-        onGenerate={onGenerateCourse}
-        generating={generating}
-        canGenerate={Boolean(assessment)}
-      />
-
       {hasPlan ? (
         <>
           <CourseHero
             answers={answers}
             assessment={assessment}
             coursePlan={coursePlan}
-            route={route}
             completedCount={completedCount}
             totalActivities={totalActivities}
             recommendedModule={recommendedModule}
@@ -612,6 +607,91 @@ export default function CoursesView({
           <section className="dashboard-grid">
             <DonutCard score={computed.score_total || 0} label={coursePlan?.score_name || 'Blindaje Digital'} />
             <CompetencyList competencias={computed.competencias} />
+          </section>
+
+          <section className="panel summary-card course-settings-shell">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Configuración secundaria</p>
+                <h3>Ajustes de la ruta</h3>
+                <p className="hint">
+                  Déjalos ocultos si solo quieres avanzar. Ábrelos cuando quieras cambiar enfoque,
+                  dificultad o duración.
+                </p>
+              </div>
+              <button className="btn ghost" type="button" onClick={() => setSettingsOpen((value) => !value)}>
+                {settingsOpen ? 'Ocultar ajustes' : 'Ver ajustes de la ruta'}
+              </button>
+            </div>
+            <div className="hero-chip-row compact">
+              <span className="pill">Estilo: {coursePrefs?.estilo || 'mix'}</span>
+              <span className="pill">Dificultad: {coursePrefs?.dificultad || 'auto'}</span>
+              <span className="pill">Sesiones: {coursePrefs?.duracion || '5-10'} min</span>
+            </div>
+          </section>
+
+          {settingsOpen ? (
+            <CoursePreferences
+              answers={answers}
+              value={coursePrefs}
+              onChange={onCoursePrefsChange}
+              onGenerate={onGenerateCourse}
+              generating={generating}
+              canGenerate={Boolean(assessment)}
+            />
+          ) : null}
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Módulos prioritarios</p>
+                <h2>Empieza por aquí</h2>
+                <p className="hint">
+                  Sigue este orden para reforzar primero los riesgos más importantes de tu ruta.
+                </p>
+              </div>
+            </div>
+            <div className="modules-list enhanced">
+              {route.map((module, moduleIndex) => (
+                <ModuleCard
+                  key={module.id || `${module.categoria}-${moduleIndex}`}
+                  module={module}
+                  moduleIndex={moduleIndex}
+                  progress={courseProgress}
+                  onOpen={onOpenModule}
+                  isRecommended={moduleIndex === recommendedModuleIndex}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className="course-route-layout">
+            <RouteMap route={route} progress={courseProgress} onOpenModule={onOpenModule} />
+
+            <article className="panel summary-card">
+              <p className="eyebrow">Ruta activa</p>
+              <h3>Qué traen tus módulos</h3>
+              <div className="focus-stack">
+                <div className="summary-item">
+                  <strong>Versión del plan</strong>
+                  <p>Versión {coursePlan?.planVersion || '1'} con {route.length} módulos activos.</p>
+                </div>
+                <div className="summary-item">
+                  <strong>Simulaciones y práctica</strong>
+                  <p>
+                    Tu ruta mezcla teoría, ejercicios, comparación de dominios, inbox y
+                    simulaciones con `scenarioId` para reducir repetición.
+                  </p>
+                </div>
+                <div className="summary-item">
+                  <strong>Preferencias aplicadas</strong>
+                  <p>
+                    Estilo {coursePrefs?.estilo || 'mix'} | dificultad {coursePrefs?.dificultad || 'auto'} |
+                    sesiones de {coursePrefs?.duracion || '5-10'} min.
+                  </p>
+                </div>
+              </div>
+            </article>
           </section>
 
           <FocusPanel
@@ -629,11 +709,11 @@ export default function CoursesView({
               <div className="summary-list">
                 <div className="summary-item">
                   <strong>Fortalezas</strong>
-                  <p>{insights?.strengths?.join(' | ') || 'Aun estamos recogiendo senales.'}</p>
+                  <p>{insights?.strengths?.join(' | ') || 'Aún estamos recogiendo señales.'}</p>
                 </div>
                 <div className="summary-item">
                   <strong>Enfoque</strong>
-                  <p>{insights?.focus?.join(' | ') || 'La ruta se ajustara con tu progreso.'}</p>
+                  <p>{insights?.focus?.join(' | ') || 'La ruta se ajustará con tu progreso.'}</p>
                 </div>
                 <div className="summary-item">
                   <strong>Prioridad declarada</strong>
@@ -644,7 +724,7 @@ export default function CoursesView({
 
             <article className="panel summary-card">
               <p className="eyebrow">Historial</p>
-              <h3>Ultimos hitos</h3>
+              <h3>Últimos hitos</h3>
               <div className="history-list">
                 {snapshots.length ? (
                   snapshots.map((snapshot) => (
@@ -659,74 +739,50 @@ export default function CoursesView({
                   ))
                 ) : (
                   <p className="hint">
-                    Aun no hay hitos guardados. En cuanto avances, apareceran aqui.
+                    Aún no hay hitos guardados. En cuanto avances, aparecerán aquí.
                   </p>
                 )}
               </div>
             </article>
           </section>
-
-          <section className="course-route-layout">
-            <RouteMap route={route} progress={courseProgress} onOpenModule={onOpenModule} />
-
-            <article className="panel summary-card">
-              <p className="eyebrow">Ruta activa</p>
-              <h3>Que traen tus modulos</h3>
-              <div className="focus-stack">
-                <div className="summary-item">
-                  <strong>Version del plan</strong>
-                  <p>Version {coursePlan?.planVersion || '1'} con {route.length} modulos activos.</p>
-                </div>
-                <div className="summary-item">
-                  <strong>Simulaciones y practica</strong>
-                  <p>
-                    Tu ruta mezcla teoria, ejercicios, comparacion de dominios, inboxs y
-                    simulaciones con scenarioId para reducir repeticion.
-                  </p>
-                </div>
-                <div className="summary-item">
-                  <strong>Preferencias aplicadas</strong>
-                  <p>
-                    Estilo {coursePrefs?.estilo || 'mix'} | dificultad {coursePrefs?.dificultad || 'auto'} |
-                    sesiones de {coursePrefs?.duracion || '5-10'} min.
-                  </p>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Modulos</p>
-                <h2>Tu plan activo</h2>
-                <p className="hint">
-                  Version {coursePlan?.planVersion || '1'} | {route.length} modulos
-                </p>
-              </div>
-            </div>
-            <div className="modules-list enhanced">
-              {route.map((module, moduleIndex) => (
-                <ModuleCard
-                  key={module.id || `${module.categoria}-${moduleIndex}`}
-                  module={module}
-                  moduleIndex={moduleIndex}
-                  progress={courseProgress}
-                  onOpen={onOpenModule}
-                />
-              ))}
-            </div>
-          </section>
         </>
       ) : (
-        <section className="panel empty-state">
-          <p className="eyebrow">Aun no hay ruta</p>
-          <h2>Genera tu primer curso</h2>
-          <p className="lead">
-            En cuanto termines la encuesta podremos armar modulos, simulaciones y actividades con
-            `scenarioId` para ti.
-          </p>
-        </section>
+        <>
+          <section className="panel summary-card course-settings-shell">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Preparación de la ruta</p>
+                <h3>Ajustes del curso</h3>
+                <p className="hint">
+                  Cuando termines la encuesta podrás elegir enfoque, dificultad y temas prioritarios.
+                </p>
+              </div>
+              <button className="btn ghost" type="button" onClick={() => setSettingsOpen((value) => !value)}>
+                {settingsOpen ? 'Ocultar ajustes' : 'Ver ajustes de la ruta'}
+              </button>
+            </div>
+          </section>
+
+          {settingsOpen ? (
+            <CoursePreferences
+              answers={answers}
+              value={coursePrefs}
+              onChange={onCoursePrefsChange}
+              onGenerate={onGenerateCourse}
+              generating={generating}
+              canGenerate={Boolean(assessment)}
+            />
+          ) : null}
+
+          <section className="panel empty-state">
+            <p className="eyebrow">Aún no hay ruta</p>
+            <h2>Genera tu primer curso</h2>
+            <p className="lead">
+              En cuanto termines la encuesta podremos armar módulos, simulaciones y actividades con
+              `scenarioId` para ti.
+            </p>
+          </section>
+        </>
       )}
     </section>
   );

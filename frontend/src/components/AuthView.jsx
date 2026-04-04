@@ -14,10 +14,10 @@ export default function AuthView({
   return (
     <section id="authView" className="auth-shell">
       <div className="auth-hero">
-        <p className="eyebrow">Mexico | Prevencion de estafas digitales</p>
+        <p className="eyebrow">México | Prevención de estafas digitales</p>
         <h1>Escudo Digital</h1>
         <p className="lead">
-          Inicia sesion para guardar tu avance, retomar tus modulos y seguir fortaleciendo tu
+          Inicia sesión para guardar tu avance, retomar tus módulos y seguir fortaleciendo tu
           seguridad digital.
         </p>
       </div>
@@ -29,7 +29,7 @@ export default function AuthView({
             type="button"
             onClick={() => onModeChange('login')}
           >
-            Iniciar sesion
+            Iniciar sesión
           </button>
           <button
             className={`btn ghost ${!isLogin ? 'active' : ''}`}
@@ -46,12 +46,12 @@ export default function AuthView({
           <p className="hint">
             {isLogin
               ? 'Entra con tu correo para continuar exactamente donde te quedaste.'
-              : 'Solo te pediremos correo y contrasena para guardar tu progreso.'}
+              : 'Solo te pediremos correo y contraseña para guardar tu progreso.'}
           </p>
         </div>
 
         <form className="auth-form" onSubmit={onSubmit}>
-          <label htmlFor="authEmail">Correo electronico</label>
+          <label htmlFor="authEmail">Correo electrónico</label>
           <input
             id="authEmail"
             type="email"
@@ -62,12 +62,12 @@ export default function AuthView({
             required
           />
 
-          <label htmlFor="authPassword">Contrasena</label>
+          <label htmlFor="authPassword">Contraseña</label>
           <input
             id="authPassword"
             type="password"
             autoComplete={isLogin ? 'current-password' : 'new-password'}
-            placeholder="Minimo 6 caracteres"
+            placeholder="Mínimo 6 caracteres"
             value={password}
             onChange={(event) => onPasswordChange(event.target.value)}
             required

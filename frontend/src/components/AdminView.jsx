@@ -13,7 +13,7 @@ function AnalyticsBars({ title, items, valueKey = 'value', labelKey = 'label', s
 
   return (
     <article className="panel admin-card">
-      <p className="eyebrow">Analitica</p>
+      <p className="eyebrow">Analítica</p>
       <h3>{title}</h3>
       <div className="analytics-bar-list">
         {items.length ? (
@@ -35,7 +35,7 @@ function AnalyticsBars({ title, items, valueKey = 'value', labelKey = 'label', s
             </div>
           ))
         ) : (
-          <p className="hint">Todavia no hay suficientes datos.</p>
+          <p className="hint">Todavía no hay suficientes datos.</p>
         )}
       </div>
     </article>
@@ -45,7 +45,7 @@ function AnalyticsBars({ title, items, valueKey = 'value', labelKey = 'label', s
 function AnalyticsTable({ title, rows, columns }) {
   return (
     <article className="panel admin-card">
-      <p className="eyebrow">Analitica</p>
+      <p className="eyebrow">Analítica</p>
       <h3>{title}</h3>
       <div className="admin-table-wrap">
         <table className="admin-table">
@@ -69,7 +69,7 @@ function AnalyticsTable({ title, rows, columns }) {
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length}>Todavia no hay datos suficientes.</td>
+                <td colSpan={columns.length}>Todavía no hay datos suficientes.</td>
               </tr>
             )}
           </tbody>
@@ -93,7 +93,7 @@ export default function AdminView({
     <section id="adminView" className="page">
       <header className="hero">
         <p className="eyebrow">Panel interno</p>
-        <h1>Analitica del proyecto</h1>
+        <h1>Analítica del proyecto</h1>
         <p className="lead">
           Este panel usa la base real de PostgreSQL para resumir impacto, aprendizaje y
           vulnerabilidades.
@@ -103,9 +103,9 @@ export default function AdminView({
       <section className="panel session-bar">
         <div>
           <p className="eyebrow">Vista administrativa</p>
-          <h2>Metrica y seguimiento</h2>
+          <h2>Métrica y seguimiento</h2>
           <p className="hint">
-            Puedes refrescar la informacion o exportar el snapshot actual para analisis externo.
+            Puedes refrescar la información o exportar el snapshot actual para análisis externo.
           </p>
         </div>
         <div className="row inline nav-responsive">
@@ -131,7 +131,7 @@ export default function AdminView({
         <MetricCard
           label="Usuarios totales"
           value={overview.totalUsers ?? 0}
-          note={`${overview.activeUsers7d ?? 0} activos en los ultimos 7 dias`}
+          note={`${overview.activeUsers7d ?? 0} activos en los últimos 7 días`}
         />
         <MetricCard
           label="Blindaje promedio"
@@ -139,12 +139,12 @@ export default function AdminView({
           note={`Mejora media: ${overview.averageImprovement ?? 0} puntos`}
         />
         <MetricCard
-          label="Finalizacion de modulos"
+          label="Finalización de módulos"
           value={`${overview.moduleCompletionRate ?? 0}%`}
           note={`Actividades completadas: ${overview.activityCompletionRate ?? 0}%`}
         />
         <MetricCard
-          label="Dias para mejorar"
+          label="Días para mejorar"
           value={
             overview.avgDaysToImprove === null || overview.avgDaysToImprove === undefined
               ? '—'
@@ -162,7 +162,7 @@ export default function AdminView({
           valueKey="vulnerableCount"
         />
         <AnalyticsBars
-          title="Desempeno por tema"
+          title="Desempeño por tema"
           items={analytics?.topicPerformance || []}
           valueKey="avgScore"
           suffix="%"
@@ -179,7 +179,7 @@ export default function AdminView({
       <section className="analytics-grid">
         <AnalyticsBars title="Mix de decisiones" items={analytics?.decisionMix || []} />
         <AnalyticsBars
-          title="Tiempo por modulo"
+          title="Tiempo por módulo"
           items={(analytics?.timeByModule || []).slice(0, 8)}
           valueKey="avgTimeMin"
           labelKey="title"
@@ -188,14 +188,14 @@ export default function AdminView({
       </section>
 
       <AnalyticsTable
-        title="Rendimiento por modulo"
+        title="Rendimiento por módulo"
         rows={Array.isArray(analytics?.modulePerformance) ? analytics.modulePerformance.slice(0, 12) : []}
         columns={[
-          { key: 'title', label: 'Modulo' },
+          { key: 'title', label: 'Módulo' },
           { key: 'category', label: 'Tema' },
           { key: 'level', label: 'Nivel' },
           { key: 'avgScore', label: 'Score', format: (value) => `${value}%` },
-          { key: 'completionRate', label: 'Finalizacion', format: (value) => `${value}%` },
+          { key: 'completionRate', label: 'Finalización', format: (value) => `${value}%` },
           { key: 'avgTimeMin', label: 'Tiempo', format: (value) => `${value} min` },
         ]}
       />
