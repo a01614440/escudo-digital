@@ -54,16 +54,16 @@ export default function SessionBar({ user, currentView, onViewChange, onLogout }
       {detailsOpen ? (
         <div className="session-details">
           <div className="session-detail-card">
-            <span>Último acceso</span>
+            <span>Ultimo acceso</span>
             <strong>{formatDate(user?.lastAccessAt)}</strong>
           </div>
           <div className="session-detail-card">
             <span>Guardado</span>
-            <strong>Tu avance se sincroniza automáticamente</strong>
+            <strong>Tu avance se sincroniza automaticamente</strong>
           </div>
           <div className="session-detail-actions">
             <button className="btn primary" type="button" onClick={onLogout}>
-              Cerrar sesión
+              Cerrar sesion
             </button>
           </div>
         </div>

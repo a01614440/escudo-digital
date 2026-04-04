@@ -663,101 +663,97 @@ canvas {
   gap: 24px;
 }
 
-.course-primary-grid {
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+.course-hero-grid,
+.shield-card-body,
+.shield-summary-strip,
+.spotlight-metrics,
+.dashboard-panel-grid,
+.module-accordion-body-grid,
+.topic-toggle-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.course-hero-grid {
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   align-items: stretch;
 }
 
-.donut-card-enhanced,
-.course-focus-panel,
-.course-modules-panel,
-.level-section,
-.insights-shell,
-.route-settings-bottom,
-.info-mini-panel {
+.dashboard-card,
+.dashboard-panel,
+.settings-panel-clean {
   display: grid;
   gap: 18px;
 }
 
-.blindaje-card-layout,
-.blindaje-support-grid,
-.focus-card-metrics,
-.insights-grid,
-.module-compact-grid,
-.topic-toggle-grid {
+.dashboard-shell-panel {
   display: grid;
-  gap: 14px;
-}
-
-.blindaje-card-layout {
-  grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1fr);
-  align-items: center;
-}
-
-.donut-shell-button {
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  gap: 16px;
-}
-
-.donut-shell-button .hint {
-  max-width: 260px;
-  text-align: center;
-}
-
-.blindaje-support-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.blindaje-support-card {
-  align-content: start;
-  min-height: 128px;
-}
-
-.blindaje-support-card strong {
-  font-size: 1.1rem;
-}
-
-.course-focus-panel {
+  gap: 20px;
   background:
-    linear-gradient(145deg, rgba(47, 107, 255, 0.08), rgba(255, 179, 71, 0.12)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 255, 0.98)),
     var(--panel);
 }
 
-.focus-card-head {
-  display: grid;
+.dashboard-title-row {
+  align-items: start;
+}
+
+.shield-card-clean,
+.spotlight-card-clean {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 255, 0.98)),
+    var(--panel);
+}
+
+.shield-card-body {
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: center;
+}
+
+.shield-card-donut {
   gap: 16px;
 }
 
-.focus-card-copy {
+.shield-summary-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shield-summary-tile,
+.focus-metric,
+.module-fact {
   display: grid;
-  gap: 10px;
-}
-
-.focus-card-copy h2,
-.level-section-head h2,
-.module-card-copy h3,
-.info-mini-panel h3 {
-  margin: 0;
-}
-
-.focus-card-copy p,
-.module-card-copy p,
-.level-section-head p,
-.module-lock-note,
-.info-mini-panel p {
-  margin: 0;
-}
-
-.focus-progress-row {
-  display: grid;
-  gap: 10px;
-}
-
-.focus-progress-row.compact {
   gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.shield-summary-tile span,
+.focus-metric span,
+.module-fact span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.shield-summary-tile strong,
+.focus-metric strong,
+.module-fact strong {
+  font-size: 1rem;
+}
+
+.spotlight-card-clean {
+  align-content: start;
+}
+
+.spotlight-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.spotlight-actions {
+  flex-wrap: wrap;
 }
 
 .progress-track {
@@ -774,73 +770,128 @@ canvas {
   background: linear-gradient(90deg, var(--primary), var(--accent));
 }
 
-.focus-card-metrics,
-.module-compact-grid,
-.insights-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.focus-metric,
-.module-compact-item {
-  display: grid;
-  gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.focus-metric span,
-.module-compact-item span {
-  color: var(--muted);
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.level-section {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.98));
-}
-
-.level-section-head {
-  display: grid;
+.compact-row {
   gap: 10px;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.dashboard-tabs,
+.level-picker {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dashboard-tabs {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.96);
+  overflow-x: auto;
+}
+
+.dashboard-tab,
+.level-pill {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-tab.active,
+.level-pill.active {
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
   align-items: end;
 }
 
-.module-card-top {
+.module-accordion-list {
+  display: grid;
+  gap: 14px;
+}
+
+.module-accordion {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: white;
+  overflow: hidden;
+}
+
+.module-accordion.expanded {
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+}
+
+.module-accordion.locked {
+  background: linear-gradient(180deg, rgba(246, 248, 252, 0.98), rgba(241, 244, 249, 0.98));
+}
+
+.module-accordion-head {
+  width: 100%;
+  border: 0;
+  background: transparent;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  padding: 18px 20px;
+  text-align: left;
+  cursor: pointer;
 }
 
-.module-card-copy {
+.module-accordion-copy {
   display: grid;
-  gap: 8px;
-}
-
-.route-step-meta.compact {
   gap: 10px;
 }
 
-.module-compact-grid {
+.module-accordion-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.module-accordion-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.module-accordion-body {
+  display: grid;
+  gap: 16px;
+  padding: 0 20px 20px;
+}
+
+.module-accordion-body p,
+.shield-summary-tile p,
+.summary-item p,
+.history-item p {
+  margin: 0;
+}
+
+.module-accordion-body-grid,
+.dashboard-panel-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.module-lock-note {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.module-card.locked {
-  opacity: 0.82;
-  background: linear-gradient(180deg, rgba(245, 247, 251, 0.96), rgba(239, 243, 250, 0.96));
-}
-
-.module-card.locked .btn {
-  cursor: not-allowed;
+.dashboard-panel-grid {
+  gap: 18px;
 }
 
 .status-pill.locked {
@@ -849,18 +900,13 @@ canvas {
   color: var(--muted);
 }
 
-.insights-shell {
+.module-lock-note {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.settings-panel-clean {
   background: linear-gradient(180deg, rgba(250, 251, 255, 0.98), rgba(244, 247, 255, 0.98));
-}
-
-.info-mini-panel {
-  border: 1px solid rgba(47, 107, 255, 0.12);
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.summary-list.compact,
-.history-list.compact {
-  gap: 10px;
 }
 
 .topic-toggle-grid {
@@ -874,10 +920,6 @@ canvas {
 .topic-pill.active {
   background: rgba(47, 107, 255, 0.14);
   border-color: rgba(47, 107, 255, 0.2);
-}
-
-.route-settings-bottom {
-  margin-bottom: 8px;
 }
 
 @media (max-width: 1024px) {
@@ -896,20 +938,19 @@ canvas {
 
   .admin-grid,
   .analytics-grid,
-  .blindaje-card-layout,
-  .blindaje-support-grid,
+  .course-hero-grid,
   .dashboard-grid,
   .course-hero-panel,
-  .course-primary-grid,
   .course-focus-grid,
-  .focus-card-metrics,
   .course-route-layout,
   .course-stat-grid,
   .course-layout,
   .course-summary-grid,
-  .insights-grid,
-  .level-section-head,
-  .module-compact-grid {
+  .dashboard-panel-grid,
+  .module-accordion-body-grid,
+  .shield-card-body,
+  .shield-summary-strip,
+  .spotlight-metrics {
     grid-template-columns: 1fr;
   }
 }
@@ -945,7 +986,6 @@ canvas {
   }
 
   .hero-next-grid,
-  .blindaje-support-grid,
   .module-highlights {
     grid-template-columns: 1fr;
   }
@@ -986,16 +1026,26 @@ canvas {
 
   .question-options,
   .option-grid,
-  .focus-card-metrics,
   .competency-list,
   .next-steps-grid,
   .stats-grid,
   .course-stat-grid,
   .hero-chip-row,
-  .module-compact-grid,
+  .section-title-row,
   .route-step,
   .topic-toggle-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-panel-head,
+  .module-accordion-title-row,
+  .section-title-row {
+    align-items: stretch;
+  }
+
+  .dashboard-tabs,
+  .level-picker {
+    flex-wrap: nowrap;
   }
 
   .route-step {
@@ -1022,6 +1072,7 @@ canvas {
   .panel,
   .question-card,
   .module-card,
+  .module-accordion,
   .lesson-card,
   .admin-card,
   .chat-drawer {
@@ -1042,5 +1093,11 @@ canvas {
   .dashboard-shell,
   .lesson-shell {
     gap: 14px;
+  }
+
+  .module-accordion-head,
+  .module-accordion-body {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

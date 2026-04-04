@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDate } from '../lib/format.js';
 import {
   ACTIVITY_LABELS,
@@ -9,23 +9,29 @@ import {
   summarizeProgressInsights,
 } from '../lib/course.js';
 
+const DASHBOARD_TABS = [
+  { id: 'ruta', label: 'Ruta' },
+  { id: 'progreso', label: 'Progreso' },
+  { id: 'ajustes', label: 'Ajustes' },
+];
+
 const LEVEL_ORDER = ['basico', 'refuerzo', 'avanzado'];
 
 const LEVEL_COPY = {
   basico: {
-    eyebrow: 'Nivel 1',
-    title: 'Base esencial',
-    description: 'Empieza por señales claras y decisiones simples antes de pasar a retos más complejos.',
+    eyebrow: 'Base',
+    title: 'Nivel básico',
+    description: 'Empieza con señales claras y decisiones simples para construir criterio.',
   },
   refuerzo: {
-    eyebrow: 'Nivel 2',
-    title: 'Refuerzo guiado',
-    description: 'Aquí practicas casos más retadores cuando ya consolidaste el bloque básico.',
+    eyebrow: 'Refuerzo',
+    title: 'Nivel intermedio',
+    description: 'Practica casos más retadores cuando ya dominaste la base.',
   },
   avanzado: {
-    eyebrow: 'Nivel 3',
+    eyebrow: 'Avanzado',
     title: 'Nivel avanzado',
-    description: 'Se abre al completar lo anterior para que no te adelantes sin contexto.',
+    description: 'Se desbloquea cuando completas los bloques anteriores.',
   },
 };
 
@@ -38,9 +44,9 @@ function formatPercent(value) {
 
 function formatMinutesFromMs(value) {
   const safe = Number(value) || 0;
-  if (!safe) return 'Sin tiempo registrado';
+  if (!safe) return 'Sin tiempo';
   const minutes = safe / 60000;
-  if (minutes < 1) return 'Menos de 1 min';
+  if (minutes < 1) return '<1 min';
   if (minutes < 10) return `${minutes.toFixed(1)} min`;
   return `${Math.round(minutes)} min`;
 }
@@ -81,37 +87,30 @@ function getModuleStats(module, progress) {
   };
 }
 
-function getFirstIncompleteIndex(route, progress) {
-  const index = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
-  return index === -1 ? route.length - 1 : index;
-}
-
 function getRecommendedModuleIndex(route, progress) {
   if (!route.length) return 0;
   const firstIncomplete = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
   return firstIncomplete === -1 ? 0 : firstIncomplete;
 }
 
-function isModuleUnlocked(route, progress, moduleIndex) {
-  if (!route.length) return false;
-  const firstIncomplete = getFirstIncompleteIndex(route, progress);
-  if (firstIncomplete < 0) return true;
-  return moduleIndex <= firstIncomplete;
+function getUnlockedLimit(route, progress) {
+  const firstIncomplete = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
+  return firstIncomplete === -1 ? route.length - 1 : firstIncomplete;
 }
 
 function getPrioritySummary(answers, assessment) {
   const priority = String(answers?.priority || '').toLowerCase();
-  if (priority === 'todo') return 'Ruta amplia para cubrir varios frentes sin perder orden.';
+  if (priority === 'todo') return 'Ruta amplia para cubrir varios frentes con un orden claro.';
   if (priority && CATEGORY_LABELS[priority]) {
-    return `Ruta enfocada en ${CATEGORY_LABELS[priority].toLowerCase()} con avance progresivo.`;
+    return `Tu enfoque actual prioriza ${CATEGORY_LABELS[priority].toLowerCase()}.`;
   }
 
   const level = String(assessment?.nivel || '').trim();
   if (level) {
-    return `Tu ruta se organizó según tu evaluación ${level.toLowerCase()} y tu avance reciente.`;
+    return `La ruta se ajustó a tu evaluación ${level.toLowerCase()} y a tu progreso reciente.`;
   }
 
-  return 'Tu ruta está organizada para avanzar paso a paso y evitar saltos innecesarios.';
+  return 'La ruta prioriza avanzar con criterio antes de abrir módulos más complejos.';
 }
 
 function getStrongestTopic(competencies) {
@@ -124,17 +123,26 @@ function getWeakestTopic(competencies) {
   return entries[0] || null;
 }
 
-function getLevelModules(route, progress, level) {
-  return route
-    .map((module, index) => ({
-      module,
-      index,
-      stats: getModuleStats(module, progress),
-    }))
-    .filter(({ module }) => normalizeModuleLevel(module?.nivel) === level);
+function TabSwitcher({ activeTab, onChange }) {
+  return (
+    <div className="dashboard-tabs" role="tablist" aria-label="Panel de cursos">
+      {DASHBOARD_TABS.map((tab) => (
+        <button
+          key={tab.id}
+          className={`dashboard-tab ${activeTab === tab.id ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === tab.id}
+          onClick={() => onChange(tab.id)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-function DonutCard({
+function ShieldCard({
   scoreTotal,
   completedModules,
   totalModules,
@@ -142,59 +150,54 @@ function DonutCard({
   strongestTopic,
   weakestTopic,
   prioritySummary,
-  insightsOpen,
-  onToggleInsights,
+  onShowProgress,
 }) {
   return (
-    <section className="panel donut-card-enhanced">
-      <div className="section-title-row">
+    <section className="panel dashboard-card shield-card-clean">
+      <div className="section-title-row dashboard-title-row">
         <div>
           <p className="eyebrow">Blindaje actual</p>
-          <h2>Tu avance general</h2>
+          <h2>Vista general</h2>
         </div>
-        <button className="btn ghost" type="button" onClick={onToggleInsights}>
-          {insightsOpen ? 'Ocultar detalles' : 'Ver detalles'}
+        <button className="btn ghost" type="button" onClick={onShowProgress}>
+          Ver progreso
         </button>
       </div>
 
-      <div className="blindaje-card-layout">
-        <button className="donut-shell donut-shell-button" type="button" onClick={onToggleInsights}>
+      <div className="shield-card-body">
+        <div className="donut-shell shield-card-donut">
           <div className="shield-donut" style={{ '--p': scoreTotal }}>
             <div className="shield-inner">
               <strong>{formatPercent(scoreTotal)}</strong>
               <span>Blindaje Digital</span>
             </div>
           </div>
-          <span className="hint">Toca el blindaje para abrir tu información y estadísticas.</span>
-        </button>
+        </div>
 
-        <div className="blindaje-support-grid">
-          <article className="stat-card compact blindaje-support-card">
-            <span className="eyebrow">Módulos completados</span>
-            <strong>{`${completedModules}/${totalModules}`}</strong>
-            <p>{completedModules === totalModules ? 'Ruta terminada' : 'Aún tienes módulos por desbloquear.'}</p>
+        <div className="shield-summary-strip">
+          <article className="shield-summary-tile">
+            <span>Ruta activa</span>
+            <strong>{`${completedModules}/${totalModules} módulos completados`}</strong>
+            <p>Aún no se liberan todos los bloques.</p>
           </article>
-
-          <article className="stat-card compact blindaje-support-card">
-            <span className="eyebrow">Último acceso</span>
-            <strong>{formatDate(lastAccessAt)}</strong>
-            <p>Tu progreso se sincroniza automáticamente.</p>
-          </article>
-
-          <article className="stat-card compact blindaje-support-card">
-            <span className="eyebrow">Fortaleza actual</span>
+          <article className="shield-summary-tile">
+            <span>Fortaleza</span>
             <strong>
               {strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}
             </strong>
-            <p>Lo que hoy estás resolviendo con mayor confianza.</p>
+            <p>Lo que hoy te sale con más confianza.</p>
           </article>
-
-          <article className="stat-card compact blindaje-support-card">
-            <span className="eyebrow">Lo siguiente a reforzar</span>
+          <article className="shield-summary-tile">
+            <span>Siguiente foco</span>
             <strong>
               {weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}
             </strong>
             <p>{prioritySummary}</p>
+          </article>
+          <article className="shield-summary-tile">
+            <span>Último acceso</span>
+            <strong>{formatDate(lastAccessAt)}</strong>
+            <p>Tu avance se guarda automáticamente.</p>
           </article>
         </div>
       </div>
@@ -202,24 +205,23 @@ function DonutCard({
   );
 }
 
-function FocusCard({ module, stats, onOpenModule }) {
+function SpotlightCard({ module, stats, onOpenModule, onShowRoute }) {
   if (!module) {
     return (
-      <section className="panel course-focus-panel empty-state">
-        <p className="eyebrow">Ruta activa</p>
+      <section className="panel dashboard-card spotlight-card-clean empty-state">
+        <p className="eyebrow">Empieza por aquí</p>
         <h2>Tu ruta está lista</h2>
-        <p className="lead">Cuando generes un curso nuevo, aquí verás tu siguiente módulo recomendado.</p>
+        <p className="lead">Cuando generes un curso, aquí verás el módulo que conviene abrir primero.</p>
       </section>
     );
   }
 
   return (
-    <section className="panel course-focus-panel">
-      <p className="eyebrow">Empieza por aquí</p>
-      <div className="focus-card-head">
-        <div className="focus-card-copy">
+    <section className="panel dashboard-card spotlight-card-clean">
+      <div className="section-title-row dashboard-title-row">
+        <div>
+          <p className="eyebrow">Empieza por aquí</p>
           <h2>{module.titulo}</h2>
-          <p>{module.descripcion || 'Este bloque te ayudará a tomar decisiones más seguras sin avanzar demasiado rápido.'}</p>
         </div>
         <div className="hero-chip-row compact">
           <span className={`status-pill ${stats.status}`}>{stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}</span>
@@ -228,6 +230,8 @@ function FocusCard({ module, stats, onOpenModule }) {
         </div>
       </div>
 
+      <p className="lead">{module.descripcion || 'Práctica guiada para mejorar criterio sin saturar la experiencia.'}</p>
+
       <div className="focus-progress-row">
         <div className="progress-track">
           <span className="progress-fill" style={{ width: `${stats.pct}%` }} />
@@ -235,27 +239,27 @@ function FocusCard({ module, stats, onOpenModule }) {
         <strong>{`${stats.completedCount} de ${stats.total} actividades · ${formatPercent(stats.pct)}`}</strong>
       </div>
 
-      <div className="focus-card-metrics">
+      <div className="spotlight-metrics">
         <div className="focus-metric">
           <span>Sigue con</span>
-          <strong>{stats.nextActivity?.titulo || 'Módulo listo para revisar'}</strong>
+          <strong>{stats.nextActivity?.titulo || 'Lista para repaso'}</strong>
         </div>
         <div className="focus-metric">
           <span>Score promedio</span>
-          <strong>{stats.avgScore ? formatPercent(stats.avgScore) : 'Aún sin score'}</strong>
+          <strong>{stats.avgScore ? formatPercent(stats.avgScore) : 'Sin score'}</strong>
         </div>
         <div className="focus-metric">
-          <span>Visitas registradas</span>
+          <span>Visitas</span>
           <strong>{stats.visits || 0}</strong>
         </div>
         <div className="focus-metric">
-          <span>Tiempo de práctica</span>
+          <span>Tiempo</span>
           <strong>{stats.durationLabel}</strong>
         </div>
       </div>
 
-      <div className="activity-pill-row">
-        {(Array.isArray(module.actividades) ? module.actividades : []).slice(0, 5).map((activity) => (
+      <div className="activity-pill-row compact-row">
+        {(Array.isArray(module.actividades) ? module.actividades : []).slice(0, 4).map((activity) => (
           <span key={activity.id} className="activity-pill">
             {ACTIVITY_LABELS[activity.tipo] || activity.titulo}
           </span>
@@ -263,116 +267,154 @@ function FocusCard({ module, stats, onOpenModule }) {
         {stats.seenCount ? <span className="activity-pill soft">{`${stats.seenCount} escenarios vistos`}</span> : null}
       </div>
 
-      <div className="row inline">
+      <div className="row inline spotlight-actions">
         <button className="btn primary" type="button" onClick={() => onOpenModule(module.__moduleIndex)}>
           {stats.completedCount ? 'Continuar módulo' : 'Empezar módulo'}
+        </button>
+        <button className="btn ghost" type="button" onClick={onShowRoute}>
+          Ver ruta
         </button>
       </div>
     </section>
   );
 }
 
-function ModuleCard({ module, moduleIndex, stats, isRecommended, isLocked, unlockMessage, onOpenModule }) {
-  const statusLabel =
-    stats.status === 'completed' ? 'Completado' : stats.status === 'active' ? 'En curso' : isLocked ? 'Bloqueado' : 'Pendiente';
+function LevelPicker({ levels, activeLevel, onChange }) {
+  return (
+    <div className="level-picker" role="tablist" aria-label="Niveles de la ruta">
+      {levels.map((level) => (
+        <button
+          key={level}
+          className={`level-pill ${activeLevel === level ? 'active' : ''}`}
+          type="button"
+          onClick={() => onChange(level)}
+        >
+          {LEVEL_LABELS[level]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ModuleAccordionItem({
+  entry,
+  isExpanded,
+  isLocked,
+  isRecommended,
+  unlockMessage,
+  onToggle,
+  onOpenModule,
+}) {
+  const { module, index, stats } = entry;
 
   return (
-    <article
-      className={[
-        'panel',
-        'module-card',
-        'enhanced',
-        stats.status,
-        isRecommended ? 'recommended' : '',
-        isLocked ? 'locked' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <div className="module-card-top">
-        <span className="module-step">{String(moduleIndex + 1).padStart(2, '0')}</span>
-        <div className="module-card-copy">
-          <div className="route-step-top">
-            <h3>{module.titulo}</h3>
+    <article className={`module-accordion ${isExpanded ? 'expanded' : ''} ${isLocked ? 'locked' : ''}`}>
+      <button className="module-accordion-head" type="button" onClick={onToggle}>
+        <span className="module-step">{String(index + 1).padStart(2, '0')}</span>
+        <div className="module-accordion-copy">
+          <div className="module-accordion-title-row">
+            <strong>{module.titulo}</strong>
             <div className="hero-chip-row compact">
-              {isRecommended ? <span className="activity-pill soft">Recomendado ahora</span> : null}
-              <span className={`status-pill ${isLocked ? 'locked' : stats.status}`}>{statusLabel}</span>
+              {isRecommended ? <span className="activity-pill soft">Recomendado</span> : null}
+              <span className={`status-pill ${isLocked ? 'locked' : stats.status}`}>
+                {isLocked ? 'Bloqueado' : stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}
+              </span>
             </div>
           </div>
-          <p>{module.descripcion || 'Bloque práctico para reforzar decisiones cotidianas sin repetir escenarios.'}</p>
+          <div className="module-accordion-meta">
+            <span>{CATEGORY_LABELS[module.categoria] || 'Curso'}</span>
+            <span>{`${stats.completedCount}/${stats.total} actividades`}</span>
+            <span>{formatPercent(stats.pct)}</span>
+          </div>
         </div>
-      </div>
+      </button>
 
-      <div className="route-step-meta compact">
-        <span>{CATEGORY_LABELS[module.categoria] || 'Curso'}</span>
-        <span>{LEVEL_LABELS[normalizeModuleLevel(module.nivel)] || 'Módulo'}</span>
-        <span>{`${stats.total} actividades`}</span>
-      </div>
+      {isExpanded ? (
+        <div className="module-accordion-body">
+          <p>{module.descripcion || 'Bloque práctico para reforzar criterio y hábitos digitales.'}</p>
 
-      <div className="focus-progress-row compact">
-        <div className="progress-track">
-          <span className="progress-fill" style={{ width: `${stats.pct}%` }} />
+          <div className="module-accordion-body-grid">
+            <div className="module-fact">
+              <span>Siguiente actividad</span>
+              <strong>{isLocked ? 'Completa el bloque anterior' : stats.nextActivity?.titulo || 'Módulo listo para repaso'}</strong>
+            </div>
+            <div className="module-fact">
+              <span>Score promedio</span>
+              <strong>{stats.avgScore ? formatPercent(stats.avgScore) : 'Sin score'}</strong>
+            </div>
+            <div className="module-fact">
+              <span>Visitas</span>
+              <strong>{stats.visits || 0}</strong>
+            </div>
+            <div className="module-fact">
+              <span>Tiempo</span>
+              <strong>{stats.durationLabel}</strong>
+            </div>
+          </div>
+
+          <div className="activity-pill-row compact-row">
+            {(Array.isArray(module.actividades) ? module.actividades : []).slice(0, 5).map((activity) => (
+              <span key={activity.id} className="activity-pill">
+                {ACTIVITY_LABELS[activity.tipo] || activity.titulo}
+              </span>
+            ))}
+          </div>
+
+          {isLocked ? <p className="module-lock-note">{unlockMessage}</p> : null}
+
+          <div className="row inline">
+            <button className="btn primary" type="button" disabled={isLocked} onClick={() => onOpenModule(index)}>
+              {isLocked ? 'Bloqueado' : stats.completedCount ? 'Continuar' : 'Abrir módulo'}
+            </button>
+          </div>
         </div>
-        <strong>{`${stats.completedCount}/${stats.total} · ${formatPercent(stats.pct)}`}</strong>
-      </div>
-
-      <div className="module-compact-grid">
-        <div className="module-compact-item">
-          <span>Siguiente paso</span>
-          <strong>{isLocked ? 'Desbloquea este módulo primero' : stats.nextActivity?.titulo || 'Módulo listo para repaso'}</strong>
-        </div>
-        <div className="module-compact-item">
-          <span>Progreso</span>
-          <strong>
-            {stats.avgScore ? `Score ${formatPercent(stats.avgScore)}` : stats.completedAt ? 'Ruta completada' : 'Aún sin score'}
-          </strong>
-        </div>
-      </div>
-
-      {isLocked ? <p className="module-lock-note">{unlockMessage}</p> : null}
-
-      <div className="row inline module-actions">
-        <button className="btn primary" type="button" disabled={isLocked} onClick={() => onOpenModule(moduleIndex)}>
-          {isLocked ? 'Bloqueado' : stats.completedCount ? 'Continuar' : 'Empezar'}
-        </button>
-      </div>
+      ) : null}
     </article>
   );
 }
 
-function LevelSection({ level, items, route, progress, recommendedIndex, onOpenModule }) {
-  if (!items.length) return null;
-  const copy = LEVEL_COPY[level];
+function RouteTab({
+  routeEntries,
+  availableLevels,
+  activeLevel,
+  onChangeLevel,
+  expandedModuleId,
+  onToggleModule,
+  recommendedIndex,
+  unlockedLimit,
+  onOpenModule,
+}) {
+  const levelEntries = routeEntries.filter((entry) => normalizeModuleLevel(entry.module.nivel) === activeLevel);
+  const copy = LEVEL_COPY[activeLevel] || LEVEL_COPY.basico;
 
   return (
-    <section className="panel level-section">
-      <div className="level-section-head">
+    <section className="panel dashboard-panel">
+      <div className="dashboard-panel-head">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
           <h2>{copy.title}</h2>
+          <p className="lead">{copy.description}</p>
         </div>
-        <p className="lead">{copy.description}</p>
+        <LevelPicker levels={availableLevels} activeLevel={activeLevel} onChange={onChangeLevel} />
       </div>
 
-      <div className="modules-list enhanced">
-        {items.map(({ module, index, stats }) => {
-          const locked = !isModuleUnlocked(route, progress, index);
-          const firstIncomplete = getFirstIncompleteIndex(route, progress);
-          const blocker = route[firstIncomplete];
+      <div className="module-accordion-list">
+        {levelEntries.map((entry) => {
+          const isLocked = entry.index > unlockedLimit;
           const unlockMessage =
-            locked && blocker
-              ? `Completa "${blocker.titulo}" para desbloquear este módulo.`
+            routeEntries[unlockedLimit]?.module?.titulo
+              ? `Completa "${routeEntries[unlockedLimit].module.titulo}" para desbloquear este bloque.`
               : 'Completa el bloque anterior para avanzar.';
 
           return (
-            <ModuleCard
-              key={module.id}
-              module={module}
-              moduleIndex={index}
-              stats={stats}
-              isRecommended={index === recommendedIndex}
-              isLocked={locked}
+            <ModuleAccordionItem
+              key={entry.module.id}
+              entry={entry}
+              isExpanded={expandedModuleId === entry.module.id}
+              isLocked={isLocked}
+              isRecommended={entry.index === recommendedIndex}
               unlockMessage={unlockMessage}
+              onToggle={() => onToggleModule(entry.module.id)}
               onOpenModule={onOpenModule}
             />
           );
@@ -382,121 +424,101 @@ function LevelSection({ level, items, route, progress, recommendedIndex, onOpenM
   );
 }
 
-function InsightsSection({
-  open,
-  onToggle,
-  computed,
-  progress,
-  coursePlan,
-  coursePrefs,
-  answers,
-  assessment,
-}) {
+function ProgressTab({ computed, progress, coursePlan, coursePrefs, answers, assessment }) {
   const insights = summarizeProgressInsights(coursePlan, progress);
   const strongestTopic = getStrongestTopic(computed.competencias);
   const weakestTopic = getWeakestTopic(computed.competencias);
-  const history = Array.isArray(progress?.snapshots) ? [...progress.snapshots].slice(-4).reverse() : [];
+  const history = Array.isArray(progress?.snapshots) ? [...progress.snapshots].slice(-3).reverse() : [];
 
   return (
-    <section className="panel insights-shell">
-      <div className="section-title-row">
-        <div>
-          <p className="eyebrow">Información adicional</p>
-          <h2>Tu progreso y contexto de la ruta</h2>
+    <section className="dashboard-panel-grid">
+      <article className="panel dashboard-panel">
+        <p className="eyebrow">Fortalezas y foco</p>
+        <h2>Qué estamos viendo</h2>
+        <div className="summary-list compact">
+          <div className="summary-item">
+            <strong>Fortaleza principal</strong>
+            <p>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos suficientes.'}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Zona a reforzar</strong>
+            <p>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos suficientes.'}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Prioridad declarada</strong>
+            <p>{getPrioritySummary(answers, assessment)}</p>
+          </div>
         </div>
-        <button className="btn ghost" type="button" onClick={onToggle}>
-          {open ? 'Ocultar información' : 'Ver información'}
-        </button>
-      </div>
+      </article>
 
-      {!open ? (
-        <p className="lead">
-          Aquí guardamos estadísticas, fortalezas, evolución y detalles del plan para no cargar demasiado la pantalla principal.
-        </p>
-      ) : (
-        <div className="insights-grid">
-          <article className="panel info-mini-panel">
-            <p className="eyebrow">Ruta activa</p>
-            <h3>Resumen rápido</h3>
-            <div className="summary-list compact">
-              <div className="summary-item">
-                <strong>Versión del plan</strong>
-                <p>{`Versión ${coursePlan?.planVersion || 0} con ${Array.isArray(coursePlan?.ruta) ? coursePlan.ruta.length : 0} módulos activos.`}</p>
+      <article className="panel dashboard-panel">
+        <p className="eyebrow">Competencias</p>
+        <h2>Por canal</h2>
+        <div className="analytics-bar-list">
+          {TOPIC_ORDER.map((topic) => (
+            <div key={topic} className="analytics-bar-row">
+              <div className="analytics-bar-top">
+                <span>{CATEGORY_LABELS[topic]}</span>
+                <strong>{formatPercent(computed.competencias?.[topic] || 0)}</strong>
               </div>
-              <div className="summary-item">
-                <strong>Preferencias aplicadas</strong>
-                <p>{`Estilo ${coursePrefs?.estilo || 'mix'} · dificultad ${coursePrefs?.dificultad || 'auto'} · sesiones ${coursePrefs?.duracion || '5-10'} min.`}</p>
-              </div>
-              <div className="summary-item">
-                <strong>Prioridad declarada</strong>
-                <p>{getPrioritySummary(answers, assessment)}</p>
+              <div className="analytics-bar-track">
+                <div className="analytics-bar-fill" style={{ width: `${computed.competencias?.[topic] || 0}%` }} />
               </div>
             </div>
-          </article>
-
-          <article className="panel info-mini-panel">
-            <p className="eyebrow">Qué conviene reforzar</p>
-            <h3>Señales clave</h3>
-            <div className="summary-list compact">
-              <div className="summary-item">
-                <strong>Fortaleza principal</strong>
-                <p>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} (${formatPercent(strongestTopic[1])})` : 'Aún sin suficientes datos.'}</p>
-              </div>
-              <div className="summary-item">
-                <strong>Zona a reforzar</strong>
-                <p>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} (${formatPercent(weakestTopic[1])})` : 'Aún sin suficientes datos.'}</p>
-              </div>
-              <div className="summary-item">
-                <strong>Temas visibles</strong>
-                <p>{insights.focus.length ? insights.focus.join(' | ') : 'Todavía no hay temas críticos repetidos.'}</p>
-              </div>
-            </div>
-          </article>
-
-          <article className="panel info-mini-panel">
-            <p className="eyebrow">Competencias</p>
-            <h3>Cómo va cada canal</h3>
-            <div className="analytics-bar-list">
-              {TOPIC_ORDER.map((topic) => (
-                <div key={topic} className="analytics-bar-row">
-                  <div className="analytics-bar-top">
-                    <span>{CATEGORY_LABELS[topic]}</span>
-                    <strong>{formatPercent(computed.competencias?.[topic] || 0)}</strong>
-                  </div>
-                  <div className="analytics-bar-track">
-                    <div className="analytics-bar-fill" style={{ width: `${computed.competencias?.[topic] || 0}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="panel info-mini-panel">
-            <p className="eyebrow">Historial reciente</p>
-            <h3>Últimos hitos</h3>
-            <div className="history-list compact">
-              {history.length ? (
-                history.map((snapshot) => (
-                  <div key={snapshot.at} className="history-item">
-                    <strong>{`${formatPercent(snapshot.scoreTotal)} de blindaje`}</strong>
-                    <p>{`${formatDate(snapshot.at)} · ${snapshot.completedCount} actividades completadas`}</p>
-                  </div>
-                ))
-              ) : (
-                <div className="history-item">
-                  <strong>Sin hitos suficientes</strong>
-                  <p>Cuando completes más actividades verás aquí tu evolución reciente.</p>
-                </div>
-              )}
-            </div>
-          </article>
+          ))}
         </div>
-      )}
+      </article>
+
+      <article className="panel dashboard-panel">
+        <p className="eyebrow">Evolución</p>
+        <h2>Señales recientes</h2>
+        <div className="summary-list compact">
+          <div className="summary-item">
+            <strong>Último acceso</strong>
+            <p>{formatDate(progress?.lastAccessAt)}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Fortalezas visibles</strong>
+            <p>{insights.strengths.length ? insights.strengths.join(' | ') : 'Todavía no hay suficiente historial.'}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Lo que conviene reforzar</strong>
+            <p>{insights.focus.length ? insights.focus.join(' | ') : 'Sin señales repetidas por ahora.'}</p>
+          </div>
+        </div>
+      </article>
+
+      <article className="panel dashboard-panel">
+        <p className="eyebrow">Ruta activa</p>
+        <h2>Resumen del plan</h2>
+        <div className="summary-list compact">
+          <div className="summary-item">
+            <strong>Versión del plan</strong>
+            <p>{`Versión ${coursePlan?.planVersion || 0} con ${Array.isArray(coursePlan?.ruta) ? coursePlan.ruta.length : 0} módulos activos.`}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Preferencias aplicadas</strong>
+            <p>{`Estilo ${coursePrefs?.estilo || 'mix'} · dificultad ${coursePrefs?.dificultad || 'auto'} · sesiones ${coursePrefs?.duracion || '5-10'} min.`}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Últimos hitos</strong>
+            <p>
+              {history.length
+                ? history.map((item) => `${formatPercent(item.scoreTotal)} (${item.completedCount})`).join(' · ')
+                : 'Completa más actividades para ver evolución.'}
+            </p>
+          </div>
+        </div>
+      </article>
     </section>
   );
 }
 
-function RouteSettings({ open, onToggle, coursePrefs, onCoursePrefsChange, onGenerateCourse, generating }) {
+function SettingsTab({ coursePrefs, onCoursePrefsChange, onGenerateCourse, generating }) {
+  const setField = (field, value) => {
+    onCoursePrefsChange((current) => ({ ...current, [field]: value }));
+  };
+
   const toggleTopic = (topic) => {
     onCoursePrefsChange((current) => {
       const currentTopics = Array.isArray(current?.temas) ? current.temas : [];
@@ -511,93 +533,65 @@ function RouteSettings({ open, onToggle, coursePrefs, onCoursePrefsChange, onGen
     });
   };
 
-  const setField = (field, value) => {
-    onCoursePrefsChange((current) => ({ ...current, [field]: value }));
-  };
-
   return (
-    <section className="panel course-preferences-panel route-settings-bottom">
-      <div className="section-title-row">
-        <div>
-          <p className="eyebrow">Configuración secundaria</p>
-          <h2>Ajustes de la ruta</h2>
-        </div>
-        <button className="btn ghost" type="button" onClick={onToggle}>
-          {open ? 'Ocultar ajustes' : 'Ver ajustes de la ruta'}
-        </button>
+    <section className="panel dashboard-panel settings-panel-clean">
+      <div>
+        <p className="eyebrow">Ajustes de la ruta</p>
+        <h2>Personaliza sin salir del panel</h2>
+        <p className="lead">Mantén todo aquí para que la pantalla principal siga limpia y fácil de usar.</p>
       </div>
 
-      <p className="lead">
-        Déjalos abajo para no distraer del aprendizaje. Ábrelos solo si quieres cambiar enfoque, dificultad o duración.
-      </p>
+      <div className="prefs-grid">
+        <label>
+          <span>Estilo</span>
+          <select value={coursePrefs?.estilo || 'mix'} onChange={(event) => setField('estilo', event.target.value)}>
+            <option value="mix">Mix</option>
+            <option value="guiado">Guiado</option>
+            <option value="practico">Práctico</option>
+          </select>
+        </label>
 
-      {!open ? (
-        <div className="hero-chip-row compact">
-          <span className="activity-pill">{`Estilo: ${coursePrefs?.estilo || 'mix'}`}</span>
-          <span className="activity-pill">{`Dificultad: ${coursePrefs?.dificultad || 'auto'}`}</span>
-          <span className="activity-pill">{`Sesiones: ${coursePrefs?.duracion || '5-10'} min`}</span>
-        </div>
-      ) : (
-        <>
-          <div className="prefs-grid">
-            <label>
-              <span>Estilo</span>
-              <select value={coursePrefs?.estilo || 'mix'} onChange={(event) => setField('estilo', event.target.value)}>
-                <option value="mix">Mix</option>
-                <option value="guiado">Guiado</option>
-                <option value="practico">Práctico</option>
-              </select>
-            </label>
+        <label>
+          <span>Dificultad</span>
+          <select value={coursePrefs?.dificultad || 'auto'} onChange={(event) => setField('dificultad', event.target.value)}>
+            <option value="auto">Auto</option>
+            <option value="facil">Fácil</option>
+            <option value="normal">Normal</option>
+            <option value="avanzada">Avanzada</option>
+          </select>
+        </label>
 
-            <label>
-              <span>Dificultad</span>
-              <select
-                value={coursePrefs?.dificultad || 'auto'}
-                onChange={(event) => setField('dificultad', event.target.value)}
-              >
-                <option value="auto">Auto</option>
-                <option value="facil">Fácil</option>
-                <option value="normal">Normal</option>
-                <option value="avanzada">Avanzada</option>
-              </select>
-            </label>
+        <label>
+          <span>Duración</span>
+          <select value={coursePrefs?.duracion || '5-10'} onChange={(event) => setField('duracion', event.target.value)}>
+            <option value="5-10">5-10 min</option>
+            <option value="10-15">10-15 min</option>
+            <option value="15-20">15-20 min</option>
+          </select>
+        </label>
+      </div>
 
-            <label>
-              <span>Duración</span>
-              <select
-                value={coursePrefs?.duracion || '5-10'}
-                onChange={(event) => setField('duracion', event.target.value)}
-              >
-                <option value="5-10">5-10 min</option>
-                <option value="10-15">10-15 min</option>
-                <option value="15-20">15-20 min</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="topic-toggle-grid">
-            {TOPIC_ORDER.map((topic) => {
-              const active = Array.isArray(coursePrefs?.temas) ? coursePrefs.temas.includes(topic) : false;
-              return (
-                <button
-                  key={topic}
-                  className={`activity-pill topic-pill ${active ? 'active' : ''}`}
-                  type="button"
-                  onClick={() => toggleTopic(topic)}
-                >
-                  {CATEGORY_LABELS[topic]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="row inline">
-            <button className="btn primary" type="button" onClick={onGenerateCourse} disabled={generating}>
-              {generating ? 'Actualizando ruta...' : 'Actualizar ruta'}
+      <div className="topic-toggle-grid">
+        {TOPIC_ORDER.map((topic) => {
+          const active = Array.isArray(coursePrefs?.temas) ? coursePrefs.temas.includes(topic) : false;
+          return (
+            <button
+              key={topic}
+              className={`activity-pill topic-pill ${active ? 'active' : ''}`}
+              type="button"
+              onClick={() => toggleTopic(topic)}
+            >
+              {CATEGORY_LABELS[topic]}
             </button>
-          </div>
-        </>
-      )}
+          );
+        })}
+      </div>
+
+      <div className="row inline">
+        <button className="btn primary" type="button" onClick={onGenerateCourse} disabled={generating}>
+          {generating ? 'Actualizando ruta...' : 'Actualizar ruta'}
+        </button>
+      </div>
     </section>
   );
 }
@@ -613,15 +607,49 @@ export default function CoursesView({
   onGenerateCourse,
   onOpenModule,
 }) {
-  const [insightsOpen, setInsightsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('ruta');
+  const route = Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : [];
+  const routeEntries = route.map((module, index) => ({
+    module,
+    index,
+    stats: getModuleStats(module, courseProgress),
+  }));
+  const recommendedIndex = getRecommendedModuleIndex(route, courseProgress);
+  const recommendedEntry = routeEntries[recommendedIndex] || null;
+  const recommendedModule = recommendedEntry
+    ? { ...recommendedEntry.module, __moduleIndex: recommendedEntry.index }
+    : null;
+  const computed = computeCompetenciesFromProgress(coursePlan, courseProgress);
+  const strongestTopic = getStrongestTopic(computed.competencias);
+  const weakestTopic = getWeakestTopic(computed.competencias);
+  const completedModules = routeEntries.filter((entry) => entry.stats.pct >= 100).length;
+  const prioritySummary = getPrioritySummary(answers, assessment);
+  const unlockedLimit = getUnlockedLimit(route, courseProgress);
+  const availableLevels = LEVEL_ORDER.filter((level) =>
+    routeEntries.some((entry) => normalizeModuleLevel(entry.module.nivel) === level)
+  );
+  const defaultLevel = recommendedModule ? normalizeModuleLevel(recommendedModule.nivel) : availableLevels[0] || 'basico';
+  const [activeLevel, setActiveLevel] = useState(defaultLevel);
+  const [expandedModuleId, setExpandedModuleId] = useState(recommendedModule?.id || routeEntries[0]?.module?.id || null);
+
+  useEffect(() => {
+    if (!availableLevels.includes(activeLevel)) {
+      setActiveLevel(defaultLevel);
+    }
+  }, [activeLevel, availableLevels, defaultLevel]);
+
+  useEffect(() => {
+    if (!routeEntries.some((entry) => entry.module.id === expandedModuleId)) {
+      setExpandedModuleId(recommendedModule?.id || routeEntries[0]?.module?.id || null);
+    }
+  }, [expandedModuleId, recommendedModule?.id, routeEntries]);
 
   if (!assessment) {
     return (
       <section className="panel empty-state">
         <p className="eyebrow">Ruta personalizada</p>
         <h1>Primero completa tu evaluación</h1>
-        <p className="lead">Necesitamos tu encuesta para armar una ruta de cursos con prioridad y dificultad adecuadas.</p>
+        <p className="lead">Necesitamos tu encuesta para organizar una ruta profesional y priorizada.</p>
       </section>
     );
   }
@@ -631,38 +659,19 @@ export default function CoursesView({
       <section className="panel empty-state">
         <p className="eyebrow">Ruta personalizada</p>
         <h1>Tu ruta todavía no está lista</h1>
-        <p className="lead">Genera tu plan personalizado y aquí verás el blindaje, los módulos y el avance paso a paso.</p>
+        <p className="lead">Genera tu plan y aquí verás una vista compacta de blindaje, módulos y progreso.</p>
         <button className="btn primary" type="button" onClick={onGenerateCourse} disabled={generating}>
           {generating ? 'Generando ruta...' : 'Generar mi ruta'}
         </button>
       </section>
     );
   }
-
-  const route = Array.isArray(coursePlan.ruta) ? coursePlan.ruta : [];
-  const recommendedIndex = getRecommendedModuleIndex(route, courseProgress);
-  const recommendedModule = route[recommendedIndex]
-    ? { ...route[recommendedIndex], __moduleIndex: recommendedIndex }
-    : null;
-  const recommendedStats = recommendedModule ? getModuleStats(recommendedModule, courseProgress) : null;
-  const computed = computeCompetenciesFromProgress(coursePlan, courseProgress);
-  const strongestTopic = getStrongestTopic(computed.competencias);
-  const weakestTopic = getWeakestTopic(computed.competencias);
-  const completedModules = route.filter((module) => getModuleStats(module, courseProgress).pct >= 100).length;
-  const prioritySummary = getPrioritySummary(answers, assessment);
-  const levelGroups = useMemo(
-    () =>
-      LEVEL_ORDER.map((level) => ({
-        level,
-        items: getLevelModules(route, courseProgress, level),
-      })).filter((group) => group.items.length),
-    [courseProgress, route]
-  );
+  const recommendedStats = recommendedEntry?.stats || null;
 
   return (
     <div className="dashboard-shell course-dashboard">
-      <div className="dashboard-grid course-primary-grid">
-        <DonutCard
+      <div className="dashboard-grid course-hero-grid">
+        <ShieldCard
           scoreTotal={computed.score_total}
           completedModules={completedModules}
           totalModules={route.length}
@@ -670,58 +679,64 @@ export default function CoursesView({
           strongestTopic={strongestTopic}
           weakestTopic={weakestTopic}
           prioritySummary={prioritySummary}
-          insightsOpen={insightsOpen}
-          onToggleInsights={() => setInsightsOpen((value) => !value)}
+          onShowProgress={() => setActiveTab('progreso')}
         />
 
-        <FocusCard module={recommendedModule} stats={recommendedStats} onOpenModule={onOpenModule} />
+        <SpotlightCard
+          module={recommendedModule}
+          stats={recommendedStats}
+          onOpenModule={onOpenModule}
+          onShowRoute={() => setActiveTab('ruta')}
+        />
       </div>
 
-      <section className="panel course-modules-panel">
-        <div className="section-title-row">
+      <section className="panel dashboard-shell-panel">
+        <div className="section-title-row dashboard-title-row">
           <div>
-            <p className="eyebrow">Módulos de aprendizaje</p>
-            <h1>Ruta guiada por progreso</h1>
+            <p className="eyebrow">Panel de aprendizaje</p>
+            <h1>Ruta de cursos</h1>
           </div>
-          <span className="activity-pill soft">No puedes adelantar bloques sin completar el anterior</span>
+          <span className="activity-pill soft">Compacto, interactivo y sin scroll innecesario</span>
         </div>
 
-        <p className="lead">
-          La ruta avanza por niveles. Primero completas la base, después se abre el refuerzo y al final el bloque avanzado.
-        </p>
+        <TabSwitcher activeTab={activeTab} onChange={setActiveTab} />
+
+        {activeTab === 'ruta' ? (
+          <RouteTab
+            routeEntries={routeEntries}
+            availableLevels={availableLevels}
+            activeLevel={activeLevel}
+            onChangeLevel={setActiveLevel}
+            expandedModuleId={expandedModuleId}
+            onToggleModule={(moduleId) =>
+              setExpandedModuleId((current) => (current === moduleId ? null : moduleId))
+            }
+            recommendedIndex={recommendedIndex}
+            unlockedLimit={unlockedLimit}
+            onOpenModule={onOpenModule}
+          />
+        ) : null}
+
+        {activeTab === 'progreso' ? (
+          <ProgressTab
+            computed={computed}
+            progress={courseProgress}
+            coursePlan={coursePlan}
+            coursePrefs={coursePrefs}
+            answers={answers}
+            assessment={assessment}
+          />
+        ) : null}
+
+        {activeTab === 'ajustes' ? (
+          <SettingsTab
+            coursePrefs={coursePrefs}
+            onCoursePrefsChange={onCoursePrefsChange}
+            onGenerateCourse={onGenerateCourse}
+            generating={generating}
+          />
+        ) : null}
       </section>
-
-      {levelGroups.map((group) => (
-        <LevelSection
-          key={group.level}
-          level={group.level}
-          items={group.items}
-          route={route}
-          progress={courseProgress}
-          recommendedIndex={recommendedIndex}
-          onOpenModule={onOpenModule}
-        />
-      ))}
-
-      <InsightsSection
-        open={insightsOpen}
-        onToggle={() => setInsightsOpen((value) => !value)}
-        computed={computed}
-        progress={courseProgress}
-        coursePlan={coursePlan}
-        coursePrefs={coursePrefs}
-        answers={answers}
-        assessment={assessment}
-      />
-
-      <RouteSettings
-        open={settingsOpen}
-        onToggle={() => setSettingsOpen((value) => !value)}
-        coursePrefs={coursePrefs}
-        onCoursePrefsChange={onCoursePrefsChange}
-        onGenerateCourse={onGenerateCourse}
-        generating={generating}
-      />
     </div>
   );
 }
