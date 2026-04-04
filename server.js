@@ -1,9 +1,22 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { promises as fs } from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 import { promisify } from 'util';
+import {
+  buildUserState,
+  createSession as createDbSession,
+  createUser as createDbUser,
+  deleteExpiredSessions,
+  deleteSession as deleteDbSession,
+  findUserByEmail,
+  getAdminCount,
+  getSessionWithUser,
+  initDb,
+  listUsers,
+  saveSession,
+  saveUser,
+  syncUserState,
+} from './db.js';
 
 dotenv.config();
 
@@ -17,15 +30,9 @@ const ADMIN_EMAILS = new Set(
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean)
 );
-const DATA_DIR = path.join(process.cwd(), 'data');
-const STORE_PATH = path.join(DATA_DIR, 'escudo-store.json');
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 45;
 const MIN_PASSWORD_LENGTH = 6;
 const scryptAsync = promisify(crypto.scrypt);
-
-let storeCache = null;
-let storeLoaded = false;
-let storeSaveQueue = Promise.resolve();
 
 if (!OPENAI_API_KEY) {
   console.warn('Falta OPENAI_API_KEY en el entorno.');
@@ -51,62 +58,10 @@ const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail
 
 const deepCopy = (value) => JSON.parse(JSON.stringify(value ?? null));
 
-const emptyStore = () => ({
-  meta: { createdAt: nowIso() },
-  users: {},
-  sessions: {},
-});
-
-const sanitizeStoreShape = (store) => {
-  const safe = store && typeof store === 'object' ? store : {};
-  safe.meta = safe.meta && typeof safe.meta === 'object' ? safe.meta : { createdAt: nowIso() };
-  safe.users = safe.users && typeof safe.users === 'object' ? safe.users : {};
-  safe.sessions = safe.sessions && typeof safe.sessions === 'object' ? safe.sessions : {};
-  return safe;
-};
-
-const loadStore = async () => {
-  if (storeLoaded && storeCache) return storeCache;
-
-  await fs.mkdir(DATA_DIR, { recursive: true });
-
-  try {
-    const raw = await fs.readFile(STORE_PATH, 'utf8');
-    storeCache = sanitizeStoreShape(JSON.parse(raw));
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error('No se pudo leer el store:', error);
-    }
-    storeCache = emptyStore();
-    await fs.writeFile(STORE_PATH, JSON.stringify(storeCache, null, 2), 'utf8');
-  }
-
-  storeLoaded = true;
-  return storeCache;
-};
-
-const saveStore = async (store) => {
-  const safe = sanitizeStoreShape(store);
-  storeCache = safe;
-  storeSaveQueue = storeSaveQueue.then(async () => {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(STORE_PATH, JSON.stringify(safe, null, 2), 'utf8');
-  });
-  return storeSaveQueue;
-};
-
-const findUserByEmail = (store, email) => {
-  const normalized = normalizeEmail(email);
-  return Object.values(store.users || {}).find((user) => user?.email === normalized) || null;
-};
-
-const getAdminCount = (store) =>
-  Object.values(store.users || {}).filter((user) => user?.role === 'admin').length;
-
-const pickRoleForEmail = (store, email) => {
+const pickRoleForEmail = async (email) => {
   const normalized = normalizeEmail(email);
   if (ADMIN_EMAILS.has(normalized)) return 'admin';
-  if (!ADMIN_EMAILS.size && getAdminCount(store) === 0) return 'admin';
+  if (!ADMIN_EMAILS.size && (await getAdminCount()) === 0) return 'admin';
   return 'user';
 };
 
@@ -175,25 +130,16 @@ const verifyPassword = async (password, stored) => {
   return crypto.timingSafeEqual(left, right);
 };
 
-const cleanupExpiredSessions = (store) => {
-  const now = Date.now();
-  Object.entries(store.sessions || {}).forEach(([token, session]) => {
-    const expiresAt = Date.parse(session?.expiresAt || '');
-    if (!session?.userId || !store.users?.[session.userId] || !Number.isFinite(expiresAt) || expiresAt <= now) {
-      delete store.sessions[token];
-    }
-  });
-};
-
-const createSession = (store, userId) => {
+const createSession = async (userId) => {
   const token = crypto.randomBytes(32).toString('hex');
   const now = Date.now();
-  store.sessions[token] = {
+  await createDbSession({
+    token,
     userId,
     createdAt: new Date(now).toISOString(),
     lastSeenAt: new Date(now).toISOString(),
     expiresAt: new Date(now + SESSION_TTL_MS).toISOString(),
-  };
+  });
   return token;
 };
 
@@ -210,24 +156,28 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'Sesión no válida.', status: 401 });
     }
 
-    const store = await loadStore();
-    cleanupExpiredSessions(store);
-    const session = store.sessions[token];
-    const user = session ? store.users?.[session.userId] : null;
+    await deleteExpiredSessions();
+    const auth = await getSessionWithUser(token);
 
-    if (!session || !user) {
-      await saveStore(store);
+    if (!auth) {
       return res.status(401).json({ error: 'Sesión expirada.', status: 401 });
     }
+
+    const session = auth.session;
+    const user = auth.user;
 
     session.lastSeenAt = nowIso();
     session.expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
     user.lastAccessAt = nowIso();
     user.state = user.state && typeof user.state === 'object' ? user.state : createEmptyUserState();
     user.state.updatedAt = nowIso();
-    await saveStore(store);
+    const [savedSession, savedUser] = await Promise.all([saveSession(session), saveUser(user)]);
 
-    req.auth = { token, store, session, user };
+    req.auth = {
+      token,
+      session: savedSession || session,
+      user: savedUser || user,
+    };
     next();
   } catch (error) {
     console.error('Error de autenticación:', error);
@@ -3840,6 +3790,32 @@ const buildFallbackCoursePlan = ({ answers, assessment, prefs, progress }) => {
   };
 };
 
+const enrichAssessmentPayload = (assessment, answers) => {
+  const safeAssessment = assessment && typeof assessment === 'object' ? deepCopy(assessment) : {};
+  const fallbackPlan = buildFallbackCoursePlan({
+    answers,
+    assessment: safeAssessment,
+    prefs: {},
+    progress: null,
+  });
+
+  if (!safeAssessment.score_name) {
+    safeAssessment.score_name = fallbackPlan.score_name;
+  }
+
+  if (!Number.isFinite(Number(safeAssessment.score_total))) {
+    safeAssessment.score_total = fallbackPlan.score_total;
+  } else {
+    safeAssessment.score_total = clampNumber(safeAssessment.score_total, 0, 100);
+  }
+
+  if (!safeAssessment.competencias || typeof safeAssessment.competencias !== 'object') {
+    safeAssessment.competencias = deepCopy(fallbackPlan.competencias);
+  }
+
+  return safeAssessment;
+};
+
 const sanitizeCoursePlan = (plan, { answers, assessment, prefs, progress }) => {
   const fallback = buildFallbackCoursePlan({ answers, assessment, prefs, progress });
   const safe = {
@@ -4474,8 +4450,7 @@ const summarizeUserForAnalytics = (user) => {
   };
 };
 
-const aggregateAnalytics = (store) => {
-  const users = Object.values(store.users || {});
+const aggregateAnalytics = (users) => {
   const learners = users.map(summarizeUserForAnalytics);
   const ageMap = new Map();
   const topicMap = new Map();
@@ -4660,33 +4635,33 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    const store = await loadStore();
-    cleanupExpiredSessions(store);
-    if (findUserByEmail(store, email)) {
+    await deleteExpiredSessions();
+    if (await findUserByEmail(email)) {
       return res.status(409).json({ error: 'Ese correo ya está registrado.', status: 409 });
     }
 
-    const userId = crypto.randomUUID();
     const user = {
-      id: userId,
+      id: crypto.randomUUID(),
       email,
       passwordHash: await createPasswordHash(password),
-      role: pickRoleForEmail(store, email),
+      role: await pickRoleForEmail(email),
       createdAt: nowIso(),
       lastAccessAt: nowIso(),
       state: createEmptyUserState(),
     };
 
-    store.users[userId] = user;
-    const token = createSession(store, userId);
-    await saveStore(store);
+    const createdUser = await createDbUser(user);
+    const token = await createSession(createdUser.id);
 
     return res.json({
       token,
-      user: sanitizeUserForClient(user),
-      state: getUserState(user),
+      user: sanitizeUserForClient(createdUser),
+      state: getUserState(createdUser),
     });
   } catch (error) {
+    if (error?.code === '23505') {
+      return res.status(409).json({ error: 'Ese correo ya está registrado.', status: 409 });
+    }
     console.error('Error /api/auth/register:', error);
     return res.status(500).json({ error: 'No se pudo crear la cuenta.', status: 500 });
   }
@@ -4696,9 +4671,8 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || '');
-    const store = await loadStore();
-    cleanupExpiredSessions(store);
-    const user = findUserByEmail(store, email);
+    await deleteExpiredSessions();
+    const user = await findUserByEmail(email);
 
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos.', status: 401 });
@@ -4707,13 +4681,13 @@ app.post('/api/auth/login', async (req, res) => {
     user.lastAccessAt = nowIso();
     user.state = user.state && typeof user.state === 'object' ? user.state : createEmptyUserState();
     user.state.updatedAt = nowIso();
-    const token = createSession(store, user.id);
-    await saveStore(store);
+    const savedUser = await saveUser(user);
+    const token = await createSession(user.id);
 
     return res.json({
       token,
-      user: sanitizeUserForClient(user),
-      state: getUserState(user),
+      user: sanitizeUserForClient(savedUser || user),
+      state: getUserState(savedUser || user),
     });
   } catch (error) {
     console.error('Error /api/auth/login:', error);
@@ -4722,17 +4696,17 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.get('/api/auth/session', requireAuth, async (req, res) => {
+  const state = await buildUserState(req.auth.user.id);
   return res.json({
     user: sanitizeUserForClient(req.auth.user),
-    state: getUserState(req.auth.user),
+    state,
   });
 });
 
 app.post('/api/auth/logout', requireAuth, async (req, res) => {
   try {
-    const { store, token } = req.auth;
-    delete store.sessions[token];
-    await saveStore(store);
+    const { token } = req.auth;
+    await deleteDbSession(token);
     return res.json({ ok: true });
   } catch (error) {
     console.error('Error /api/auth/logout:', error);
@@ -4741,25 +4715,26 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
 });
 
 app.get('/api/user/state', requireAuth, async (req, res) => {
+  const state = await buildUserState(req.auth.user.id);
   return res.json({
     user: sanitizeUserForClient(req.auth.user),
-    state: getUserState(req.auth.user),
+    state,
   });
 });
 
 app.post('/api/user/state', requireAuth, async (req, res) => {
   try {
-    const { store, user } = req.auth;
-    user.state = sanitizeClientStatePayload({
-      ...getUserState(user),
+    const { user } = req.auth;
+    const currentState = await buildUserState(user.id);
+    const mergedState = sanitizeClientStatePayload({
+      ...currentState,
       ...req.body,
     });
-    user.lastAccessAt = nowIso();
-    await saveStore(store);
+    const savedUser = await syncUserState(user.id, mergedState);
     return res.json({
       ok: true,
-      user: sanitizeUserForClient(user),
-      state: getUserState(user),
+      user: sanitizeUserForClient(savedUser || user),
+      state: getUserState(savedUser || user),
     });
   } catch (error) {
     console.error('Error /api/user/state:', error);
@@ -4769,10 +4744,9 @@ app.post('/api/user/state', requireAuth, async (req, res) => {
 
 app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
   try {
-    const store = await loadStore();
-    cleanupExpiredSessions(store);
-    await saveStore(store);
-    return res.json(aggregateAnalytics(store));
+    await deleteExpiredSessions();
+    const users = await listUsers();
+    return res.json(aggregateAnalytics(users));
   } catch (error) {
     console.error('Error /api/admin/analytics:', error);
     return res.status(500).json({ error: 'No se pudieron generar las métricas.', status: 500 });
@@ -4796,16 +4770,21 @@ app.post('/api/assess', async (req, res) => {
 
     if (!parsed || !parsed.nivel) {
       const fallback = buildFallbackAssessment(answers);
-      return res.json({
+      return res.json(
+        enrichAssessmentPayload(
+          {
         nivel: 'Medio',
         resumen:
           'No se pudo interpretar la respuesta del modelo. Mostramos un resultado preliminar.',
         recomendaciones: fallback.recomendaciones,
         proximos_pasos: fallback.proximos_pasos,
-      });
+          },
+          answers
+        )
+      );
     }
 
-    return res.json(sanitizeAssessment(parsed, answers));
+    return res.json(enrichAssessmentPayload(sanitizeAssessment(parsed, answers), answers));
   } catch (error) {
     console.error('Error /api/assess:', error);
     return res.status(500).json({
@@ -5003,6 +4982,8 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 });
+
+await initDb();
 
 app.listen(PORT, () => {
   console.log(`Servidor listo en http://localhost:${PORT}`);
