@@ -177,27 +177,27 @@ function ShieldCard({
         <div className="shield-summary-strip">
           <article className="shield-summary-tile">
             <span>Ruta activa</span>
-            <strong>{`${completedModules}/${totalModules} módulos completados`}</strong>
-            <p>Aún no se liberan todos los bloques.</p>
+            <strong>{`${completedModules}/${totalModules}`}</strong>
+            <p>Módulos completados.</p>
           </article>
           <article className="shield-summary-tile">
             <span>Fortaleza</span>
             <strong>
               {strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}
             </strong>
-            <p>Lo que hoy te sale con más confianza.</p>
+            <p>Tu mejor canal hoy.</p>
           </article>
           <article className="shield-summary-tile">
             <span>Siguiente foco</span>
             <strong>
               {weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}
             </strong>
-            <p>{prioritySummary}</p>
+            <p>{prioritySummary === 'Ruta amplia para cubrir varios frentes con un orden claro.' ? 'Prioridad actual de la ruta.' : prioritySummary}</p>
           </article>
           <article className="shield-summary-tile">
             <span>Último acceso</span>
             <strong>{formatDate(lastAccessAt)}</strong>
-            <p>Tu avance se guarda automáticamente.</p>
+            <p>Guardado automático.</p>
           </article>
         </div>
       </div>
@@ -230,7 +230,7 @@ function SpotlightCard({ module, stats, onOpenModule, onShowRoute }) {
         </div>
       </div>
 
-      <p className="lead">{module.descripcion || 'Práctica guiada para mejorar criterio sin saturar la experiencia.'}</p>
+      <p className="lead spotlight-lead">{module.descripcion || 'Práctica guiada para mejorar criterio sin saturar la experiencia.'}</p>
 
       <div className="focus-progress-row">
         <div className="progress-track">
