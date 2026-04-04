@@ -77,6 +77,16 @@ function deriveCurrentView({ requestedView, user, coursePlan, courseProgress, as
   return 'survey';
 }
 
+function getViewportProfile(width) {
+  const safeWidth = Number(width) || 0;
+  if (safeWidth <= 420) return 'phone-small';
+  if (safeWidth <= 640) return 'phone';
+  if (safeWidth <= 820) return 'tablet-compact';
+  if (safeWidth <= 1024) return 'tablet';
+  if (safeWidth <= 1280) return 'laptop';
+  return 'desktop';
+}
+
 export default function App() {
   const initial = useMemo(() => createInitialState(), []);
   const [authMode, setAuthMode] = useState('login');
@@ -480,6 +490,24 @@ export default function App() {
     document.documentElement.style.colorScheme = theme;
     writeThemePreference(theme);
   }, [theme]);
+
+  useEffect(() => {
+    const applyViewportProfile = () => {
+      const viewport = getViewportProfile(window.innerWidth);
+      document.body.dataset.viewport = viewport;
+      document.body.dataset.inputMode =
+        ['phone-small', 'phone', 'tablet-compact', 'tablet'].includes(viewport) ? 'touch' : 'pointer';
+    };
+
+    applyViewportProfile();
+    window.addEventListener('resize', applyViewportProfile, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', applyViewportProfile);
+      delete document.body.dataset.viewport;
+      delete document.body.dataset.inputMode;
+    };
+  }, []);
 
   useEffect(() => {
     if (surveyIndex > visibleQuestions.length - 1) {

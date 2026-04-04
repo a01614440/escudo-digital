@@ -4405,3 +4405,525 @@ body[data-theme='dark'] .backdrop {
     padding: 22px 20px;
   }
 }
+
+/* Responsive refinement layer */
+body[data-input-mode='touch'] .btn,
+body[data-input-mode='touch'] .dashboard-tab,
+body[data-input-mode='touch'] .level-pill,
+body[data-input-mode='touch'] .fraud-store-tab,
+body[data-input-mode='touch'] .store-nav-btn,
+body[data-input-mode='touch'] .call-control-btn {
+  min-height: 46px;
+}
+
+body[data-input-mode='touch'] textarea,
+body[data-input-mode='touch'] input[type='text'],
+body[data-input-mode='touch'] input[type='email'],
+body[data-input-mode='touch'] input[type='password'],
+body[data-input-mode='touch'] select {
+  font-size: 16px;
+}
+
+body[data-input-mode='touch'] .dashboard-tabs,
+body[data-input-mode='touch'] .level-picker,
+body[data-input-mode='touch'] .admin-table-wrap,
+body[data-input-mode='touch'] .table-wrap,
+body[data-input-mode='touch'] .chat-drawer {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1280px) {
+  .session-main {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .nav-responsive {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .course-hero-grid,
+  .course-hero-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .course-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-next-grid,
+  .course-focus-grid,
+  .course-route-layout,
+  .dashboard-panel-grid,
+  .module-accordion-body-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lesson-header {
+    gap: 18px;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1024px) {
+  body {
+    padding: 22px 16px 40px;
+  }
+
+  .nav-responsive .btn {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 190px;
+  }
+
+  .analytics-grid,
+  .admin-grid,
+  .dashboard-panel-grid,
+  .spotlight-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shield-card-body {
+    grid-template-columns: minmax(220px, 240px) minmax(0, 1fr);
+  }
+
+  .shield-summary-strip,
+  .shield-highlight-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .module-accordion-body-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wa-experience,
+  .web-lab-mission,
+  .fraud-store-header,
+  .fraud-store-stage,
+  .fraud-cart-layout,
+  .fraud-checkout-layout,
+  .call-dashboard-row,
+  .call-mode-grid,
+  .call-ended-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .fraud-store-utility-grid,
+  .fraud-store-product-grid,
+  .fraud-store-product-grid.editorial-secondary,
+  .fraud-store-product-grid.minimal-secondary,
+  .fraud-form-grid,
+  .fraud-decision-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .email-sidebar-head {
+    margin: 0;
+  }
+
+  .chat-drawer {
+    width: min(92vw, 460px);
+    height: min(84vh, 760px);
+    right: 12px;
+    bottom: 12px;
+    border-radius: 28px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 820px) {
+  body {
+    padding: 18px 14px 34px;
+  }
+
+  .session-main,
+  .course-hero-grid,
+  .course-hero-panel,
+  .dashboard-grid,
+  .course-summary-grid,
+  .shield-card-body,
+  .hero-next-grid,
+  .course-focus-grid,
+  .course-route-layout,
+  .course-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .session-details,
+  .analytics-grid,
+  .admin-grid,
+  .shield-summary-strip,
+  .shield-highlight-bar,
+  .spotlight-metrics,
+  .dashboard-panel-grid,
+  .module-accordion-body-grid,
+  .activity-summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav-responsive {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .nav-responsive .btn {
+    width: 100%;
+  }
+
+  .shield-card-donut {
+    max-width: 360px;
+    justify-self: center;
+  }
+
+  .shield-donut-caption,
+  .shield-mini-caption {
+    text-align: center;
+  }
+
+  .module-accordion-head {
+    padding: 16px 18px;
+  }
+
+  .module-accordion-body {
+    padding: 0 18px 18px;
+  }
+
+  .lesson-meta,
+  .lesson-actions,
+  .chat-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .wa-experience,
+  .web-lab-mission,
+  .fraud-store-header,
+  .fraud-store-stage,
+  .fraud-cart-layout,
+  .fraud-checkout-layout,
+  .fraud-store-hero,
+  .call-dashboard-row,
+  .call-mode-grid,
+  .call-ended-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .fraud-store-utility-grid,
+  .fraud-store-product-grid,
+  .fraud-store-product-grid.editorial-secondary,
+  .fraud-store-product-grid.minimal-secondary,
+  .fraud-form-grid,
+  .fraud-decision-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .email-sidebar-head {
+    margin: 0;
+  }
+
+  .chat-drawer {
+    width: min(calc(100vw - 20px), 560px);
+    height: min(82vh, 760px);
+    right: 10px;
+    bottom: 10px;
+    border-radius: 26px;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 14px 10px 24px;
+  }
+
+  .panel,
+  .question-card,
+  .module-card,
+  .summary-card,
+  .lesson-card,
+  .admin-card,
+  .stat-card,
+  .chat-drawer,
+  .course-settings,
+  .result-card,
+  .info-panel {
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+
+  .session-bar-compact {
+    gap: 14px;
+  }
+
+  .session-main,
+  .session-details,
+  .course-hero-grid,
+  .course-hero-panel,
+  .dashboard-grid,
+  .course-summary-grid,
+  .shield-card-body,
+  .shield-summary-strip,
+  .shield-highlight-bar,
+  .spotlight-metrics,
+  .dashboard-panel-grid,
+  .module-accordion-body-grid,
+  .admin-grid,
+  .analytics-grid,
+  .activity-summary-bar,
+  .option-grid,
+  .concept-grid,
+  .hero-next-grid,
+  .course-focus-grid,
+  .course-route-layout,
+  .course-stat-grid,
+  .topic-toggle-grid,
+  .wa-experience,
+  .web-lab-mission,
+  .fraud-store-header,
+  .fraud-store-stage,
+  .fraud-cart-layout,
+  .fraud-checkout-layout,
+  .fraud-store-hero,
+  .fraud-store-utility-grid,
+  .fraud-store-product-grid,
+  .fraud-store-product-grid.editorial-secondary,
+  .fraud-store-product-grid.minimal-secondary,
+  .fraud-form-grid,
+  .fraud-decision-options,
+  .call-dashboard-row,
+  .call-mode-grid,
+  .call-ended-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .nav-responsive {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .nav-responsive .btn {
+    width: 100%;
+    min-height: 48px;
+    padding-inline: 14px;
+  }
+
+  .dashboard-tabs,
+  .level-picker {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 6px;
+    gap: 8px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .dashboard-tabs::-webkit-scrollbar,
+  .level-picker::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dashboard-tab,
+  .level-pill {
+    scroll-snap-align: start;
+    padding: 11px 14px;
+    font-size: 0.94rem;
+  }
+
+  .shield-card-donut {
+    width: 100%;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .shield-donut-caption,
+  .shield-mini-caption {
+    text-align: center;
+  }
+
+  .shield-summary-tile,
+  .focus-metric,
+  .module-fact {
+    min-height: auto;
+  }
+
+  .module-accordion-head {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .module-step {
+    justify-self: start;
+  }
+
+  .module-accordion-meta {
+    gap: 8px 12px;
+  }
+
+  .module-accordion-body {
+    padding: 0 16px 16px;
+  }
+
+  .dashboard-title-row,
+  .section-title-row,
+  .module-accordion-title-row {
+    align-items: start;
+  }
+
+  .lesson-header {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .lesson-meta,
+  .lesson-actions,
+  .activity-head-badges,
+  .chat-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .lesson-actions .btn,
+  .activity-actions .btn,
+  .chat-form .btn,
+  .call-control-btn {
+    width: 100%;
+  }
+
+  .activity-head-rich,
+  .activity-guide,
+  .wa-side-panel,
+  .wa-stage-banner,
+  .inbox-stage-banner,
+  .call-stage-banner,
+  .habit-stage-banner,
+  .habit-flow,
+  .fraud-store-shell,
+  .web-lab-immersive {
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .wa-phone-pro,
+  .call-phone-pro,
+  .email-sim.inbox-sim-mail,
+  .email-sim.inbox-sim-sms {
+    border-radius: 24px;
+  }
+
+  .wa-header,
+  .call-identity,
+  .web-lab-browser-bar,
+  .web-lab-detective-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .wa-contact-badges {
+    justify-content: flex-start;
+  }
+
+  .email-sidebar-head {
+    margin: 0;
+  }
+
+  .call-warning-strip {
+    margin: 0 14px;
+  }
+
+  .call-controls-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .call-control-btn {
+    justify-content: center;
+  }
+
+  .chat-drawer {
+    inset: auto 6px 6px 6px;
+    width: auto;
+    max-width: none;
+    height: min(78vh, 760px);
+    border-radius: 24px;
+    padding: 16px;
+  }
+
+  .chat-fab {
+    right: 12px;
+    bottom: 12px;
+    min-width: 58px;
+    height: 58px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+
+  .activity-shell .activity-head-blurb,
+  .spotlight-lead,
+  .shield-intro {
+    max-width: none;
+  }
+}
+
+@media (max-width: 420px) {
+  body {
+    padding: 12px 8px 18px;
+  }
+
+  .panel,
+  .question-card,
+  .module-card,
+  .summary-card,
+  .lesson-card,
+  .admin-card,
+  .stat-card,
+  .chat-drawer,
+  .course-settings,
+  .result-card,
+  .info-panel {
+    padding: 16px 14px;
+  }
+
+  .nav-responsive {
+    grid-template-columns: 1fr;
+  }
+
+  .session-identity h2 {
+    font-size: clamp(1.3rem, 6vw, 1.65rem);
+    word-break: break-word;
+    line-height: 1.18;
+  }
+
+  .shield-summary-tile strong,
+  .focus-metric strong,
+  .module-fact strong {
+    font-size: 0.95rem;
+  }
+
+  .module-accordion-meta {
+    font-size: 0.88rem;
+  }
+
+  .hero h1,
+  .auth-hero h1,
+  .lesson-title,
+  .result-title {
+    font-size: clamp(1.75rem, 9vw, 2.2rem);
+  }
+
+  .call-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .chat-drawer {
+    inset: auto 4px 4px 4px;
+    border-radius: 22px;
+  }
+}
