@@ -1417,6 +1417,16 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
   const hintTimeoutRef = useRef(null);
   const browserUrl = page.dominio || 'cyberzone-ofertas.shop';
   const browserTitle = page.browserTitle || `${page.marca || 'Cyber Zone MX'} | Oferta especial`;
+  const searchPlaceholder =
+    themeVariant === 'neon'
+      ? 'Buscar cámaras, audio y setups...'
+      : themeVariant === 'street'
+        ? 'Buscar drops, smartphones y audio...'
+        : themeVariant === 'premium'
+          ? 'Buscar hogar, audio y selección curada...'
+          : themeVariant === 'sage'
+            ? 'Buscar escritorio, audio y objetos studio...'
+            : 'Buscar productos, marcas y categorías...';
   const liveToasts = useMemo(
     () =>
       page.liveToasts.length
@@ -1648,16 +1658,6 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     const secondaryProducts = (layoutVariant === 'editorial' || layoutVariant === 'minimal')
       ? products.slice(1)
       : products;
-    const searchPlaceholder =
-      themeVariant === 'neon'
-        ? 'Buscar cámaras, audio y setups...'
-        : themeVariant === 'street'
-          ? 'Buscar drops, smartphones y audio...'
-          : themeVariant === 'premium'
-            ? 'Buscar hogar, audio y selección curada...'
-            : themeVariant === 'sage'
-              ? 'Buscar escritorio, audio y objetos studio...'
-              : 'Buscar productos, marcas y categorías...';
     const renderProductCard = (product, index, featured = false) => (
       <article
         className={`fraud-product-card ${featured ? 'featured' : ''} ${targetState(`product_${index}`)}`.trim()}
