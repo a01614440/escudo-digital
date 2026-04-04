@@ -2934,6 +2934,7 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel, pro
               { id: 's5', label: 'Cambia de método de pago', correcta: true, explicacion: 'Red flag: te empuja a algo sin protección.' },
             ];
 
+
     return {
       id: modId,
       titulo: 'Detecta Páginas Clonadas',
@@ -3142,6 +3143,201 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel, pro
               ],
             };
 
+    const smsVariants = {
+      basico: [
+        {
+          inbox: [
+            {
+              id: 'v1',
+              displayName: 'Streaming Plus',
+              from: 'STREAM',
+              preview: 'Actualiza tu pago hoy.',
+              dateLabel: 'Hoy',
+              text: 'Tu cuenta se pausa hoy. Actualiza el pago desde este enlace.',
+              body: ['Tu cuenta se pausa hoy.', 'Actualiza el pago desde este enlace.'],
+              linkPreview: 'https://streaming-plus-soporte.today',
+              correcto: 'estafa',
+              explicacion: 'Usa urgencia y te manda a un enlace fuera del canal oficial.',
+            },
+            {
+              id: 'v2',
+              displayName: 'Farmacia App',
+              from: 'SALUD',
+              preview: 'Tu pedido ya puede recogerse.',
+              dateLabel: 'Hoy',
+              text: 'Tu pedido ya puede recogerse. Revisa el detalle desde la app oficial.',
+              body: ['Tu pedido ya puede recogerse.', 'Revisa el detalle desde la app oficial.'],
+              correcto: 'seguro',
+              explicacion: 'Te lleva a la app oficial y no pide datos ni pago extra.',
+            },
+            {
+              id: 'v3',
+              displayName: 'Banco Centro',
+              from: 'BCENTRO',
+              preview: 'Si no reconoces un cargo, revisa tu app.',
+              dateLabel: 'Hoy',
+              text: 'Si no reconoces un cargo, revisa tu app oficial o llama al numero del reverso.',
+              body: ['Si no reconoces un cargo, revisa tu app oficial o llama al numero del reverso.'],
+              correcto: 'seguro',
+              explicacion: 'La verificacion se mueve a un canal que tu controlas.',
+            },
+            {
+              id: 'v4',
+              displayName: 'Mensajeria',
+              from: 'MSJ',
+              preview: 'Confirma tu identidad para liberar el envio.',
+              dateLabel: 'Ayer',
+              text: 'Confirma tu identidad en bit.ly/libera-tu-envio hoy mismo.',
+              body: ['Confirma tu identidad para liberar tu envio hoy mismo.'],
+              linkPreview: 'https://bit.ly/libera-tu-envio',
+              correcto: 'estafa',
+              explicacion: 'Oculta el destino real y te mete presion para responder rapido.',
+            },
+          ],
+          hunt: {
+            mensaje: 'Pago rechazado. Actualiza hoy o tu servicio se pausara. Entra al enlace.',
+            senales: [
+              { id: 'sv1', label: 'Te saca a un enlace', correcta: true, explicacion: 'No te manda a la app oficial.' },
+              { id: 'sv2', label: 'Te da plazo corto', correcta: true, explicacion: 'La prisa reduce tu revision.' },
+              { id: 'sv3', label: 'Te pide actualizar ya', correcta: true, explicacion: 'Busca que resuelvas dentro del SMS.' },
+              { id: 'sv4', label: 'Habla de un pago', correcta: false, explicacion: 'Hablar de pago no siempre es fraude por si solo.' },
+            ],
+          },
+          domains: { list: ['farmaciaapp.com.mx', 'farmaciaapp-ayuda.com-secure.site'], correct: 0 },
+        },
+      ],
+      refuerzo: [
+        {
+          inbox: [
+            {
+              id: 'v1',
+              displayName: 'Facturacion',
+              from: 'PAGOS',
+              preview: 'Abre el enlace para evitar recargos.',
+              dateLabel: 'Hoy',
+              text: 'Tu factura quedo pendiente. Abre el enlace para evitar recargos hoy.',
+              body: ['Tu factura quedo pendiente.', 'Abre el enlace para evitar recargos hoy.'],
+              linkPreview: 'https://factura-centro-rapido.help',
+              correcto: 'estafa',
+              explicacion: 'Usa recargos y urgencia para empujarte a un enlace externo.',
+            },
+            {
+              id: 'v2',
+              displayName: 'Linea movil',
+              from: 'MOVIL',
+              preview: 'Revisa tu consumo desde la app.',
+              dateLabel: 'Hoy',
+              text: 'Tu consumo esta disponible. Revisa el detalle desde la app oficial.',
+              body: ['Tu consumo esta disponible.', 'Revisa el detalle desde la app oficial.'],
+              correcto: 'seguro',
+              explicacion: 'Es informativo y te lleva a un canal oficial.',
+            },
+            {
+              id: 'v3',
+              displayName: 'Reembolso',
+              from: 'REEMBOLSO',
+              preview: 'Responde con tu CLABE para depositar.',
+              dateLabel: 'Ayer',
+              text: 'Tenemos un reembolso a tu favor. Responde con tu CLABE para depositar.',
+              body: ['Tenemos un reembolso a tu favor.', 'Responde con tu CLABE para depositar.'],
+              correcto: 'estafa',
+              explicacion: 'No debes mandar datos bancarios por respuesta a un SMS.',
+            },
+            {
+              id: 'v4',
+              displayName: 'Mi cuenta',
+              from: 'CUENTA',
+              preview: 'Si no reconoces el acceso, entra a tu app.',
+              dateLabel: 'Ayer',
+              text: 'Si no reconoces el acceso, entra a tu app y cambia la contrasena.',
+              body: ['Si no reconoces el acceso, entra a tu app y cambia la contrasena.'],
+              correcto: 'seguro',
+              explicacion: 'Te saca del SMS y te lleva a un canal que controlas.',
+            },
+          ],
+          hunt: {
+            mensaje: 'Tu cuenta necesita validacion. Responde a este SMS con tus datos para evitar suspension.',
+            senales: [
+              { id: 'sv1', label: 'Pide datos por SMS', correcta: true, explicacion: 'Canal inseguro para datos sensibles.' },
+              { id: 'sv2', label: 'Habla de suspension', correcta: true, explicacion: 'Usa presion emocional.' },
+              { id: 'sv3', label: 'Resuelve en el mismo canal', correcta: true, explicacion: 'No te manda a app o sitio oficial.' },
+              { id: 'sv4', label: 'Texto ordenado', correcta: false, explicacion: 'Que este bien escrito no basta.' },
+            ],
+          },
+          domains: { list: ['micuenta.com.mx', 'mi-cuenta-validacion-help.net', 'micuentaoficial.mx'], correct: 0 },
+        },
+      ],
+      avanzado: [
+        {
+          inbox: [
+            {
+              id: 'v1',
+              displayName: 'Suscripcion Pro',
+              from: 'PRO',
+              preview: 'Renueva hoy para no perder acceso.',
+              dateLabel: 'Hoy',
+              text: 'Tu suscripcion vence hoy. Renueva desde este enlace para no perder acceso.',
+              body: ['Tu suscripcion vence hoy.', 'Renueva desde este enlace para no perder acceso.'],
+              linkPreview: 'https://renovacion-premium.seguro-login.site',
+              correcto: 'estafa',
+              explicacion: 'Es convincente, pero te lleva a un enlace de renovacion que no controlas.',
+            },
+            {
+              id: 'v2',
+              displayName: 'Streaming App',
+              from: 'APP',
+              preview: 'Tu plan se actualizo. Revisa detalles en la app.',
+              dateLabel: 'Hoy',
+              text: 'Tu plan se actualizo. Revisa los detalles desde la app oficial.',
+              body: ['Tu plan se actualizo.', 'Revisa los detalles desde la app oficial.'],
+              correcto: 'seguro',
+              explicacion: 'Es solo una notificacion y te mueve a la app oficial.',
+            },
+            {
+              id: 'v3',
+              displayName: 'Aduana Express',
+              from: 'ADUANA',
+              preview: 'Falta un pago para liberar tu paquete.',
+              dateLabel: 'Ayer',
+              text: 'Falta un pago para liberar tu paquete internacional. Confirma en el enlace.',
+              body: ['Falta un pago para liberar tu paquete internacional.', 'Confirma en el enlace.'],
+              linkPreview: 'https://aduana-pago-ayuda.help',
+              correcto: 'estafa',
+              explicacion: 'Paquete mas pago urgente sigue siendo una combinacion muy usada en fraude.',
+            },
+            {
+              id: 'v4',
+              displayName: 'Banco aviso',
+              from: 'BANCO',
+              preview: 'Si no reconoces el movimiento, revisa tu app.',
+              dateLabel: 'Ayer',
+              text: 'Movimiento rechazado. Si no lo reconoces, revisa tu app y valida ahi.',
+              body: ['Movimiento rechazado.', 'Si no lo reconoces, revisa tu app y valida ahi.'],
+              correcto: 'seguro',
+              explicacion: 'Te dirige a la app, no a responder ni abrir el enlace del SMS.',
+            },
+          ],
+          hunt: {
+            mensaje: 'Renueva hoy o perderas el acceso. Entra al enlace y valida tu identidad ahora.',
+            senales: [
+              { id: 'sv1', label: 'Presiona con perdida inmediata', correcta: true, explicacion: 'Quiere que actues antes de revisar.' },
+              { id: 'sv2', label: 'Te manda a validar por enlace', correcta: true, explicacion: 'No propone una web que tu escribas.' },
+              { id: 'sv3', label: 'Pide identidad en el mismo flujo', correcta: true, explicacion: 'Eso incrementa mucho el riesgo.' },
+              { id: 'sv4', label: 'Nombre del servicio', correcta: false, explicacion: 'Nombrar una marca no lo hace legitimo.' },
+            ],
+          },
+          domains: { list: ['renovacionapp.com.mx', 'renovacionapp-ayuda-login.site', 'renovacion-app.mx'], correct: 0 },
+        },
+      ],
+    };
+    const selectedSmsVariant = smsVariants[modNivel]?.[variant % smsVariants[modNivel].length];
+    const selectedInbox = selectedSmsVariant?.inbox || inbox;
+    const selectedHunt = selectedSmsVariant?.hunt || hunt;
+    const selectedDomainCheck = selectedSmsVariant?.domains || {
+      list: ['servicio.com.mx', 'servicio-seguridad.com-mx.site'],
+      correct: 0,
+    };
+
     return {
       id: modId,
       titulo: 'SMS: Detecta Mensajes Falsos',
@@ -3162,21 +3358,21 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel, pro
           titulo: 'Bandeja Simulada',
           kind: 'sms',
           intro: 'Clasifica cada SMS como Seguro o Estafa.',
-          mensajes: inbox,
+          mensajes: selectedInbox,
           peso: 1.4,
         }),
         mk(3, {
           tipo: 'signal_hunt',
           titulo: 'Señales Dentro del SMS',
-          ...hunt,
+          ...selectedHunt,
           peso: 1.1,
         }),
         mk(4, {
           tipo: 'compare_domains',
           titulo: 'Dominio en el Enlace',
           prompt: 'Si un SMS trae un link, ¿qué dominio se ve más legítimo?',
-          dominios: ['servicio.com.mx', 'servicio-seguridad.com-mx.site'],
-          correcta: 0,
+          dominios: selectedDomainCheck.list,
+          correcta: selectedDomainCheck.correct,
           explicacion: 'Los dominios falsos suelen agregar palabras o cambiar el final.',
           tip: 'Mejor entra escribiendo tú el dominio o desde tu app.',
           peso: 1.0,

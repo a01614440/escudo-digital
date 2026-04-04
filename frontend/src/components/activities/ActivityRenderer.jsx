@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+﻿import { useMemo, useRef, useState } from 'react';
 import { postJson } from '../../lib/api.js';
 import { splitParagraphs } from '../../lib/format.js';
 import {
@@ -23,58 +23,58 @@ function Paragraphs({ text, className = 'activity-copy' }) {
 const SIMULATION_GUIDES = {
   quiz: [
     'Lee el escenario completo antes de responder.',
-    'Elige la opción más segura, no la más rápida.',
-    'Revisa el feedback para entender por qué esa decisión era mejor.',
+    'Elige la opciÃ³n mÃ¡s segura, no la mÃ¡s rÃ¡pida.',
+    'Revisa el feedback para entender por quÃ© esa decisiÃ³n era mejor.',
   ],
   simulacion: [
     'Lee el escenario completo antes de responder.',
-    'Elige la opción más segura, no la más rápida.',
-    'Revisa el feedback para entender por qué esa decisión era mejor.',
+    'Elige la opciÃ³n mÃ¡s segura, no la mÃ¡s rÃ¡pida.',
+    'Revisa el feedback para entender por quÃ© esa decisiÃ³n era mejor.',
   ],
   sim_chat: [
-    'Responde como si fuera una conversación real.',
+    'Responde como si fuera una conversaciÃ³n real.',
     'La meta es detectar el riesgo, no agradar al contacto.',
     'Si dudas, pausa y verifica por fuera del chat.',
   ],
   compare_domains: [
-    'Busca cambios mínimos en letras, terminaciones o estructura.',
-    'El dominio más confiable suele ser el más simple y coherente.',
-    'Si sigues dudando, escribe tú mismo la dirección oficial.',
+    'Busca cambios mÃ­nimos en letras, terminaciones o estructura.',
+    'El dominio mÃ¡s confiable suele ser el mÃ¡s simple y coherente.',
+    'Si sigues dudando, escribe tÃº mismo la direcciÃ³n oficial.',
   ],
   signal_hunt: [
-    'Marca solo las señales que realmente indiquen riesgo.',
-    'No necesitas marcar todo: importa la precisión.',
-    'Piensa qué parte del mensaje te quiere presionar o engañar.',
+    'Marca solo las seÃ±ales que realmente indiquen riesgo.',
+    'No necesitas marcar todo: importa la precisiÃ³n.',
+    'Piensa quÃ© parte del mensaje te quiere presionar o engaÃ±ar.',
   ],
   inbox: [
-    'Abre el mensaje y revísalo antes de clasificarlo.',
-    'Fíjate en remitente, asunto, cuerpo y enlaces visibles.',
-    'No te guíes solo por el diseño: busca incoherencias concretas.',
+    'Abre el mensaje y revÃ­salo antes de clasificarlo.',
+    'FÃ­jate en remitente, asunto, cuerpo y enlaces visibles.',
+    'No te guÃ­es solo por el diseÃ±o: busca incoherencias concretas.',
   ],
   web_lab: [
-    'Recorre la página como si fueras a comprar o registrarte.',
+    'Recorre la pÃ¡gina como si fueras a comprar o registrarte.',
     'Marca hallazgos sospechosos mientras avanzas.',
-    'Al final decide si seguirías o saldrías del sitio.',
+    'Al final decide si seguirÃ­as o saldrÃ­as del sitio.',
   ],
   call_sim: [
     'Lee cada paso como si estuvieras en una llamada real.',
     'Prioriza cortar, pausar o verificar por fuera de la llamada.',
-    'No compartas datos ni resuelvas bajo presión.',
+    'No compartas datos ni resuelvas bajo presiÃ³n.',
   ],
   scenario_flow: [
-    'Cada decisión cambia el escenario siguiente.',
+    'Cada decisiÃ³n cambia el escenario siguiente.',
     'Piensa en la rutina segura antes de responder.',
-    'La meta es reducir riesgo, no terminar rápido.',
+    'La meta es reducir riesgo, no terminar rÃ¡pido.',
   ],
   abierta: [
-    'Explica qué harías con tus propias palabras.',
-    'Incluye cómo pausarías, verificarías o cortarías el riesgo.',
-    'No hace falta escribir mucho, pero sí ser claro.',
+    'Explica quÃ© harÃ­as con tus propias palabras.',
+    'Incluye cÃ³mo pausarÃ­as, verificarÃ­as o cortarÃ­as el riesgo.',
+    'No hace falta escribir mucho, pero sÃ­ ser claro.',
   ],
   checklist: [
-    'Marca cada paso solo si realmente lo revisarías.',
-    'Úsalo como una rutina mínima de verificación.',
-    'La idea es convertirlo en hábito, no avanzar por avanzar.',
+    'Marca cada paso solo si realmente lo revisarÃ­as.',
+    'Ãšsalo como una rutina mÃ­nima de verificaciÃ³n.',
+    'La idea es convertirlo en hÃ¡bito, no avanzar por avanzar.',
   ],
 };
 
@@ -84,7 +84,7 @@ function SimulationGuide({ activity }) {
 
   return (
     <section className="panel summary-card activity-guide">
-      <p className="eyebrow">Cómo resolver esta actividad</p>
+      <p className="eyebrow">CÃ³mo resolver esta actividad</p>
       <div className="summary-list">
         {steps.map((step) => (
           <div className="summary-item" key={step}>
@@ -120,9 +120,20 @@ function completePayload(startedAtRef, onComplete, score, feedback, details = nu
   });
 }
 
-function buildFeedback({ title, signal, risk, action, extra, detected, missed }) {
+function clampScore(score) {
+  const safe = Number(score);
+  if (!Number.isFinite(safe)) return 0;
+  return Math.max(0, Math.min(1, safe));
+}
+
+function formatPercent(score) {
+  return `${Math.round(clampScore(score) * 100)}%`;
+}
+
+function buildFeedback({ title, score, signal, risk, action, extra, detected, missed }) {
   return {
     title,
+    score,
     signal,
     risk,
     action,
@@ -130,6 +141,23 @@ function buildFeedback({ title, signal, risk, action, extra, detected, missed })
     detected,
     missed,
   };
+}
+
+function ActivitySummaryBar({ items = [] }) {
+  const visibleItems = items.filter((item) => item && item.label && item.value !== undefined && item.value !== null);
+  if (!visibleItems.length) return null;
+
+  return (
+    <div className="activity-summary-bar">
+      {visibleItems.map((item) => (
+        <article className="activity-summary-stat" key={item.label}>
+          <span>{item.label}</span>
+          <strong>{item.value}</strong>
+          {item.caption ? <p>{item.caption}</p> : null}
+        </article>
+      ))}
+    </div>
+  );
 }
 
 function ConceptActivity({ activity, startedAtRef, onComplete }) {
@@ -174,27 +202,29 @@ function QuizActivity({ activity, startedAtRef, onComplete }) {
     if (isAnswered) return;
     setSelection(index);
     const isCorrect = index === correctIndex;
+    const score = isCorrect ? 1 : 0.45;
     setFeedback(
       buildFeedback({
-        title: feedbackRatingLabel(isCorrect ? 1 : 0.45),
+        title: feedbackRatingLabel(score),
+        score,
         signal:
           activity.senal ||
           (isCorrect
-            ? 'Detectaste la señal principal del escenario.'
-            : 'La señal clave estaba en la urgencia, el canal o la petición.'),
+            ? 'Detectaste la seÃ±al principal del escenario.'
+            : 'La seÃ±al clave estaba en la urgencia, el canal o la peticiÃ³n.'),
         risk:
           activity.riesgo ||
           'Responder sin verificar puede exponerte a robo de datos, dinero o acceso.',
         action:
           activity.accion ||
           (options[correctIndex]
-            ? `La acción segura era: ${options[correctIndex]}`
+            ? `La acciÃ³n segura era: ${options[correctIndex]}`
             : 'Verifica por un canal oficial antes de actuar.'),
         extra:
           activity.explicacion ||
           (isCorrect
-            ? 'Buena decisión.'
-            : 'Valía la pena frenar y revisar mejor la situación.'),
+            ? 'Buena decisiÃ³n.'
+            : 'ValÃ­a la pena frenar y revisar mejor la situaciÃ³n.'),
       })
     );
   };
@@ -202,6 +232,12 @@ function QuizActivity({ activity, startedAtRef, onComplete }) {
   return (
     <>
       <Paragraphs text={activity.escenario} />
+      <ActivitySummaryBar
+        items={[
+          { label: 'Opciones', value: options.length || 0, caption: 'Revisa todas antes de elegir.' },
+          { label: 'Meta', value: 'Elegir con criterio', caption: 'La mejor respuesta no siempre es la mas rapida.' },
+        ]}
+      />
       <div className="option-grid">
         {options.map((option, index) => {
           const status =
@@ -272,19 +308,25 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
   const items = Array.isArray(activity.items) ? activity.items : [];
   const [checked, setChecked] = useState(() => Object.fromEntries(items.map((item) => [item, false])));
   const [feedback, setFeedback] = useState(null);
+  const selectedCount = items.filter((item) => checked[item]).length;
+  const remainingItems = items.filter((item) => !checked[item]);
+  const allChecked = items.length > 0 && remainingItems.length === 0;
 
   const toggleItem = (item) => {
     setChecked((current) => ({ ...current, [item]: !current[item] }));
   };
 
   const submit = () => {
-    const allChecked = items.every((item) => checked[item]);
     if (!allChecked) {
       setFeedback(
         buildFeedback({
           title: 'Falta completar el checklist',
-          signal: 'Todavía no marcaste todos los pasos.',
-          action: 'Completa cada punto antes de avanzar para fijar la rutina.',
+          score: selectedCount / Math.max(items.length, 1),
+          signal: `Marcaste ${selectedCount} de ${items.length} pasos.`,
+          risk: 'Si omites un paso de verificacion, tu rutina se debilita justo cuando necesitas claridad.',
+          action: 'Completa los pasos restantes antes de avanzar.',
+          missed: remainingItems.slice(0, 4),
+          extra: 'La idea es fijar un habito completo, no marcar solo lo mas facil.',
         })
       );
       return;
@@ -297,8 +339,8 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
         buildFeedback({
           title: 'Buena',
           signal: 'Repasaste los pasos clave sin saltarte ninguno.',
-          risk: 'Si omites un paso de verificación, aumenta la probabilidad de actuar con prisa.',
-          action: 'Usa este checklist como rutina rápida cuando un mensaje o llamada te meta presión.',
+          risk: 'Si omites un paso de verificaciÃ³n, aumenta la probabilidad de actuar con prisa.',
+          action: 'Usa este checklist como rutina rÃ¡pida cuando un mensaje o llamada te meta presiÃ³n.',
         })
       ),
       { checkedItems: items, totalItems: items.length }
@@ -308,6 +350,13 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
   return (
     <>
       <Paragraphs text={activity.intro || 'Marca cada punto antes de continuar.'} />
+      <ActivitySummaryBar
+        items={[
+          { label: 'Pasos', value: items.length || 0, caption: 'Tu rutina minima de verificacion.' },
+          { label: 'Completados', value: `${selectedCount}/${items.length}`, caption: allChecked ? 'Rutina completa.' : 'Aun faltan pasos por marcar.' },
+          { label: 'Meta', value: 'No saltarte ninguno', caption: 'La consistencia vale mas que la velocidad.' },
+        ]}
+      />
       <div className="question-body">
         {items.map((item) => (
           <label className="option" key={item}>
@@ -334,7 +383,7 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
 
   const submit = async () => {
     if (answer.trim().length < 6) {
-      setFeedback('Escribe un poco más para poder evaluarlo.');
+      setFeedback('Escribe un poco mÃ¡s para poder evaluarlo.');
       return;
     }
 
@@ -347,15 +396,16 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
         activity,
         user: { answers, assessment },
       });
-      const score = Math.max(0, Math.min(1, Number(response?.score) || 0));
+      const score = clampScore(response?.score);
       const text = String(response?.feedback || 'Buen intento.').trim();
       setGradedScore(score);
       setFeedback(
         buildFeedback({
           title: feedbackRatingLabel(score),
-          signal: 'Tu respuesta mostró cómo identificar o frenar el riesgo.',
+          score,
+          signal: 'Tu respuesta mostrÃ³ cÃ³mo identificar o frenar el riesgo.',
           risk: 'La idea es no resolver desde el canal sospechoso ni compartir datos.',
-          action: 'Quédate con una frase corta, clara y orientada a verificar por canales oficiales.',
+          action: 'QuÃ©date con una frase corta, clara y orientada a verificar por canales oficiales.',
           extra: text,
         })
       );
@@ -363,7 +413,8 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
       setGradedScore(0.4);
       setFeedback(
         buildFeedback({
-          title: 'Sin evaluación',
+          title: 'Sin evaluaciÃ³n',
+          score: 0.4,
           signal: 'No se pudo revisar esta respuesta con IA.',
           action:
             'Puedes reintentar y mantener la misma regla: no compartas datos y verifica por canales oficiales.',
@@ -378,8 +429,14 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
   return (
     <>
       <Paragraphs text={activity.prompt} />
+      <ActivitySummaryBar
+        items={[
+          { label: 'Formato', value: 'Respuesta abierta', caption: 'Describe tu criterio con claridad.' },
+          { label: 'Meta', value: 'Explicar y justificar', caption: 'Cuenta como pausarias, verificarias o cortarias el riesgo.' },
+        ]}
+      />
       {Array.isArray(activity.pistas) && activity.pistas.length ? (
-        <p className="hint">{`Tip: ${activity.pistas.join(' · ')}`}</p>
+        <p className="hint">{`Tip: ${activity.pistas.join(' Â· ')}`}</p>
       ) : null}
       <textarea
         value={answer}
@@ -436,6 +493,24 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
   const [done, setDone] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const quickReplies = Array.isArray(activity.quickReplies) ? activity.quickReplies : [];
+  const userTurns = history.filter((message) => message.role === 'user').length;
+
+  const finishSimulation = () => {
+    const score = bestScore || (userTurns ? 0.72 : 0.45);
+    if (!feedback) {
+      setFeedback(
+        buildFeedback({
+          title: feedbackRatingLabel(score),
+          score,
+          signal: 'Cerraste la conversacion sin seguir el ritmo del estafador.',
+          risk: 'El mayor riesgo en este tipo de chat es quedarte resolviendo dentro del mismo canal.',
+          action: 'Corta la conversacion y verifica por una llamada o canal oficial que tu controles.',
+          extra: 'Usa un cierre corto, firme y sin justificarte demasiado.',
+        })
+      );
+    }
+    setDone(true);
+  };
 
   const sendMessage = async (presetMessage) => {
     const message = String(presetMessage ?? input).trim();
@@ -466,6 +541,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
       setFeedback(
         buildFeedback({
           title: response?.rating || feedbackRatingLabel(score),
+          score,
           signal:
             response?.signal_detected ||
             'La conversacion mete presion para que resuelvas dentro del mismo chat.',
@@ -483,7 +559,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
       setFeedback(
         buildFeedback({
           title: 'Sin respuesta',
-          signal: 'No pudimos continuar la simulación en este momento.',
+          signal: 'No pudimos continuar la simulaciÃ³n en este momento.',
           action: 'Reintenta o continua aplicando la regla: pausa y verifica por un canal oficial.',
           extra: error.message || '',
         })
@@ -497,6 +573,12 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
   return (
     <>
       {activity.escenario ? <Paragraphs text={activity.escenario} /> : null}
+      <ActivitySummaryBar
+        items={[
+          { label: 'Turnos usados', value: `${turns}/${activity.turnos_max || 6}`, caption: 'Puedes cerrar cuando ya marcaste un limite claro.' },
+          { label: 'Objetivo', value: 'Frenar y verificar', caption: 'No necesitas convencer al atacante para hacerlo bien.' },
+        ]}
+      />
       <div className="wa-phone">
         <div className="wa-header">
           <div className="wa-avatar">
@@ -544,6 +626,11 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
       </div>
       <FeedbackPanel feedback={feedback} />
       <div className="activity-actions">
+        {!done && userTurns > 0 ? (
+          <button className="btn ghost" type="button" onClick={finishSimulation} disabled={busy}>
+            Cerrar simulacion de forma segura
+          </button>
+        ) : null}
         {done ? (
           <button
             className="btn primary"
@@ -553,7 +640,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
                 startedAtRef,
                 onComplete,
                 bestScore || 0.6,
-                  feedbackToText(feedback || 'Simulación completada.'),
+                  feedbackToText(feedback || 'SimulaciÃ³n completada.'),
                 { history, turns }
               )
             }
@@ -575,10 +662,12 @@ function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
   const handleSelect = (index) => {
     if (selectedIndex !== null) return;
     const isCorrect = index === correctIndex;
+    const score = isCorrect ? 1 : 0.45;
     setSelectedIndex(index);
     setFeedback(
       buildFeedback({
-        title: feedbackRatingLabel(isCorrect ? 1 : 0.45),
+        title: feedbackRatingLabel(score),
+        score,
         signal: isCorrect
           ? 'Elegiste el dominio mas consistente para verificar por tu cuenta.'
           : 'El dominio seguro suele ser el mas simple y coherente con la marca real.',
@@ -591,7 +680,13 @@ function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <Paragraphs text={activity.prompt || 'Elige el dominio legítimo.'} />
+      <Paragraphs text={activity.prompt || 'Elige el dominio legÃ­timo.'} />
+      <ActivitySummaryBar
+        items={[
+          { label: 'Dominios', value: domains.length || 0, caption: 'Busca el mas simple y coherente.' },
+          { label: 'Regla', value: 'Escribirlo tu mismo', caption: 'Si dudas, no abras el enlace desde el mensaje.' },
+        ]}
+      />
       <div className="option-grid">
         {domains.map((domain, index) => {
           const status =
@@ -691,11 +786,12 @@ function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
     const score = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
     const payload = buildFeedback({
       title: feedbackRatingLabel(score),
-      signal: `Encontraste ${tp} de ${correctIds.size || 1} señales relevantes.`,
-      risk: 'Cuando una señal pasa desapercibida, es más fácil que el mensaje te arrastre al siguiente paso.',
+      score,
+      signal: `Encontraste ${tp} de ${correctIds.size || 1} seÃ±ales relevantes.`,
+      risk: 'Cuando una seÃ±al pasa desapercibida, es mÃ¡s fÃ¡cil que el mensaje te arrastre al siguiente paso.',
       action:
         activity.accion ||
-        'Detén la conversación y verifica por el canal oficial antes de abrir links, pagar o responder.',
+        'DetÃ©n la conversaciÃ³n y verifica por el canal oficial antes de abrir links, pagar o responder.',
       detected: signals.filter((signal) => selected.has(signal.id) && signal.correcta).map((signal) => signal.label),
       missed: signals.filter((signal) => signal.correcta && !selected.has(signal.id)).map((signal) => signal.label),
     });
@@ -708,7 +804,13 @@ function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <div className="message-box">{activity.mensaje || 'Detecta las señales de riesgo.'}</div>
+      <div className="message-box">{activity.mensaje || 'Detecta las seÃ±ales de riesgo.'}</div>
+      <ActivitySummaryBar
+        items={[
+          { label: 'SeÃ±ales clave', value: signals.filter((signal) => signal.correcta).length || 0, caption: 'No necesitas marcar todo, solo lo importante.' },
+          { label: 'Marcadas', value: selected.size, caption: result ? `Resultado ${formatPercent(result.score)}` : 'Puedes tocar una seÃ±al otra vez para quitarla.' },
+        ]}
+      />
       <div className="signal-list">
         {signals.map((signal) => {
           const chosen = selected.has(signal.id);
@@ -782,56 +884,98 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
   const [selections, setSelections] = useState({});
   const [showDetails, setShowDetails] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [result, setResult] = useState(null);
   const selectedMessage = messages.find((message) => message.id === selectedId) || messages[0];
 
   const classify = (messageId, value) => {
+    if (result) return;
     setSelections((current) => ({ ...current, [messageId]: value }));
   };
 
   const evaluate = () => {
     const total = Math.max(messages.length, 1);
-    let correct = 0;
-    const missed = [];
-    const mistakes = [];
-
-    messages.forEach((message) => {
-      const picked = selections[message.id];
-      if (picked === message.correcto) correct += 1;
-      else if (!picked) missed.push(message.subject || message.text || message.id);
-      else mistakes.push(`${message.subject || message.text || message.id} -> ${picked}`);
+    const review = messages.map((message) => {
+      const picked = selections[message.id] || null;
+      const correctChoice = message.correcto;
+      const status = !picked ? 'missed' : picked === correctChoice ? 'correct' : 'wrong';
+      return {
+        id: message.id,
+        label: message.subject || message.text || message.id,
+        picked,
+        correctChoice,
+        status,
+        reason:
+          message.explicacion ||
+          message.signal ||
+          (correctChoice === 'estafa'
+            ? 'Habia senales de urgencia, enlace o identidad dudosa.'
+            : 'No aparecian indicios claros de fraude en este ejemplo.'),
+      };
     });
 
+    const correct = review.filter((item) => item.status === 'correct').length;
     const score = correct / total;
+    const missed = review.filter((item) => item.status === 'missed').map((item) => item.label);
+    const mistakes = review
+      .filter((item) => item.status === 'wrong')
+      .map((item) => `${item.label} -> marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}`);
+
+    setResult({ score, total, correct, review });
     setFeedback(
       buildFeedback({
         title: feedbackRatingLabel(score),
+        score,
         signal: `Clasificaste correctamente ${correct} de ${total} mensajes.`,
         risk:
           kind === 'sms'
             ? 'Los SMS fraudulentos aprovechan urgencia, premios y enlaces acortados.'
-            : 'Los correos fraudulentos intentan parecer legítimos usando remitentes o asuntos creíbles.',
+            : 'Los correos fraudulentos intentan parecer legitimos usando remitentes o asuntos creibles.',
         action: 'Si dudas, no respondas ni abras el enlace desde el mismo canal. Verifica por una ruta oficial.',
-        detected: messages
-          .filter((message) => selections[message.id] === message.correcto)
-          .map((message) => message.subject || message.text || message.id),
+        detected: review.filter((item) => item.status === 'correct').map((item) => item.label),
         missed,
-        extra: mistakes.length ? `Revisa estas decisiones: ${mistakes.join(' · ')}` : '',
+        extra: mistakes.length ? `Revisa estas decisiones: ${mistakes.join(' | ')}` : '',
       })
     );
+
+    const nextFocus = review.find((item) => item.status !== 'correct');
+    if (nextFocus) setSelectedId(nextFocus.id);
   };
+
+  const selectedReview = result?.review?.find((item) => item.id === selectedMessage?.id) || null;
 
   return (
     <>
       {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <ActivitySummaryBar
+        items={[
+          {
+            label: 'Mensajes',
+            value: messages.length,
+            caption: kind === 'sms' ? 'clasifica cada SMS' : 'clasifica cada correo',
+          },
+          {
+            label: 'Clasificados',
+            value: `${Object.keys(selections).length}/${messages.length}`,
+            caption: 'puedes revisar antes de evaluar',
+          },
+          {
+            label: 'Meta',
+            value: 'precision',
+            caption: 'no te guies solo por la apariencia',
+          },
+        ]}
+      />
       <div className={`email-sim ${kind === 'sms' ? 'is-sms' : ''}`}>
         <div className="email-sidebar">
           {messages.map((message) => {
             const picked = selections[message.id];
+            const reviewItem = result?.review?.find((item) => item.id === message.id);
+            const resultClass = reviewItem ? reviewItem.status : '';
             return (
               <button
                 key={message.id}
                 type="button"
-                className={`email-list-item ${selectedId === message.id ? 'active' : ''}`.trim()}
+                className={`email-list-item ${selectedId === message.id ? 'active' : ''} ${resultClass}`.trim()}
                 onClick={() => {
                   setSelectedId(message.id);
                   setShowDetails(false);
@@ -843,8 +987,16 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                 </div>
                 <p className="email-list-subject">{message.subject || message.text}</p>
                 <p className="email-list-preview">{message.preview || message.text}</p>
-                <span className={`email-list-status ${picked || 'empty'}`}>
-                  {picked === 'estafa' ? 'Sospechoso' : picked === 'seguro' ? 'Seguro' : 'Sin clasificar'}
+                <span className={`email-list-status ${picked || 'empty'} ${resultClass}`.trim()}>
+                  {resultClass === 'correct'
+                    ? 'Acierto'
+                    : resultClass === 'wrong'
+                      ? 'Error'
+                      : picked === 'estafa'
+                        ? 'Sospechoso'
+                        : picked === 'seguro'
+                          ? 'Seguro'
+                          : 'Sin clasificar'}
                 </span>
               </button>
             );
@@ -873,6 +1025,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                     className="btn ghost compact"
                     type="button"
                     onClick={() => classify(selectedMessage.id, 'estafa')}
+                    disabled={Boolean(result)}
                   >
                     Reportar phishing
                   </button>
@@ -926,7 +1079,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
 
             <div className="email-reader-footer">
               <p className="email-classify-title">
-                {kind === 'correo' ? '¿Cómo clasificarías este correo?' : '¿Cómo clasificarías este mensaje?'}
+                {kind === 'correo' ? '¿Como clasificarias este correo?' : '¿Como clasificarias este mensaje?'}
               </p>
               <div className="email-classify-actions">
                 {['seguro', 'estafa'].map((choice) => (
@@ -937,47 +1090,97 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                     } compact`}
                     type="button"
                     onClick={() => classify(selectedMessage.id, choice)}
+                    disabled={Boolean(result)}
                   >
                     {choice === 'seguro' ? 'Seguro' : 'Sospechoso'}
                   </button>
                 ))}
               </div>
+              {selectedReview ? (
+                <div className={`message-review-card ${selectedReview.status}`.trim()}>
+                  <div className="message-review-top">
+                    <strong>
+                      {selectedReview.status === 'correct'
+                        ? 'Bien clasificado'
+                        : selectedReview.status === 'wrong'
+                          ? 'Hay que corregir esta decision'
+                          : 'Falto clasificar este mensaje'}
+                    </strong>
+                    <span>{`Correcto: ${selectedReview.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'}`}</span>
+                  </div>
+                  <p>
+                    {selectedReview.picked
+                      ? `Tu elegiste: ${selectedReview.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}.`
+                      : 'No lo clasificaste antes de evaluar.'}
+                  </p>
+                  <p>{selectedReview.reason}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
       </div>
 
       <FeedbackPanel feedback={feedback} />
+      {result ? (
+        <div className="review-grid">
+          {result.review.map((item) => (
+            <article className={`review-card ${item.status}`.trim()} key={item.id}>
+              <div className="review-card-head">
+                <strong>{item.label}</strong>
+                <span>
+                  {item.status === 'correct'
+                    ? 'Correcto'
+                    : item.status === 'wrong'
+                      ? 'Revisar'
+                      : 'Pendiente'}
+                </span>
+              </div>
+              <p>{item.reason}</p>
+              <p className="review-card-meta">
+                {item.picked
+                  ? `Marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}`
+                  : 'Sin clasificar'}{' '}
+                · {`Respuesta esperada: ${item.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'}`}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : null}
       <div className="activity-actions">
-        <button className="btn primary" type="button" onClick={evaluate}>
-          Evaluar clasificacion
-        </button>
-        {feedback ? (
-          <button
-            className="btn primary"
-            type="button"
-            onClick={() =>
-              completePayload(
-                startedAtRef,
-                onComplete,
-                Math.max(
-                  0,
-                  Math.min(
-                    1,
-                    messages.reduce(
-                      (acc, message) => acc + (selections[message.id] === message.correcto ? 1 : 0),
-                      0
-                    ) / Math.max(messages.length, 1)
-                  )
-                ),
-                feedbackToText(feedback),
-                { selections }
-              )
-            }
-          >
-            Continuar
+        {!result ? (
+          <button className="btn primary" type="button" onClick={evaluate}>
+            Evaluar clasificacion
           </button>
-        ) : null}
+        ) : (
+          <>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() =>
+                completePayload(startedAtRef, onComplete, result.score, feedbackToText(feedback), {
+                  selections,
+                  review: result.review,
+                })
+              }
+            >
+              Continuar
+            </button>
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setFeedback(null);
+                setSelections({});
+                setSelectedId(messages[0]?.id || '');
+                setShowDetails(false);
+              }}
+            >
+              Reintentar clasificacion
+            </button>
+          </>
+        )}
       </div>
     </>
   );
@@ -990,8 +1193,10 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
   const [flagged, setFlagged] = useState(() => new Set());
   const [decision, setDecision] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [result, setResult] = useState(null);
 
   const toggleTarget = (target) => {
+    if (result) return;
     setFlagged((current) => {
       const next = new Set(current);
       if (next.has(target)) next.delete(target);
@@ -1023,15 +1228,29 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
       .map((hotspot) => hotspot.label);
     const wrong = Array.from(flagged).filter((target) => !correctTargets.includes(target));
     const score = calculateScore();
+    const decisionLabel =
+      Number.isFinite(Number(decision)) && activity.decisionOptions?.[decision]
+        ? activity.decisionOptions[decision]
+        : 'Sin decision final';
+
+    setResult({
+      score,
+      matched,
+      missed,
+      wrong,
+      decisionLabel,
+      expectedCount: correctTargets.length,
+    });
     setFeedback(
       buildFeedback({
         title: feedbackRatingLabel(score),
+        score,
         signal: `Marcaste ${matched.length} hallazgos relevantes.`,
         risk: 'Una pagina clonada puede pedir pagos inseguros o robar datos personales.',
         action: 'Si la web mete prisa, descuentos absurdos o contactos raros, sal y valida por una fuente oficial.',
         detected: matched.map((target) => hotspotMap.get(target)?.label || target),
         missed: missed.slice(0, 4),
-        extra: wrong.length ? `Marcaste tambien: ${wrong.join(', ')}` : '',
+        extra: wrong.length ? `Tambien marcaste: ${wrong.join(', ')}` : `Decision final: ${decisionLabel}.`,
       })
     );
   };
@@ -1140,7 +1359,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
             type="button"
             onClick={() => toggleTarget('pago')}
           >
-            {`Metodos de pago: ${page.pagos.join(' · ')}`}
+            {`Metodos de pago: ${page.pagos.join(' | ')}`}
           </button>
         ) : null}
       </>
@@ -1150,6 +1369,24 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
   return (
     <>
       {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <ActivitySummaryBar
+        items={[
+          { label: 'Etapas', value: 'Producto -> Carrito -> Checkout', caption: 'recorre las tres vistas' },
+          {
+            label: 'Senales clave',
+            value: hotspots.filter((hotspot) => hotspot.correcta).length,
+            caption: 'hallazgos importantes',
+          },
+          { label: 'Marcadas', value: flagged.size, caption: 'puedes ajustar antes de evaluar' },
+        ]}
+      />
+      <div className="web-lab-brief">
+        <p className="web-lab-title">Explora la tienda completa antes de decidir.</p>
+        <p>
+          Revisa dominio, oferta, carrito y checkout. Marca solo las senales que realmente te harian salir del sitio o
+          verificar por fuera.
+        </p>
+      </div>
       <div className="browser-sim">
         <div className="browser-top">
           <div className="browser-dots">
@@ -1191,6 +1428,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
                     className={`btn ${decision === index ? 'primary' : 'ghost'} compact`}
                     type="button"
                     onClick={() => setDecision(index)}
+                    disabled={Boolean(result)}
                   >
                     {option}
                   </button>
@@ -1213,24 +1451,76 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
       </div>
 
       <FeedbackPanel feedback={feedback} />
+      {result ? (
+        <div className="review-grid">
+          <article className="review-card correct">
+            <div className="review-card-head">
+              <strong>Senales acertadas</strong>
+              <span>{`${result.matched.length}/${result.expectedCount}`}</span>
+            </div>
+            <p>
+              {result.matched.length
+                ? result.matched.map((target) => hotspotMap.get(target)?.label || target).join(' | ')
+                : 'Todavia no marcaste las senales clave esperadas.'}
+            </p>
+          </article>
+          <article className={`review-card ${result.missed.length ? 'wrong' : 'correct'}`.trim()}>
+            <div className="review-card-head">
+              <strong>Te falto revisar</strong>
+              <span>{result.missed.length}</span>
+            </div>
+            <p>{result.missed.length ? result.missed.join(' | ') : 'Cubriste las senales principales.'}</p>
+          </article>
+          <article className={`review-card ${result.wrong.length ? 'warn' : 'correct'}`.trim()}>
+            <div className="review-card-head">
+              <strong>Marcas de mas</strong>
+              <span>{result.wrong.length}</span>
+            </div>
+            <p>{result.wrong.length ? result.wrong.join(' | ') : 'Marcaste con buena precision.'}</p>
+          </article>
+          <article className="review-card">
+            <div className="review-card-head">
+              <strong>Decision final</strong>
+              <span>{formatPercent(result.score)}</span>
+            </div>
+            <p>{result.decisionLabel}</p>
+          </article>
+        </div>
+      ) : null}
       <div className="activity-actions">
-        <button className="btn primary" type="button" onClick={evaluate}>
-          Evaluar hallazgos
-        </button>
-        {feedback ? (
-          <button
-            className="btn primary"
-            type="button"
-            onClick={() =>
-              completePayload(startedAtRef, onComplete, calculateScore(), feedbackToText(feedback), {
-                flaggedTargets: Array.from(flagged),
-                decision,
-              })
-            }
-          >
-            Continuar
+        {!result ? (
+          <button className="btn primary" type="button" onClick={evaluate}>
+            Evaluar hallazgos
           </button>
-        ) : null}
+        ) : (
+          <>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() =>
+                completePayload(startedAtRef, onComplete, result.score, feedbackToText(feedback), {
+                  flaggedTargets: Array.from(flagged),
+                  decision,
+                })
+              }
+            >
+              Continuar
+            </button>
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setFeedback(null);
+                setFlagged(new Set());
+                setDecision(null);
+                setStage('product');
+              }}
+            >
+              Reintentar revision
+            </button>
+          </>
+        )}
       </div>
     </>
   );
@@ -1250,6 +1540,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
   const finalScore = scores.length
     ? scores.reduce((total, value) => total + value, 0) / scores.length
     : 1;
+  const safeDecisions = scores.filter((value) => value >= 0.8).length;
 
   const chooseOption = (option) => {
     if (!currentStep || finished) return;
@@ -1261,7 +1552,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
         title: feedbackRatingLabel(score),
         signal: currentStep.texto,
         risk: 'Las llamadas fraudulentas intentan forzar decisiones sin darte espacio para verificar.',
-        action: option.feedback || 'Cuelga y verifica por un canal oficial antes de compartir información.',
+        action: option.feedback || 'Cuelga y verifica por un canal oficial antes de compartir informaciÃ³n.',
       })
     );
     setPendingNext(() => () => {
@@ -1279,11 +1570,30 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
   return (
     <>
       {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <ActivitySummaryBar
+        items={[
+          {
+            label: 'Paso actual',
+            value: finished ? 'Cierre' : `${Math.min(stepIndex + 1, steps.length)}/${steps.length || 1}`,
+            caption: 'Responde como si fuera una llamada real.',
+          },
+          {
+            label: 'Decisiones firmes',
+            value: `${safeDecisions}/${scores.length || 0}`,
+            caption: 'Cuenta cada vez que cortaste el riesgo a tiempo.',
+          },
+          {
+            label: 'Meta',
+            value: 'Cortar y verificar',
+            caption: 'No resuelvas nada dentro de la llamada.',
+          },
+        ]}
+      />
       <div className="call-phone">
         <div className="call-screen">
           <p className="call-chip">Llamada entrante</p>
           <h3 className="call-name">{activity.callerName || 'Llamada'}</h3>
-          <p className="call-number">{activity.callerNumber || 'Número no verificado'}</p>
+          <p className="call-number">{activity.callerNumber || 'NÃºmero no verificado'}</p>
           <div className="call-transcript">
             {transcript.map((entry, index) => (
               <div className={`call-bubble ${entry.speaker}`} key={`${entry.speaker}-${index}`}>
@@ -1310,6 +1620,31 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
         </div>
       </div>
       <FeedbackPanel feedback={feedback} />
+      {finished ? (
+        <div className="review-grid">
+          <article className="review-card correct">
+            <div className="review-card-head">
+              <strong>Promedio de seguridad</strong>
+              <span>{formatPercent(finalScore)}</span>
+            </div>
+            <p>Tu salida mas segura fue cortar la llamada y verificar por un canal oficial controlado por ti.</p>
+          </article>
+          <article className="review-card">
+            <div className="review-card-head">
+              <strong>Decisiones firmes</strong>
+              <span>{`${safeDecisions}/${scores.length || 0}`}</span>
+            </div>
+            <p>Mientras antes salgas del canal del atacante, menos margen tiene para presionarte.</p>
+          </article>
+          <article className="review-card">
+            <div className="review-card-head">
+              <strong>Cierre recomendado</strong>
+              <span>{activity.callerName || 'Llamada'}</span>
+            </div>
+            <p>Cuelga, entra a tu app o llama tu mismo al numero oficial, y nunca compartas codigos ni instales apps.</p>
+          </article>
+        </div>
+      ) : null}
       <div className="activity-actions">
         {feedback && pendingNext ? (
           <button className="btn primary" type="button" onClick={pendingNext}>
@@ -1330,7 +1665,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
                     title: feedbackRatingLabel(finalScore),
                     signal: 'Aplicaste tu criterio frente a una llamada presionante.',
                     risk: 'El objetivo es que no resuelvas durante la llamada ni compartas datos sensibles.',
-                    action: 'Cuelga y confirma por un número oficial que tú mismo busques.',
+                    action: 'Cuelga y confirma por un nÃºmero oficial que tÃº mismo busques.',
                   })
                 ),
                 { transcript }
@@ -1357,6 +1692,8 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
   const finalScore = scores.length
     ? scores.reduce((total, value) => total + value, 0) / scores.length
     : 1;
+  const safeChoices = scores.filter((value) => value >= 0.8).length;
+  const latestChoice = flowChoices[flowChoices.length - 1] || null;
 
   const chooseOption = (step, option) => {
     const score = Math.max(0, Math.min(1, Number(option.puntaje) || 0.6));
@@ -1382,6 +1719,25 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
   return (
     <>
       {activity.intro ? <Paragraphs text={activity.intro} /> : null}
+      <ActivitySummaryBar
+        items={[
+          {
+            label: 'Paso',
+            value: finished ? 'Finalizado' : `${Math.min(stepIndex + 1, steps.length)}/${steps.length || 1}`,
+            caption: 'Cada decision cambia lo que sigue.',
+          },
+          {
+            label: 'Decisiones seguras',
+            value: `${safeChoices}/${scores.length || 0}`,
+            caption: 'Tu rutina se fortalece cuando repites buenas decisiones.',
+          },
+          {
+            label: 'Meta',
+            value: 'Pausa y verifica',
+            caption: 'No avances por impulso.',
+          },
+        ]}
+      />
       {currentStep ? (
         <div className="flow">
           <p className="flow-text">{currentStep.texto}</p>
@@ -1407,6 +1763,31 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
         </div>
       )}
       <FeedbackPanel feedback={feedback} />
+      {finished ? (
+        <div className="review-grid">
+          <article className="review-card correct">
+            <div className="review-card-head">
+              <strong>Promedio de criterio</strong>
+              <span>{formatPercent(finalScore)}</span>
+            </div>
+            <p>Tu mejor defensa fue mantener la rutina aun cuando el escenario parecia cotidiano o creible.</p>
+          </article>
+          <article className="review-card">
+            <div className="review-card-head">
+              <strong>Decisiones seguras</strong>
+              <span>{`${safeChoices}/${scores.length || 0}`}</span>
+            </div>
+            <p>Las decisiones firmes son las que cortan la prisa y te sacan del canal sospechoso.</p>
+          </article>
+          <article className="review-card">
+            <div className="review-card-head">
+              <strong>Ultima respuesta</strong>
+              <span>{latestChoice ? 'Registrada' : 'Sin dato'}</span>
+            </div>
+            <p>{latestChoice?.choice || 'Terminaste el flujo sin una respuesta final registrada.'}</p>
+          </article>
+        </div>
+      ) : null}
       <div className="activity-actions">
         {feedback && pendingNext ? (
           <button className="btn primary" type="button" onClick={pendingNext}>
@@ -1425,9 +1806,9 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
                 feedbackToText(
                   buildFeedback({
                     title: feedbackRatingLabel(finalScore),
-                    signal: 'Aplicaste tu rutina de verificación en una situación cotidiana.',
+                    signal: 'Aplicaste tu rutina de verificaciÃ³n en una situaciÃ³n cotidiana.',
                     risk: 'Cuando la rutina se rompe, la urgencia o la confianza pueden tomar el control.',
-                    action: 'Mantén la secuencia: pausa, verifica y confirma por canal oficial.',
+                    action: 'MantÃ©n la secuencia: pausa, verifica y confirma por canal oficial.',
                   })
                 ),
                 { flowChoices }

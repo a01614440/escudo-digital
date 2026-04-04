@@ -1,3 +1,30 @@
+function getFeedbackTone(feedback) {
+  const score = Number(feedback?.score);
+  if (Number.isFinite(score)) {
+    if (score >= 0.85) return 'good';
+    if (score >= 0.6) return 'warn';
+    return 'risk';
+  }
+
+  const title = String(feedback?.title || '').toLowerCase();
+  if (title.includes('buena') || title.includes('correcto') || title.includes('complet')) {
+    return 'good';
+  }
+  if (title.includes('regular') || title.includes('sin evaluacion') || title.includes('sin evaluación')) {
+    return 'warn';
+  }
+  if (title.includes('riesg') || title.includes('falta')) {
+    return 'risk';
+  }
+  return 'neutral';
+}
+
+function formatScore(score) {
+  const safe = Number(score);
+  if (!Number.isFinite(safe)) return '';
+  return `${Math.round(Math.max(0, Math.min(1, safe)) * 100)}%`;
+}
+
 export default function FeedbackPanel({ feedback }) {
   if (!feedback || (typeof feedback === 'string' && !feedback.trim())) return null;
 
@@ -15,9 +42,22 @@ export default function FeedbackPanel({ feedback }) {
     );
   }
 
+  const tone = getFeedbackTone(feedback);
+  const scoreLabel = formatScore(feedback.score);
+
   return (
-    <div className="feedback">
-      {feedback.title ? <div className="feedback-pill">{feedback.title}</div> : null}
+    <div className={`feedback feedback-${tone}`}>
+      {feedback.title || scoreLabel ? (
+        <div className="feedback-head">
+          {feedback.title ? <div className="feedback-pill">{feedback.title}</div> : null}
+          {scoreLabel ? (
+            <div className="feedback-score">
+              <strong>{scoreLabel}</strong>
+              <span>desempeño</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {feedback.signal ? (
         <div>

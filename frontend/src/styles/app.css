@@ -291,6 +291,154 @@ canvas {
   margin-top: 8px;
 }
 
+.feedback-head,
+.message-review-top,
+.review-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.feedback-score,
+.activity-summary-stat,
+.review-card,
+.message-review-card,
+.web-lab-brief {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.feedback-score {
+  display: grid;
+  gap: 2px;
+  min-width: 88px;
+  padding: 10px 12px;
+  text-align: right;
+}
+
+.feedback-score strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.feedback-score span,
+.activity-summary-stat span,
+.review-card-head span,
+.message-review-top span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.feedback.feedback-good {
+  border-color: rgba(47, 179, 123, 0.28);
+  background: linear-gradient(180deg, rgba(241, 251, 246, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.feedback.feedback-warn {
+  border-color: rgba(255, 173, 74, 0.28);
+  background: linear-gradient(180deg, rgba(255, 249, 239, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.feedback.feedback-risk {
+  border-color: rgba(242, 87, 87, 0.24);
+  background: linear-gradient(180deg, rgba(255, 244, 244, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.activity-summary-bar,
+.review-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.activity-summary-stat {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.04);
+}
+
+.activity-summary-stat strong {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.activity-summary-stat p,
+.review-card p,
+.message-review-card p,
+.web-lab-brief p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.review-card,
+.message-review-card,
+.web-lab-brief {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.05);
+}
+
+.review-card.correct,
+.message-review-card.correct {
+  border-color: rgba(47, 179, 123, 0.3);
+  background: linear-gradient(180deg, rgba(241, 251, 246, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.review-card.wrong,
+.message-review-card.wrong,
+.message-review-card.missed {
+  border-color: rgba(242, 87, 87, 0.25);
+  background: linear-gradient(180deg, rgba(255, 244, 244, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.review-card.warn {
+  border-color: rgba(255, 173, 74, 0.28);
+  background: linear-gradient(180deg, rgba(255, 249, 239, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.review-card-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.web-lab-brief {
+  background:
+    radial-gradient(circle at top right, rgba(47, 107, 255, 0.1), transparent 42%),
+    linear-gradient(180deg, rgba(247, 250, 255, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.web-lab-title {
+  margin: 0;
+  font-weight: 800;
+}
+
+.email-list-item.correct {
+  background: rgba(241, 251, 246, 0.9);
+}
+
+.email-list-item.wrong,
+.email-list-item.missed {
+  background: rgba(255, 244, 244, 0.9);
+}
+
+.email-list-status.correct {
+  background: rgba(47, 179, 123, 0.14);
+  color: var(--success);
+}
+
+.email-list-status.wrong,
+.email-list-status.missed {
+  background: rgba(242, 87, 87, 0.14);
+  color: #aa1f1f;
+}
+
 .stat-card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -1052,7 +1200,12 @@ body[data-theme='dark'] .focus-metric,
 body[data-theme='dark'] .module-fact,
 body[data-theme='dark'] .activity-guide .summary-item,
 body[data-theme='dark'] .session-detail-card,
-body[data-theme='dark'] .session-detail-actions {
+body[data-theme='dark'] .session-detail-actions,
+body[data-theme='dark'] .activity-summary-stat,
+body[data-theme='dark'] .review-card,
+body[data-theme='dark'] .message-review-card,
+body[data-theme='dark'] .web-lab-brief,
+body[data-theme='dark'] .feedback-score {
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -1084,6 +1237,33 @@ body[data-theme='dark'] .shield-donut {
   background:
     radial-gradient(circle closest-side, rgba(15, 24, 40, 1) 68%, transparent 69% 100%),
     conic-gradient(var(--primary) calc(var(--p) * 1%), rgba(114, 160, 255, 0.14) 0);
+}
+
+body[data-theme='dark'] .feedback.feedback-good {
+  background: linear-gradient(180deg, rgba(22, 48, 36, 0.92), rgba(15, 24, 40, 0.96));
+}
+
+body[data-theme='dark'] .feedback.feedback-warn,
+body[data-theme='dark'] .review-card.warn {
+  background: linear-gradient(180deg, rgba(58, 39, 15, 0.9), rgba(15, 24, 40, 0.96));
+}
+
+body[data-theme='dark'] .feedback.feedback-risk,
+body[data-theme='dark'] .review-card.wrong,
+body[data-theme='dark'] .message-review-card.wrong,
+body[data-theme='dark'] .message-review-card.missed {
+  background: linear-gradient(180deg, rgba(58, 20, 24, 0.9), rgba(15, 24, 40, 0.96));
+}
+
+body[data-theme='dark'] .review-card.correct,
+body[data-theme='dark'] .message-review-card.correct,
+body[data-theme='dark'] .email-list-item.correct {
+  background: rgba(47, 179, 123, 0.12);
+}
+
+body[data-theme='dark'] .email-list-item.wrong,
+body[data-theme='dark'] .email-list-item.missed {
+  background: rgba(242, 87, 87, 0.12);
 }
 
 .topic-toggle-grid {
