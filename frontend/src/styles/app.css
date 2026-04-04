@@ -3000,6 +3000,485 @@ body[data-theme='dark'] .app-crash-detail {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.call-immersive-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.call-immersive-phone {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 30px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(107, 133, 255, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.97));
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.call-immersive-shell.difficulty-basico .call-immersive-phone {
+  background:
+    radial-gradient(circle at top right, rgba(255, 154, 60, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(255, 252, 246, 0.98), rgba(255, 247, 238, 0.97));
+}
+
+.call-immersive-shell.difficulty-refuerzo .call-immersive-phone {
+  background:
+    radial-gradient(circle at top right, rgba(107, 133, 255, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(248, 250, 255, 0.98), rgba(240, 245, 255, 0.97));
+}
+
+.call-immersive-shell.difficulty-avanzado .call-immersive-phone {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(247, 252, 249, 0.98), rgba(238, 247, 243, 0.97));
+}
+
+.call-immersive-status,
+.call-immersive-topbar,
+.call-controls-bar,
+.call-dashboard-row,
+.call-ended-grid,
+.call-mode-grid,
+.call-choice-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.call-immersive-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.call-immersive-status,
+.call-immersive-topbar {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+}
+
+.call-immersive-status span,
+.call-immersive-kicker,
+.call-info-card span,
+.call-voice-select span {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(58, 86, 201, 0.76);
+  font-weight: 800;
+}
+
+.call-immersive-identity {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.call-immersive-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 26px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2647ff, #6e8fff);
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 800;
+  box-shadow: 0 18px 38px rgba(38, 71, 255, 0.22);
+}
+
+.call-immersive-identity h3,
+.call-panel-head h3,
+.call-ended-head h3,
+.call-immersive-permissions h3 {
+  margin: 0;
+  font-size: clamp(1.55rem, 2.7vw, 2.15rem);
+}
+
+.call-immersive-identity p,
+.call-immersive-intro,
+.call-ended-head p,
+.call-immersive-permissions p,
+.call-info-card p {
+  margin: 0;
+  line-height: 1.65;
+  color: rgba(17, 24, 39, 0.74);
+}
+
+.call-immersive-wave {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 84px;
+}
+
+.call-immersive-wave span,
+.call-live-indicator span {
+  width: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(38, 71, 255, 0.28), rgba(38, 71, 255, 0.92));
+  animation: call-wave 1.4s ease-in-out infinite;
+}
+
+.call-immersive-wave span:nth-child(1),
+.call-live-indicator span:nth-child(1) {
+  height: 20px;
+}
+
+.call-immersive-wave span:nth-child(2),
+.call-live-indicator span:nth-child(2) {
+  height: 42px;
+  animation-delay: 0.1s;
+}
+
+.call-immersive-wave span:nth-child(3),
+.call-live-indicator span:nth-child(3) {
+  height: 30px;
+  animation-delay: 0.2s;
+}
+
+.call-immersive-wave span:nth-child(4) {
+  height: 52px;
+  animation-delay: 0.3s;
+}
+
+.call-live-indicator {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 34px;
+}
+
+.call-live-indicator span {
+  width: 7px;
+  height: 14px;
+  opacity: 0.4;
+}
+
+.call-live-indicator.speaking span,
+.call-live-indicator.listening span {
+  opacity: 1;
+}
+
+.call-immersive-actions,
+.call-controls-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.call-control-btn {
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #0f172a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.call-control-btn:hover,
+.call-mode-card:hover,
+.call-choice-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+}
+
+.call-control-btn.primary,
+.call-mode-card.voice {
+  border-color: rgba(38, 71, 255, 0.16);
+  background: linear-gradient(135deg, #2647ff, #6f8cff);
+  color: white;
+}
+
+.call-control-btn.success {
+  border-color: rgba(15, 118, 110, 0.18);
+  background: linear-gradient(135deg, #0f766e, #10b981);
+  color: white;
+}
+
+.call-control-btn.danger {
+  border-color: rgba(220, 38, 38, 0.14);
+  background: linear-gradient(135deg, #991b1b, #dc2626);
+  color: white;
+}
+
+.call-control-btn.muted {
+  background: rgba(223, 229, 255, 0.85);
+}
+
+.call-control-btn.wide {
+  width: 100%;
+  justify-content: center;
+}
+
+.call-badge {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(38, 71, 255, 0.1);
+  color: #2647ff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.call-badge.subtle {
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.call-transcript-panel,
+.call-info-card,
+.call-voice-panel,
+.call-chat-panel,
+.call-mode-card,
+.call-transcript-empty {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.call-transcript-panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  min-height: 240px;
+}
+
+.call-transcript-bubble {
+  display: grid;
+  gap: 6px;
+  max-width: min(78%, 540px);
+  padding: 14px 16px;
+  border-radius: 20px;
+}
+
+.call-transcript-bubble.caller {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(45, 55, 72, 0.96));
+  color: white;
+  border-top-left-radius: 8px;
+}
+
+.call-transcript-bubble.user {
+  margin-left: auto;
+  background: linear-gradient(135deg, rgba(38, 71, 255, 0.12), rgba(111, 140, 255, 0.16));
+  color: #0f172a;
+  border-top-right-radius: 8px;
+}
+
+.call-transcript-bubble span {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.call-transcript-bubble p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.call-dashboard-row,
+.call-ended-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.call-info-card,
+.call-voice-panel,
+.call-chat-panel,
+.call-mode-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.call-info-card strong,
+.call-ended-head h3 {
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.call-voice-panel p {
+  color: rgba(17, 24, 39, 0.72);
+}
+
+.call-choice-grid,
+.call-mode-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.call-choice-btn,
+.call-mode-card {
+  text-align: left;
+  cursor: pointer;
+}
+
+.call-choice-btn {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.84);
+  font: inherit;
+  font-weight: 700;
+}
+
+.call-chat-panel textarea,
+.call-voice-select select {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  padding: 14px 16px;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+}
+
+.call-inline-error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(254, 226, 226, 0.88);
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.call-ended-head,
+.call-immersive-permissions,
+.call-voice-select,
+.call-immersive-panel-head {
+  display: grid;
+  gap: 12px;
+}
+
+@keyframes call-wave {
+  0%,
+  100% {
+    transform: scaleY(0.72);
+    opacity: 0.52;
+  }
+  50% {
+    transform: scaleY(1.18);
+    opacity: 1;
+  }
+}
+
+body[data-theme='dark'] .call-immersive-phone {
+  border-color: rgba(148, 163, 184, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(72, 100, 255, 0.22), transparent 24%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.98));
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.42);
+}
+
+body[data-theme='dark'] .call-immersive-shell.difficulty-basico .call-immersive-phone {
+  background:
+    radial-gradient(circle at top right, rgba(255, 154, 60, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(28, 22, 16, 0.98), rgba(32, 24, 18, 0.98));
+}
+
+body[data-theme='dark'] .call-immersive-shell.difficulty-refuerzo .call-immersive-phone {
+  background:
+    radial-gradient(circle at top right, rgba(87, 112, 255, 0.22), transparent 24%),
+    linear-gradient(180deg, rgba(12, 19, 38, 0.98), rgba(14, 22, 40, 0.98));
+}
+
+body[data-theme='dark'] .call-immersive-shell.difficulty-avanzado .call-immersive-phone {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(11, 27, 22, 0.98), rgba(12, 24, 21, 0.98));
+}
+
+body[data-theme='dark'] .call-immersive-identity p,
+body[data-theme='dark'] .call-immersive-intro,
+body[data-theme='dark'] .call-ended-head p,
+body[data-theme='dark'] .call-immersive-permissions p,
+body[data-theme='dark'] .call-info-card p,
+body[data-theme='dark'] .call-voice-panel p {
+  color: rgba(226, 232, 240, 0.74);
+}
+
+body[data-theme='dark'] .call-transcript-panel,
+body[data-theme='dark'] .call-info-card,
+body[data-theme='dark'] .call-voice-panel,
+body[data-theme='dark'] .call-chat-panel,
+body[data-theme='dark'] .call-mode-card,
+body[data-theme='dark'] .call-transcript-empty,
+body[data-theme='dark'] .call-choice-btn,
+body[data-theme='dark'] .call-control-btn,
+body[data-theme='dark'] .call-chat-panel textarea,
+body[data-theme='dark'] .call-voice-select select,
+body[data-theme='dark'] .call-badge.subtle {
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.78);
+  color: #e5edf8;
+}
+
+body[data-theme='dark'] .call-info-card strong,
+body[data-theme='dark'] .call-ended-head h3,
+body[data-theme='dark'] .call-immersive-identity h3 {
+  color: #f8fafc;
+}
+
+body[data-theme='dark'] .call-transcript-bubble.user {
+  background: linear-gradient(135deg, rgba(38, 71, 255, 0.26), rgba(111, 140, 255, 0.22));
+  color: #f8fafc;
+}
+
+body[data-theme='dark'] .call-inline-error {
+  background: rgba(127, 29, 29, 0.38);
+  color: #fecaca;
+}
+
+@media (max-width: 980px) {
+  .call-dashboard-row,
+  .call-ended-grid,
+  .call-mode-grid,
+  .call-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .call-immersive-phone {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .call-immersive-status,
+  .call-immersive-topbar,
+  .call-dashboard-row,
+  .call-ended-grid,
+  .call-mode-grid,
+  .call-choice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .call-transcript-bubble {
+    max-width: 100%;
+  }
+
+  .call-immersive-actions,
+  .call-controls-bar {
+    flex-direction: column;
+  }
+
+  .call-control-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .fraud-store-shell.layout-minimal .fraud-product-card {
   gap: 10px;
 }

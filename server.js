@@ -431,8 +431,77 @@ const buildOpenAnswerGradePrompt = ({ prompt, answer, user }) => {
   ];
 };
 
-const buildSimTurnPrompt = ({ scenario, history, userMessage, turn, turnos_max, user }) => {
+const buildSimTurnPrompt = ({
+  scenario,
+  history,
+  userMessage,
+  turn,
+  turnos_max,
+  user,
+  interactionMode = '',
+  difficulty = '',
+  callerName = '',
+  fraudType = '',
+  choicesNeeded = 0,
+}) => {
   const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
+  const isCallMode = String(interactionMode || '').toLowerCase().startsWith('call');
+  if (isCallMode) {
+    return [
+      {
+        role: 'system',
+        content:
+          'Simula una llamada educativa de vishing. Durante la llamada tú SOLO interpretas al estafador, sin romper personaje ni sonar educativo. ' +
+          'Debes sonar natural, persuasivo y realista, usando presión, autoridad falsa, miedo o urgencia según el escenario. ' +
+          'Adáptate a lo que diga la persona usuaria. No uses enlaces, teléfonos reales, nombres reales ni instrucciones delictivas.' +
+          '\n\n' +
+          'Contexto importante:\n' +
+          `- Modo: ${interactionMode}\n` +
+          `- Dificultad: ${difficulty || 'general'}\n` +
+          `- Caller name: ${callerName || 'Contacto desconocido'}\n` +
+          `- Tipo de fraude: ${fraudType || 'llamada fraudulenta'}\n` +
+          `- Turno actual: ${turn}/${turnos_max}\n` +
+          '\n' +
+          'Devuelve SOLO JSON válido con estas llaves exactas:\n' +
+          '- reply (string): la siguiente frase del estafador, corta y natural.\n' +
+          '- choices (array de 3 strings): posibles respuestas del usuario para interfaz de opciones; 1 segura, 1 de duda y 1 riesgosa.\n' +
+          '- coach_feedback (string): retroalimentación breve para mostrar después de la llamada, no dentro del personaje.\n' +
+          '- signal_detected (string): la táctica puntual usada en este turno.\n' +
+          '- risk (string): por qué esa táctica es peligrosa.\n' +
+          '- safe_action (string): qué haría una persona segura en una situación real.\n' +
+          '- rating (string): "Buena", "Regular" o "Riesgosa".\n' +
+          '- score (number 0-1): qué tan segura fue la respuesta del usuario.\n' +
+          '- done (boolean): true si la persona ya cortó, verificó por su cuenta o el turno llegó al límite.\n' +
+          '\n' +
+          'Reglas:\n' +
+          '1) No des consejos educativos dentro de reply.\n' +
+          '2) Mantén el tono de llamada: frases de voz, no chat robótico.\n' +
+          '3) Si la persona cuelga, se niega firmemente o dice que verificará por la vía oficial, marca done=true.\n' +
+          `4) Devuelve exactamente ${choicesNeeded >= 3 ? 3 : 3} choices cortas, claras y usables como botones.\n` +
+          '5) La respuesta debe sonar distinta por dificultad: básico más obvio, refuerzo más convincente, avanzado más profesional y sutil.\n' +
+          '6) No repitas literalmente el mismo texto del historial si puedes evitarlo.\n',
+      },
+      {
+        role: 'user',
+        content: JSON.stringify(
+          {
+            scenario,
+            turn,
+            turnos_max,
+            history: safeHistory,
+            userMessage,
+            contexto: {
+              edad: user?.answers?.age || '',
+              nivel: user?.assessment?.nivel || '',
+              prioridad: user?.answers?.priority || '',
+            },
+          },
+          null,
+          2
+        ),
+      },
+    ];
+  }
   return [
     {
       role: 'system',
@@ -633,7 +702,16 @@ const BROKEN_ACCENT_SUFFIX_MAP = new Map([
   ['\u0091', '\u00d1'],
 ]);
 
-const EXTREME_MOJIBAKE_REPLACEMENTS = new Map();
+const EXTREME_MOJIBAKE_REPLACEMENTS = new Map([
+  [
+    '\u00c3\u0192\u00c6\u2019\u00c3\u201a\u00c2\u00a2\u00c3\u0192\u00c2\u00a2\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u201a\u00c2\u00ac\u00c3\u0192\u00e2\u20ac\u00a6\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u201c',
+    '\u201c',
+  ],
+  [
+    '\u00c3\u0192\u00c6\u2019\u00c3\u201a\u00c2\u00a2\u00c3\u0192\u00c2\u00a2\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u201a\u00c2\u00ac\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u009d',
+    '\u201d',
+  ],
+]);
 
 function looksLikeMojibake(value) {
   return MOJIBAKE_MARKERS.some((marker) => value.includes(marker)) || /\bcontrasena\b/i.test(value);
@@ -1280,20 +1358,20 @@ const COURSE_PLAN_VERSION = 4;
 const MODULE_LEVELS = ['basico', 'refuerzo', 'avanzado'];
 const ADMIN_REVIEW_CATEGORIES = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
 const MODULE_TITLE_LABELS = {
-  web: 'Detecta Páginas Clonadas',
-  whatsapp: 'WhatsApp: Suplantación y Enlaces',
+  web: 'Detecta P?ginas Clonadas',
+  whatsapp: 'WhatsApp: Suplantaci?n y Enlaces',
   sms: 'SMS: Detecta Mensajes Falsos',
   llamadas: 'Llamadas Fraudulentas',
   correo_redes: 'Correo/Redes: Phishing',
-  habitos: 'Hábitos de Verificación',
+  habitos: 'H?bitos de Verificaci?n',
 };
 const MODULE_TITLE_HINTS = {
-  web: /(p[aá]ginas?|dominios?|clonad|checkout|carrito|tienda)/i,
-  whatsapp: /(whatsapp|suplantaci[oó]n|enlaces?)/i,
+  web: /(p[a?]ginas?|dominios?|clonad|checkout|carrito|tienda)/i,
+  whatsapp: /(whatsapp|suplantaci[o?]n|enlaces?)/i,
   sms: /(^|\W)sms(\W|$)|mensajes?\s+falsos/i,
   llamadas: /(llamadas?\s+fraudulentas|vishing|llamada)/i,
   correo_redes: /(correo|redes|phishing)/i,
-  habitos: /(h[aá]bitos?|verificaci[oó]n|rutina)/i,
+  habitos: /(h[a?]bitos?|verificaci[o?]n|rutina)/i,
 };
 
 const clampNumber = (value, min, max) => {
@@ -3242,6 +3320,430 @@ const buildCallModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, varian
   });
 };
 
+const buildCallModuleImmersive = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
+  const level = normalizeModuleLevel(modNivel);
+  const scenarioSets = {
+    basico: [
+      {
+        key: 'banco-otp',
+        fraudType: 'bloqueo de cuenta y OTP',
+        callerName: 'Seguridad bancaria',
+        callerNumber: 'Número privado',
+        voiceProfile: 'female',
+        difficultyTone: 'básico',
+        intro:
+          'Atiende una llamada donde la presión es directa. Tu meta no es convencer al agente: es cortar el canal y verificar por tu cuenta.',
+        opening:
+          'Le hablo del área de seguridad. Detectamos un cargo sospechoso y necesito el código SMS que acaba de llegar para bloquearlo ahora mismo.',
+        scenarioPrompt:
+          'Actúas como una supuesta agente bancaria que quiere obtener un código OTP. Usa urgencia directa, amenaza con bloqueo inmediato y pide actuar durante la llamada. Si la persona dice que va a colgar o verificar por la app oficial, insistes una vez más y luego cierra.',
+        starterChoices: [
+          'No voy a dar ese código por llamada.',
+          '¿Qué cargo dices que viste?',
+          'Voy a colgar y revisar mi app.',
+        ],
+        steps: [
+          {
+            texto: 'La supuesta agente dice que el cargo sigue en proceso y que solo tiene unos segundos para ayudarte.',
+            opciones: [
+              { id: 'c1', texto: 'Dar el código para cancelar rápido', puntaje: 0.1, feedback: 'Riesgosa. El código es justo lo que necesita el estafador.' },
+              { id: 'c2', texto: 'Colgar y revisar la app oficial', puntaje: 1, feedback: 'Correcto. Recuperas el control del canal.' },
+              { id: 'c3', texto: 'Pedir más detalles sin colgar', puntaje: 0.45, feedback: 'Regular. Sigues dentro de la presión del atacante.' },
+            ],
+          },
+          {
+            texto: 'Antes de que cuelgues, insiste: "Si cortas la llamada, el cargo ya no se podrá frenar".',
+            opciones: [
+              { id: 'c4', texto: 'Ignorar la amenaza y colgar', puntaje: 1, feedback: 'Bien. La urgencia es parte del fraude.' },
+              { id: 'c5', texto: 'Quedarte para escuchar el procedimiento', puntaje: 0.2, feedback: 'Riesgosa. Te mantiene dentro del guion del estafador.' },
+            ],
+          },
+        ],
+        redFlags: [
+          { id: 'l1', label: 'Pide un código o dato sensible', explicacion: 'Ningún banco legítimo te pide un OTP por llamada entrante.' },
+          { id: 'l2', label: 'Amenaza con bloqueo inmediato', explicacion: 'La urgencia busca que actúes sin verificar.' },
+          { id: 'l3', label: 'Insiste en resolver todo dentro de la llamada', explicacion: 'Quiere impedir que abras la app o llames al número oficial.' },
+        ],
+        postCallQuestion: 'Terminó la llamada. ¿Qué haces ahora para comprobar si el movimiento era real?',
+        postCallOptions: [
+          'Llamar tú mismo al número oficial o revisar la app del banco.',
+          'Esperar a que la misma persona te vuelva a marcar.',
+          'Enviar por mensaje el código para confirmar el bloqueo.',
+          'Buscar el número en internet y devolver la llamada al último que te marcó.',
+        ],
+        postCallCorrect: 0,
+      },
+      {
+        key: 'paqueteria-entrega',
+        fraudType: 'paquetería y cobro de entrega',
+        callerName: 'Centro logístico',
+        callerNumber: '55 0000 1842',
+        voiceProfile: 'male',
+        difficultyTone: 'básico',
+        intro:
+          'Esta llamada parece sencilla: resolver una entrega. La trampa está en que te empujan a pagar y decidir al instante.',
+        opening:
+          'Buen día. Su paquete quedó retenido y necesito confirmar un pago de entrega para liberarlo hoy. Si no, se devuelve en unos minutos.',
+        scenarioPrompt:
+          'Actúas como un falso agente de paquetería. Presiona con tiempos cortos, cobro pequeño y falsa devolución inminente. Si la persona quiere verificar por fuera, intenta retenerla con prisa una vez.',
+        starterChoices: [
+          'Voy a revisar el envío en la app oficial.',
+          '¿Cuál es el número de guía completo?',
+          'No voy a pagar nada por esta llamada.',
+        ],
+        steps: [
+          {
+            texto: 'La persona insiste en que el cargo es pequeño y que conviene pagarlo de inmediato para no perder el paquete.',
+            opciones: [
+              { id: 'c1', texto: 'Pagar para quitarme el problema', puntaje: 0.15, feedback: 'Riesgosa. Un cobro pequeño también puede ser fraude.' },
+              { id: 'c2', texto: 'Colgar y revisar el envío en el canal oficial', puntaje: 1, feedback: 'Correcto. Validas por tu cuenta antes de mover dinero.' },
+              { id: 'c3', texto: 'Seguir preguntando sin colgar', puntaje: 0.45, feedback: 'Regular. Continúas dentro de la presión.' },
+            ],
+          },
+          {
+            texto: 'Ahora te dice que si cuelgas el sistema marcará el paquete como rechazado.',
+            opciones: [
+              { id: 'c4', texto: 'Colgar y verificar desde cero', puntaje: 1, feedback: 'Bien. El miedo a perder algo es una táctica clásica.' },
+              { id: 'c5', texto: 'Aceptar para no arriesgar el paquete', puntaje: 0.2, feedback: 'Riesgosa. Estás reaccionando a la presión, no a evidencia real.' },
+            ],
+          },
+        ],
+        redFlags: [
+          { id: 'l1', label: 'Cobro inesperado por llamada', explicacion: 'Un cargo nuevo no se confirma por una llamada entrante.' },
+          { id: 'l2', label: 'Tiempo límite para actuar', explicacion: 'La urgencia está diseñada para impedir verificación.' },
+          { id: 'l3', label: 'Amenaza con devolución automática', explicacion: 'Busca generar miedo y cerrar la decisión rápido.' },
+        ],
+        postCallQuestion: 'Si realmente esperabas un paquete, ¿cuál es la forma segura de verificarlo?',
+        postCallOptions: [
+          'Entrar tú mismo a la app o sitio oficial de la paquetería.',
+          'Seguir la llamada pero sin pagar todavía.',
+          'Pedir que te envíen el enlace por SMS.',
+          'Reenviar la llamada a un familiar y decidir después.',
+        ],
+        postCallCorrect: 0,
+      },
+    ],
+    refuerzo: [
+      {
+        key: 'transferencia-inusual',
+        fraudType: 'transferencia inusual',
+        callerName: 'Mesa de seguridad',
+        callerNumber: 'Línea verificada',
+        voiceProfile: 'female',
+        difficultyTone: 'refuerzo',
+        intro:
+          'La llamada ya no suena tan obvia. Te hablan con calma, usan lenguaje bancario y mezclan datos creíbles con presión sutil.',
+        opening:
+          'Le llamo del área de monitoreo. Detectamos una transferencia inusual y necesito validar si fue usted antes de liberar la revisión.',
+        scenarioPrompt:
+          'Actúas como una ejecutiva convincente del área de seguridad. Habla profesional, evita amenazas exageradas y presiona con frases de validación de operación. Si la persona duda, intenta mantenerla en línea y pedir confirmación sensible.',
+        starterChoices: [
+          'Dime el folio y yo lo valido por la app.',
+          '¿De qué institución llamas exactamente?',
+          'No voy a validar nada por llamada.',
+        ],
+        steps: [
+          {
+            texto: 'La ejecutiva conoce tu nombre y los últimos cuatro dígitos de una tarjeta, y usa eso para sonar legítima.',
+            opciones: [
+              { id: 'c1', texto: 'Seguir porque sí conoce mis datos', puntaje: 0.2, feedback: 'Riesgosa. Datos parciales no prueban autenticidad.' },
+              { id: 'c2', texto: 'Pedir folio, colgar y validar en la app oficial', puntaje: 1, feedback: 'Correcto. Tomas información, pero verificas fuera.' },
+              { id: 'c3', texto: 'Pedir que te transfiera con otro agente sin colgar', puntaje: 0.5, feedback: 'Regular. Sigues aceptando su canal.' },
+            ],
+          },
+          {
+            texto: 'Después propone mover temporalmente el saldo a una cuenta protegida mientras termina la revisión.',
+            opciones: [
+              { id: 'c4', texto: 'Negarte, colgar y comunicarte con la institución', puntaje: 1, feedback: 'Bien. Una cuenta protegida por llamada es una señal clásica de vishing.' },
+              { id: 'c5', texto: 'Aceptar si promete revertirlo en minutos', puntaje: 0.1, feedback: 'Muy riesgosa. Te están guiando a mover el dinero tú mismo.' },
+            ],
+          },
+        ],
+        redFlags: [
+          { id: 'l1', label: 'Usa datos parciales para sonar legítimo', explicacion: 'Conocer algunos datos no valida la llamada.' },
+          { id: 'l2', label: 'Mantenerte en línea para validar', explicacion: 'La llamada quiere controlar el ritmo y evitar tu verificación.' },
+          { id: 'l3', label: 'Cuenta protegida o resguardo temporal', explicacion: 'Es una táctica de desvío de dinero.' },
+        ],
+        postCallQuestion: '¿Qué decisión refleja mejor una verificación segura después de esta llamada?',
+        postCallOptions: [
+          'Entrar a la app del banco y, si hace falta, llamar al número oficial.',
+          'Pedir que te vuelvan a llamar más tarde.',
+          'Mover una parte del dinero para ver si funciona.',
+          'Esperar a que se refleje la revisión por sí sola.',
+        ],
+        postCallCorrect: 0,
+      },
+      {
+        key: 'sim-swap',
+        fraudType: 'línea móvil comprometida',
+        callerName: 'Protección móvil',
+        callerNumber: 'Centro de soporte',
+        voiceProfile: 'male',
+        difficultyTone: 'refuerzo',
+        intro:
+          'Aquí la presión es menos agresiva. La llamada se apoya en un problema técnico para pedir validaciones y empujarte a seguir sus pasos.',
+        opening:
+          'Le hablo del área de protección de línea. Vemos un posible cambio de SIM y necesito verificar un código para frenar el reemplazo.',
+        scenarioPrompt:
+          'Actúas como un falso agente de telefonía. El fraude se centra en un cambio de SIM. Habla con tono técnico, pide validaciones y trata de obtener códigos o mantener a la persona siguiendo pasos durante la llamada.',
+        starterChoices: [
+          'Voy a colgar y hablar al soporte oficial.',
+          '¿Qué línea dices que detectaste?',
+          'No voy a dictar códigos por teléfono.',
+        ],
+        steps: [
+          {
+            texto: 'La persona afirma que si no validas en este momento, perderás tu línea por varias horas.',
+            opciones: [
+              { id: 'c1', texto: 'Dar el código para no perder la línea', puntaje: 0.15, feedback: 'Riesgosa. El código es justo lo que no debes compartir.' },
+              { id: 'c2', texto: 'Cortar y comunicarte con soporte oficial', puntaje: 1, feedback: 'Correcto. Verificas el incidente sin seguir su guion.' },
+              { id: 'c3', texto: 'Pedir que te expliquen más mientras sigues en línea', puntaje: 0.45, feedback: 'Regular. La presión sigue controlando el canal.' },
+            ],
+          },
+          {
+            texto: 'Luego suaviza el tono y te pide instalar una herramienta de diagnóstico para “blindar la línea”.',
+            opciones: [
+              { id: 'c4', texto: 'Negarte y salir de la llamada', puntaje: 1, feedback: 'Bien. Una llamada entrante no debe dictar instalaciones.' },
+              { id: 'c5', texto: 'Instalarla si parece oficial', puntaje: 0.1, feedback: 'Muy riesgosa. Podría dar control remoto al atacante.' },
+            ],
+          },
+        ],
+        redFlags: [
+          { id: 'l1', label: 'Código de validación por llamada', explicacion: 'Los códigos nunca se comparten con quien te llama.' },
+          { id: 'l2', label: 'Amenaza técnica si no actúas ya', explicacion: 'La urgencia técnica también es manipulación.' },
+          { id: 'l3', label: 'Instalar herramienta remota', explicacion: 'Un soporte legítimo no impone apps por llamada entrante.' },
+        ],
+        postCallQuestion: 'Después de colgar, ¿qué paso mantiene el control de tu línea del lado seguro?',
+        postCallOptions: [
+          'Entrar a tu app o llamar al soporte oficial desde un número conocido.',
+          'Responder al número que te llamó para ver si era real.',
+          'Instalar la herramienta y revisar después.',
+          'Esperar a ver si la línea se cae sola.',
+        ],
+        postCallCorrect: 0,
+      },
+    ],
+    avanzado: [
+      {
+        key: 'operacion-validacion',
+        fraudType: 'validación de operación',
+        callerName: 'Área de prevención',
+        callerNumber: 'Línea corporativa',
+        voiceProfile: 'female',
+        difficultyTone: 'avanzado',
+        intro:
+          'Esta llamada está diseñada para sonar impecable. La presión es profesional y sutil: tu tarea es detectar la manipulación sin esperar señales obvias.',
+        opening:
+          'Le llamo del área de prevención para validar una operación de alto monto antes de autorizar el resguardo de su perfil.',
+        scenarioPrompt:
+          'Actúas como un estafador muy convincente del área de prevención bancaria. Usa lenguaje corporativo, tono pausado y autoridad falsa. No amenaces de forma obvia; lleva a la persona a validar, confirmar o mantener la llamada activa. Si detecta el riesgo y decide verificar por la vía oficial, cierra.',
+        starterChoices: [
+          'Voy a verificar esto desde mi app oficial.',
+          '¿Cuál es el folio y el canal de origen?',
+          'No autorizo nada por esta llamada.',
+        ],
+        steps: [
+          {
+            texto: 'La llamada no pide datos al inicio; primero te guía a “confirmar” si reconoces una operación pendiente.',
+            opciones: [
+              { id: 'c1', texto: 'Seguir la validación porque suena profesional', puntaje: 0.25, feedback: 'Riesgosa. El tono profesional no sustituye la autenticidad.' },
+              { id: 'c2', texto: 'Pedir folio y validar por tu cuenta fuera de la llamada', puntaje: 1, feedback: 'Correcto. Separas conversación y verificación real.' },
+              { id: 'c3', texto: 'Quedarte en línea mientras revisas la app', puntaje: 0.45, feedback: 'Regular. Sigues bajo su marco de presión.' },
+            ],
+          },
+          {
+            texto: 'Después te propone una validación prioritaria que “evita fricciones internas” si confirmas un paso en ese momento.',
+            opciones: [
+              { id: 'c4', texto: 'Negarte, colgar y validar solo por canales oficiales', puntaje: 1, feedback: 'Bien. Detectaste la manipulación sutil.' },
+              { id: 'c5', texto: 'Aceptar la validación porque no parece peligrosa', puntaje: 0.2, feedback: 'Riesgosa. La presión ya cambió a un tono más sofisticado.' },
+            ],
+          },
+        ],
+        redFlags: [
+          { id: 'l1', label: 'Autoridad profesional sin validación independiente', explicacion: 'La llamada quiere que confíes en el tono y no en un canal verificable.' },
+          { id: 'l2', label: 'Confirmaciones dentro de la misma llamada', explicacion: 'Todo sigue ocurriendo bajo control del supuesto agente.' },
+          { id: 'l3', label: 'Lenguaje ambiguo de “resguardo” o “validación prioritaria”', explicacion: 'Suena técnico, pero evita explicar con claridad qué pasará realmente.' },
+        ],
+        postCallQuestion: '¿Cuál fue la mejor respuesta ante una llamada tan creíble?',
+        postCallOptions: [
+          'Cortar con calma y validar desde la app o teléfono oficial.',
+          'Seguirla porque nunca pidió datos directos.',
+          'Pedir que manden un correo y continuar la llamada.',
+          'Esperar a que la operación se rechace sola.',
+        ],
+        postCallCorrect: 0,
+      },
+      {
+        key: 'soporte-remoto',
+        fraudType: 'soporte técnico y acceso remoto',
+        callerName: 'Centro de protección digital',
+        callerNumber: 'Número empresarial',
+        voiceProfile: 'male',
+        difficultyTone: 'avanzado',
+        intro:
+          'El estafador suena técnico, paciente y muy seguro. Casi no hay urgencia visible: la manipulación está en hacerte seguir un procedimiento que parece razonable.',
+        opening:
+          'Le llamo del centro de protección digital. Detectamos actividad anómala y quiero ayudarle a aislar su dispositivo antes de que escale.',
+        scenarioPrompt:
+          'Actúas como un falso especialista de soporte. Hablas con calma, explicas procesos técnicos y buscas que la persona instale o autorice algo durante la llamada. Tu presión es sutil: “aprovechemos que ya lo detectamos”.',
+        starterChoices: [
+          'No instalaré nada por una llamada entrante.',
+          '¿Qué anomalía detectaron exactamente?',
+          'Voy a colgar y revisar soporte oficial.',
+        ],
+        steps: [
+          {
+            texto: 'La persona explica un supuesto riesgo en segundo plano y propone una herramienta de asistencia para revisarlo contigo.',
+            opciones: [
+              { id: 'c1', texto: 'Instalarla para resolverlo rápido', puntaje: 0.1, feedback: 'Muy riesgosa. Una app remota puede entregar el control al atacante.' },
+              { id: 'c2', texto: 'Negarte y revisar por soporte oficial', puntaje: 1, feedback: 'Correcto. No normalizas instalaciones por llamada entrante.' },
+              { id: 'c3', texto: 'Pedir el nombre de la herramienta sin colgar', puntaje: 0.5, feedback: 'Regular. Antes de investigar, corta la llamada.' },
+            ],
+          },
+          {
+            texto: 'Luego agrega que si cortas, el incidente quedará sin contención y el dispositivo podría quedar vulnerable.',
+            opciones: [
+              { id: 'c4', texto: 'Mantener el límite y colgar', puntaje: 1, feedback: 'Bien. Detectaste la presión disfrazada de soporte.' },
+              { id: 'c5', texto: 'Seguir porque “solo es diagnóstico”', puntaje: 0.2, feedback: 'Riesgosa. Estás aceptando el proceso del atacante.' },
+            ],
+          },
+        ],
+        redFlags: [
+          { id: 'l1', label: 'Instalación o acceso remoto por llamada', explicacion: 'Es una de las tácticas más peligrosas en vishing técnico.' },
+          { id: 'l2', label: 'Presión suave para no cortar', explicacion: 'La manipulación no siempre suena agresiva.' },
+          { id: 'l3', label: 'Diagnóstico sin canal oficial verificable', explicacion: 'Todo el proceso sigue dependiendo de la llamada entrante.' },
+        ],
+        postCallQuestion: '¿Qué regla resume mejor una respuesta segura ante esta llamada técnica?',
+        postCallOptions: [
+          'No instalar nada y verificar el incidente solo por soporte oficial.',
+          'Aceptar si la herramienta tiene buenas reseñas.',
+          'Seguir escuchando para entender bien el problema.',
+          'Pedir que te manden la liga por correo y continuar.',
+        ],
+        postCallCorrect: 0,
+      },
+    ],
+  };
+
+  const scenarioPool = scenarioSets[level] || scenarioSets.basico;
+  const scenario = scenarioPool[Math.abs(Number(variant) || 0) % scenarioPool.length];
+  const scriptOverview = `${scenario.fraudType}. ${scenario.opening}`;
+
+  const concept = mk(1, {
+    scenarioId: createScenarioId({ category: cat, level, label: `${scenario.key}-concepto`, variant }),
+    tipo: 'concepto',
+    titulo: 'Qué nunca resuelves dentro de una llamada',
+    bloques: buildConceptBlocks([
+      {
+        titulo: 'Señales de alerta',
+        texto: 'Urgencia, autoridad falsa, petición de códigos, apps remotas o presión para no colgar.',
+      },
+      {
+        titulo: 'Qué quiere el estafador',
+        texto: 'Que tomes decisiones durante la llamada y aceptes su canal como si fuera oficial.',
+      },
+      {
+        titulo: 'Respuesta segura',
+        texto: 'Cuelga, entra a la app oficial o llama tú mismo al número verificado de la institución.',
+      },
+      {
+        titulo: 'Regla rápida',
+        texto: 'Nunca compartas códigos, NIP ni datos sensibles por una llamada entrante.',
+      },
+    ]),
+    contenido:
+      'Una llamada puede sonar profesional y aun así ser fraude. Tu ventaja aparece cuando cortas el canal y verificas por tu cuenta.',
+    peso: 0.9,
+  });
+
+  const simulation = mk(2, {
+    scenarioId: createScenarioId({ category: cat, level, label: `${scenario.key}-call`, variant }),
+    tipo: 'call_sim',
+    titulo: 'Llamada en tiempo real',
+    intro: scenario.intro,
+    callerName: scenario.callerName,
+    callerNumber: scenario.callerNumber,
+    opening: scenario.opening,
+    steps: scenario.steps,
+    allowVoice: true,
+    voiceProfile: scenario.voiceProfile,
+    fraudType: scenario.fraudType,
+    scenarioPrompt: scenario.scenarioPrompt,
+    difficultyTone: scenario.difficultyTone,
+    turnos_max: level === 'avanzado' ? 6 : level === 'refuerzo' ? 5 : 4,
+    starterChoices: scenario.starterChoices,
+    peso: 1.9,
+  });
+
+  const hunt = mk(3, {
+    scenarioId: createScenarioId({ category: cat, level, label: `${scenario.key}-hunt`, variant }),
+    tipo: 'signal_hunt',
+    titulo: 'Señales que debes escuchar',
+    mensaje: `${scriptOverview} ¿Qué señales te harían cortar la llamada sin seguir el procedimiento?`,
+    senales: [
+      ...scenario.redFlags.map((flag) => ({
+        ...flag,
+        correcta: true,
+      })),
+      { id: 'l4', label: 'Tono profesional', correcta: false, explicacion: 'La voz tranquila no valida la autenticidad.' },
+    ],
+    peso: 1.1,
+  });
+
+  const decision = mk(4, {
+    scenarioId: createScenarioId({ category: cat, level, label: `${scenario.key}-decision`, variant }),
+    tipo: 'quiz',
+    titulo: 'Tu siguiente paso al colgar',
+    escenario: scenario.postCallQuestion,
+    opciones: scenario.postCallOptions,
+    correcta: scenario.postCallCorrect,
+    explicacion:
+      'La decisión segura es salir del canal, recuperar el control y validar solo por una vía oficial que tú elijas.',
+    senal: 'El fraude quería que resolvieras todo dentro de la llamada.',
+    riesgo: 'Si aceptas el ritmo del estafador, tomas decisiones bajo presión y pierdes margen para verificar.',
+    accion: 'Corta, verifica por tu app o por el número oficial y reporta si hace falta.',
+    peso: 1.0,
+  });
+
+  const openResponse = mk(5, {
+    scenarioId: createScenarioId({ category: cat, level, label: `${scenario.key}-frase`, variant }),
+    tipo: 'abierta',
+    titulo: 'Tu frase para cortar',
+    prompt: 'Escribe una frase breve y firme para terminar una llamada sospechosa sin quedarte enganchado en la conversación.',
+    pistas: ['voy a verificar por mi cuenta', 'no comparto datos por llamada', 'gracias, voy a colgar'],
+    peso: 1.0,
+  });
+
+  const checklist = mk(6, {
+    scenarioId: createScenarioId({ category: cat, level, label: `${scenario.key}-checklist`, variant }),
+    tipo: 'checklist',
+    titulo: 'Checklist de llamadas sospechosas',
+    intro: 'Si una llamada te presiona, esta es tu secuencia mínima:',
+    items: [
+      'No comparto códigos, NIP ni contraseñas.',
+      'No muevo dinero ni acepto “cuentas seguras”.',
+      'No instalo apps ni doy acceso remoto.',
+      'Cuelgo y verifico por la app o número oficial.',
+      'Reporto si la presión o el engaño son claros.',
+    ],
+    peso: 1.0,
+  });
+
+  return sanitizeCoursePayload({
+    id: modId,
+    titulo: 'Llamadas Fraudulentas',
+    descripcion: `Entrenamiento ${levelHint} para enfrentar vishing ${toneNote}.`,
+    categoria: cat,
+    nivel: level,
+    actividades: arrangeModuleActivities({
+      category: cat,
+      level,
+      variant,
+      activities: [concept, simulation, hunt, decision, openResponse, checklist],
+    }),
+  });
+};
+
 const buildHabitsModule = ({ modId, cat, modNivel, toneNote, levelHint, mk, variant }) => {
   const scenarioSets = {
     basico: [
@@ -3623,7 +4125,7 @@ const buildModuleTemplate = ({ categoria, index, answers, assessment, nivel, pro
   }
 
   if (cat === 'llamadas') {
-    return buildCallModule({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
+    return buildCallModuleImmersive({ modId, cat, modNivel, toneNote, levelHint, mk, variant });
   }
 
   if (cat === 'habitos') {
@@ -5115,6 +5617,11 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs, progress }) => {
         opening: toText(act.opening || act.inicio || act.escenario).slice(0, 240),
         allowVoice: Boolean(act.allowVoice ?? true),
         voiceProfile: toText(act.voiceProfile || act.voice || act.voz).slice(0, 20),
+        fraudType: toText(act.fraudType || act.tipoFraude).slice(0, 80),
+        scenarioPrompt: toText(act.scenarioPrompt || act.contexto).slice(0, 600),
+        difficultyTone: toText(act.difficultyTone || act.dificultadTono).slice(0, 80),
+        turnos_max: clampNumber(act.turnos_max, 3, 8),
+        starterChoices: asStringArray(act.starterChoices || act.quickReplies).slice(0, 4),
         steps,
       };
     }
@@ -6054,6 +6561,11 @@ app.post('/api/course/sim-turn', async (req, res) => {
     const turn = clampNumber(req.body?.turn, 1, 50);
     const turnos_max = clampNumber(req.body?.turnos_max, 3, 12);
     const user = req.body?.user || {};
+    const interactionMode = toText(req.body?.interactionMode || req.body?.mode).slice(0, 40);
+    const difficulty = toText(req.body?.difficulty).slice(0, 40);
+    const callerName = toText(req.body?.callerName).slice(0, 80);
+    const fraudType = toText(req.body?.fraudType).slice(0, 80);
+    const choicesNeeded = clampNumber(req.body?.choicesNeeded, 0, 4);
 
     if (!scenario) {
       return res.status(400).json({
@@ -6069,6 +6581,11 @@ app.post('/api/course/sim-turn', async (req, res) => {
       turn,
       turnos_max,
       user,
+      interactionMode,
+      difficulty,
+      callerName,
+      fraudType,
+      choicesNeeded,
     });
 
     const data = await callOpenAI({
@@ -6087,6 +6604,18 @@ app.post('/api/course/sim-turn', async (req, res) => {
     let risk = toText(parsed.risk || parsed.riesgo);
     let safe_action = toText(parsed.safe_action || parsed.action || parsed.accion);
     let rating = toText(parsed.rating || parsed.clasificacion || parsed.resultado);
+    let choices = Array.isArray(parsed.choices)
+      ? parsed.choices
+          .map((item) =>
+            toText(
+              typeof item === 'string'
+                ? item
+                : item?.texto || item?.text || item?.label || ''
+            ).slice(0, 120)
+          )
+          .filter(Boolean)
+          .slice(0, Math.max(0, choicesNeeded || 0))
+      : [];
     const rawScore = parsed.score ?? parsed.puntaje ?? parsed.calificacion;
     const score = Number.isFinite(Number(rawScore)) ? clampNumber(rawScore, 0, 1) : 0.6;
     let done = Boolean(parsed.done);
@@ -6112,6 +6641,13 @@ app.post('/api/course/sim-turn', async (req, res) => {
     if (!rating) {
       rating = score >= 0.85 ? 'Buena' : score >= 0.6 ? 'Regular' : 'Riesgosa';
     }
+    if (!choices.length && interactionMode.toLowerCase().startsWith('call')) {
+      choices = [
+        'No voy a dar datos por llamada.',
+        '¿De qué movimiento hablas exactamente?',
+        'Voy a colgar y verificar por mi cuenta.',
+      ].slice(0, Math.max(0, choicesNeeded || 3));
+    }
 
     // Safety scrub: no links or phone numbers in the simulated scammer reply.
     reply = String(reply || '')
@@ -6132,6 +6668,7 @@ app.post('/api/course/sim-turn', async (req, res) => {
       rating,
       score,
       done,
+      choices,
     });
   } catch (error) {
     console.error('Error /api/course/sim-turn:', error);

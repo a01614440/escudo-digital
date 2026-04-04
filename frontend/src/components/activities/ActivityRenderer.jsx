@@ -11,6 +11,7 @@ import {
   repairPossibleMojibake,
 } from '../../lib/course.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
+import CallSimulationActivity from './CallSimulationActivity.jsx';
 
 function Paragraphs({ text, className = 'activity-copy' }) {
   const lines = splitParagraphs(repairPossibleMojibake(text));
@@ -2784,7 +2785,13 @@ export default function ActivityRenderer({
         <WebLabActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}
       {safeActivity.tipo === 'call_sim' ? (
-        <CallSimActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
+        <CallSimulationActivity
+          activity={safeActivity}
+          answers={answers}
+          assessment={assessment}
+          startedAtRef={startedAtRef}
+          onComplete={onComplete}
+        />
       ) : null}
       {safeActivity.tipo === 'scenario_flow' ? (
         <ScenarioFlowActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
