@@ -559,13 +559,13 @@ const normalizeNivel = (value) => {
 
 const toText = (value) => {
   if (!value) return '';
-  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'string') return repairPossibleMojibake(value).trim();
   if (typeof value === 'object') {
     const candidate =
       value.texto || value.accion || value.recomendacion || value.label || value.titulo;
-    return candidate ? String(candidate).trim() : '';
+    return candidate ? repairPossibleMojibake(String(candidate)).trim() : '';
   }
-  return String(value).trim();
+  return repairPossibleMojibake(String(value)).trim();
 };
 
 const CP1252_UNICODE_TO_BYTE = new Map([
@@ -633,8 +633,62 @@ const BROKEN_ACCENT_SUFFIX_MAP = new Map([
   ['\u0091', '\u00d1'],
 ]);
 
+const EXTREME_MOJIBAKE_REPLACEMENTS = new Map();
+
 function looksLikeMojibake(value) {
   return MOJIBAKE_MARKERS.some((marker) => value.includes(marker)) || /\bcontrasena\b/i.test(value);
+}
+
+function decodeLatin1Utf8(value) {
+  try {
+    return Buffer.from(value, 'latin1').toString('utf8');
+  } catch {
+    return value;
+  }
+}
+
+function mojibakePenalty(value) {
+  return (
+    (value.match(/[ÃƒÃ‚Ã†ï¿½]/g) || []).length * 4 +
+    (value.match(/Ã¢â‚¬|Ã°Å¸|Ã¯Â¿Â½/g) || []).length * 5 +
+    (value.match(/[\u0000-\u001f]/g) || []).length * 8 +
+    (value.match(/\?{2,}/g) || []).length * 3 +
+    (value.match(/\bM\?dulo\b|\btodav\?a\b/gi) || []).length * 5
+  );
+}
+
+function readabilityBonus(value) {
+  return (
+    (value.match(/[áéíóúñÁÉÍÓÚÑ¿¡]/g) || []).length * 2 +
+    (
+      value.match(
+        /\b(señal|módulo|hábito|verificación|página|simulación|contraseña|cómo|último)\b/gi
+      ) || []
+    ).length *
+      2
+  );
+}
+
+function chooseBestDecoded(candidates, current) {
+  const unique = [...new Set(candidates.filter(Boolean))];
+  return unique.reduce(
+    (best, candidate) => {
+      const score = readabilityBonus(candidate) - mojibakePenalty(candidate);
+      if (score > best.score) return { value: candidate, score };
+      return best;
+    },
+    { value: current, score: readabilityBonus(current) - mojibakePenalty(current) }
+  ).value;
+}
+
+function decodeRepeated(value, decoder, limit = 6) {
+  let result = value;
+  for (let attempt = 0; attempt < limit; attempt += 1) {
+    const next = decoder(result);
+    if (!next || next === result) break;
+    result = next;
+  }
+  return result;
 }
 
 function decodeCp1252Utf8(value) {
@@ -661,6 +715,9 @@ function decodeCp1252Utf8(value) {
 
 function fixBrokenAccentChains(value) {
   let result = value;
+  EXTREME_MOJIBAKE_REPLACEMENTS.forEach((replacement, broken) => {
+    result = result.replaceAll(broken, replacement);
+  });
   BROKEN_ACCENT_PREFIXES.forEach((prefix) => {
     BROKEN_ACCENT_SUFFIX_MAP.forEach((replacement, suffix) => {
       result = result.replaceAll(prefix + suffix, replacement);
@@ -676,7 +733,25 @@ const repairPossibleMojibake = (value) => {
 
   let result = value;
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const next = fixBrokenAccentChains(decodeCp1252Utf8(fixBrokenAccentChains(result)))
+    const repeatedCp1252 = decodeRepeated(result, decodeCp1252Utf8);
+    const repeatedLatin1 = decodeRepeated(result, decodeLatin1Utf8);
+    const candidates = [
+      result,
+      fixBrokenAccentChains(result),
+      decodeCp1252Utf8(result),
+      decodeLatin1Utf8(result),
+      repeatedCp1252,
+      fixBrokenAccentChains(repeatedCp1252),
+      repeatedLatin1,
+      fixBrokenAccentChains(repeatedLatin1),
+      decodeCp1252Utf8(fixBrokenAccentChains(result)),
+      decodeLatin1Utf8(fixBrokenAccentChains(result)),
+      decodeLatin1Utf8(decodeCp1252Utf8(result)),
+      decodeCp1252Utf8(decodeLatin1Utf8(result)),
+      decodeLatin1Utf8(decodeLatin1Utf8(result)),
+      decodeCp1252Utf8(decodeCp1252Utf8(result)),
+    ];
+    const next = chooseBestDecoded(candidates, result)
       .replaceAll('\u00e2\u20ac\u0153', '\u201c')
       .replaceAll('\u00e2\u20ac\u009d', '\u201d')
       .replaceAll('\u00e2\u20ac\u2122', '\u2019')
@@ -684,6 +759,11 @@ const repairPossibleMojibake = (value) => {
       .replaceAll('\u00e2\u20ac\u201d', '\u2014')
       .replaceAll('\u00c2\u00bf', '\u00bf')
       .replaceAll('\u00c2\u00a1', '\u00a1')
+      .replaceAll('Ã‚Â·', '·')
+      .replaceAll('Ã‚Âº', 'º')
+      .replaceAll('Ã‚Âª', 'ª')
+      .replaceAll('Ã‚Â«', '«')
+      .replaceAll('Ã‚Â»', '»')
       .replace(/\bcontrasena\b/gi, (match) => (match[0] === 'C' ? 'Contrase\u00f1a' : 'contrase\u00f1a'))
       .replace(/\ufffd/g, '');
 
@@ -698,9 +778,23 @@ const sanitizeCoursePayload = (value) => {
   if (typeof value === 'string') return repairPossibleMojibake(value);
   if (Array.isArray(value)) return value.map((item) => sanitizeCoursePayload(item));
   if (value && typeof value === 'object') {
-    return Object.fromEntries(
+    const safe = Object.fromEntries(
       Object.entries(value).map(([key, entry]) => [key, sanitizeCoursePayload(entry)])
     );
+    if (safe.categoria || safe.category) {
+      const normalizedCategory = normalizeCourseCategory(safe.categoria || safe.category);
+      const normalizedTitle = normalizeModuleTitleForCategory(
+        normalizedCategory,
+        safe.titulo || safe.title || ''
+      );
+      safe.categoria = normalizedCategory;
+      if ('category' in safe) safe.category = normalizedCategory;
+      if ('titulo' in safe || 'title' in safe) {
+        safe.titulo = normalizedTitle;
+        safe.title = normalizedTitle;
+      }
+    }
+    return safe;
   }
   return value;
 };
@@ -1185,6 +1279,22 @@ const COURSE_PLAN_VERSION = 4;
 
 const MODULE_LEVELS = ['basico', 'refuerzo', 'avanzado'];
 const ADMIN_REVIEW_CATEGORIES = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
+const MODULE_TITLE_LABELS = {
+  web: 'Detecta Páginas Clonadas',
+  whatsapp: 'WhatsApp: Suplantación y Enlaces',
+  sms: 'SMS: Detecta Mensajes Falsos',
+  llamadas: 'Llamadas Fraudulentas',
+  correo_redes: 'Correo/Redes: Phishing',
+  habitos: 'Hábitos de Verificación',
+};
+const MODULE_TITLE_HINTS = {
+  web: /(p[aá]ginas?|dominios?|clonad|checkout|carrito|tienda)/i,
+  whatsapp: /(whatsapp|suplantaci[oó]n|enlaces?)/i,
+  sms: /(^|\W)sms(\W|$)|mensajes?\s+falsos/i,
+  llamadas: /(llamadas?\s+fraudulentas|vishing|llamada)/i,
+  correo_redes: /(correo|redes|phishing)/i,
+  habitos: /(h[aá]bitos?|verificaci[oó]n|rutina)/i,
+};
 
 const clampNumber = (value, min, max) => {
   const num = Number(value);
@@ -1193,13 +1303,13 @@ const clampNumber = (value, min, max) => {
 };
 
 const normalizeModuleLevel = (value) => {
-  const raw = String(value || '').trim().toLowerCase();
+  const raw = repairPossibleMojibake(String(value || '').trim()).toLowerCase();
   if (!raw) return 'basico';
   if (raw.startsWith('ava')) return 'avanzado';
   if (raw.startsWith('ref')) return 'refuerzo';
   if (raw.startsWith('bas')) return 'basico';
   if (raw.startsWith('int') || raw.startsWith('med')) return 'refuerzo';
-  return MODULE_LEVELS.includes(raw) ? raw : 'basico';
+  return MODULE_LEVELS.includes(raw) ? raw : 'B\u00e1sico';
 };
 
 const shiftModuleLevel = (nivel, delta) => {
@@ -1208,8 +1318,24 @@ const shiftModuleLevel = (nivel, delta) => {
   return MODULE_LEVELS[next] || 'basico';
 };
 
+const inferModuleTitleCategory = (title) => {
+  const clean = toText(title).toLowerCase();
+  if (!clean) return '';
+  return Object.entries(MODULE_TITLE_HINTS).find(([, pattern]) => pattern.test(clean))?.[0] || '';
+};
+
+const normalizeModuleTitleForCategory = (category, title) => {
+  const normalizedCategory = normalizeCourseCategory(category);
+  const canonical = MODULE_TITLE_LABELS[normalizedCategory] || 'Módulo';
+  const clean = toText(title);
+  if (!clean) return canonical;
+  const inferred = inferModuleTitleCategory(clean);
+  if (!inferred || inferred === normalizedCategory) return canonical;
+  return canonical;
+};
+
 const normalizeCourseCategory = (value) => {
-  const raw = String(value || '').trim().toLowerCase();
+  const raw = repairPossibleMojibake(String(value || '').trim()).toLowerCase();
   if (!raw) return 'habitos';
   if (raw.startsWith('web')) return 'web';
   if (raw.startsWith('whats')) return 'whatsapp';
@@ -1219,7 +1345,7 @@ const normalizeCourseCategory = (value) => {
   if (raw.startsWith('call')) return 'llamadas';
   if (raw.includes('correo') || raw.includes('redes') || raw.includes('mail'))
     return 'correo_redes';
-  if (raw.includes('hÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡b') || raw.includes('hab')) return 'habitos';
+  if (raw.includes('háb') || raw.includes('hab')) return 'habitos';
   return COURSE_CATEGORIES.includes(raw) ? raw : 'habitos';
 };
 
@@ -5207,7 +5333,7 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs, progress }) => {
     if (!mod || typeof mod !== 'object') return null;
     const categoria = normalizeCourseCategory(mod.categoria || mod.category);
     const id = toText(mod.id) || `mod_${categoria}_${idx + 1}`;
-    const titulo = toText(mod.titulo) || `MÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³dulo ${idx + 1}`;
+    const titulo = normalizeModuleTitleForCategory(categoria, mod.titulo || mod.title || `M\u00f3dulo ${idx + 1}`);
     const descripcion = toText(mod.descripcion) || '';
     const nivel = normalizeModuleLevel(mod.nivel || mod.level || mod.dificultad);
     const actsRaw = Array.isArray(mod.actividades) ? mod.actividades : [];
@@ -5290,7 +5416,7 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs, progress }) => {
       safeModule = fallbackModule;
     }
 
-    const baseTitle = String(safeModule?.titulo || `MÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³dulo ${idx + 1}`).trim();
+    const baseTitle = normalizeModuleTitleForCategory(categoryKey, safeModule?.titulo || `M\u00f3dulo ${idx + 1}`);
     const key = baseTitle.toLowerCase();
     titleCounts[key] = (titleCounts[key] || 0) + 1;
     const levelLabel =
@@ -5298,13 +5424,13 @@ const sanitizeCoursePlan = (plan, { answers, assessment, prefs, progress }) => {
         ? 'Avanzado'
         : normalizeModuleLevel(safeModule?.nivel) === 'refuerzo'
           ? 'Refuerzo'
-          : 'BÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡sico';
+          : 'B\u00e1sico';
     (Array.isArray(safeModule?.actividades) ? safeModule.actividades : []).forEach((activity) => {
       const repeatKey = getActivityRepeatKey(activity);
       if (repeatKey) categoryScenarioSeen[categoryKey].add(repeatKey);
     });
     if (titleCounts[key] === 1) return { ...safeModule, titulo: baseTitle };
-    return { ...safeModule, titulo: `${baseTitle} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ${levelLabel}` };
+    return { ...safeModule, titulo: `${baseTitle} \u2014 ${levelLabel}` };
   });
 
   return safe;

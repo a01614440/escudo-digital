@@ -6,6 +6,8 @@ import {
   LEVEL_LABELS,
   computeCompetenciesFromProgress,
   normalizeModuleLevel,
+  normalizeModuleTitleForDisplay,
+  repairPossibleMojibake,
   summarizeProgressInsights,
 } from '../lib/course.js';
 
@@ -36,6 +38,24 @@ const LEVEL_COPY = {
 };
 
 const TOPIC_ORDER = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
+
+function cleanText(value, fallback = '') {
+  const safe = repairPossibleMojibake(String(value || '')).trim();
+  return safe || fallback;
+}
+
+Object.values(LEVEL_COPY).forEach((copy) => {
+  copy.title = cleanText(copy.title, copy.title);
+  copy.description = cleanText(copy.description, copy.description);
+});
+
+function displayModuleTitle(module) {
+  return normalizeModuleTitleForDisplay(module?.categoria, module?.titulo || module?.title || '');
+}
+
+function displayActivityTitle(activity, fallback = 'Actividad') {
+  return cleanText(ACTIVITY_LABELS[activity?.tipo] || activity?.titulo || activity?.title || '', fallback);
+}
 
 function formatPercent(value) {
   const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -154,7 +174,7 @@ function ShieldCard({
 }) {
   const completionPct = totalModules ? Math.round((completedModules / totalModules) * 100) : 0;
   const rhythmLabel =
-    completedModules === totalModules ? 'Ruta completa' : completionPct ? `${completionPct}% de avance` : 'Sin avance todavia';
+    completedModules === totalModules ? 'Ruta completa' : completionPct ? `${completionPct}% de avance` : 'Sin avance todavía';
 
   return (
     <section className="panel dashboard-card shield-card-clean">
@@ -261,7 +281,7 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
       <div className="section-title-row dashboard-title-row">
         <div>
           <p className="eyebrow">Empieza por aquí</p>
-          <h2>{module.titulo}</h2>
+          <h2>{displayModuleTitle(module)}</h2>
         </div>
         <div className="hero-chip-row compact">
           <span className={`status-pill ${stats.status}`}>{stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}</span>
@@ -271,7 +291,9 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
         </div>
       </div>
 
-      <p className="lead spotlight-lead">{module.descripcion || 'Práctica guiada para mejorar criterio sin saturar la experiencia.'}</p>
+      <p className="lead spotlight-lead">
+        {cleanText(module.descripcion, 'Práctica guiada para mejorar criterio sin saturar la experiencia.')}
+      </p>
 
       <div className="focus-progress-row">
         <div className="progress-track">
@@ -283,7 +305,7 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
       <div className="spotlight-metrics">
         <div className="focus-metric">
           <span>Sigue con</span>
-          <strong>{stats.nextActivity?.titulo || 'Lista para repaso'}</strong>
+          <strong>{cleanText(stats.nextActivity?.titulo, 'Módulo listo para repaso')}</strong>
         </div>
         <div className="focus-metric">
           <span>Score promedio</span>
@@ -302,7 +324,7 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
       <div className="activity-pill-row compact-row">
         {visibleActivities.map((activity) => (
           <span key={activity.id} className="activity-pill">
-            {ACTIVITY_LABELS[activity.tipo] || activity.titulo}
+            {displayActivityTitle(activity)}
           </span>
         ))}
         {extraActivities ? <span className="activity-pill">{`+${extraActivities} formatos`}</span> : null}
@@ -368,7 +390,7 @@ function ModuleAccordionItem({
         <span className="module-step">{String(index + 1).padStart(2, '0')}</span>
         <div className="module-accordion-copy">
           <div className="module-accordion-title-row">
-            <strong>{module.titulo}</strong>
+            <strong>{displayModuleTitle(module)}</strong>
             <div className="hero-chip-row compact">
               {isRecommended ? <span className="activity-pill soft">Recomendado</span> : null}
               <span className={`status-pill ${isLocked ? 'locked' : stats.status}`}>
@@ -386,12 +408,16 @@ function ModuleAccordionItem({
 
       {isExpanded ? (
         <div className="module-accordion-body">
-          <p>{module.descripcion || 'Bloque práctico para reforzar criterio y hábitos digitales.'}</p>
+          <p>{cleanText(module.descripcion, 'Bloque práctico para reforzar criterio y hábitos digitales.')}</p>
 
           <div className="module-accordion-body-grid">
             <div className="module-fact">
               <span>Siguiente actividad</span>
-              <strong>{isLocked ? 'Completa el bloque anterior' : stats.nextActivity?.titulo || 'Módulo listo para repaso'}</strong>
+              <strong>
+                {isLocked
+                  ? 'Completa el bloque anterior'
+                  : cleanText(stats.nextActivity?.titulo, 'Módulo listo para repaso')}
+              </strong>
             </div>
             <div className="module-fact">
               <span>Score promedio</span>
@@ -410,7 +436,7 @@ function ModuleAccordionItem({
           <div className="activity-pill-row compact-row">
             {(Array.isArray(module.actividades) ? module.actividades : []).slice(0, 5).map((activity) => (
               <span key={activity.id} className="activity-pill">
-                {ACTIVITY_LABELS[activity.tipo] || activity.titulo}
+                {displayActivityTitle(activity)}
               </span>
             ))}
           </div>
@@ -484,7 +510,7 @@ function RouteTab({
           const isLocked = adminAccess ? false : entry.index > unlockedLimit;
           const unlockMessage =
             routeEntries[unlockedLimit]?.module?.titulo
-              ? `Completa "${routeEntries[unlockedLimit].module.titulo}" para desbloquear este bloque.`
+              ? `Completa "${displayModuleTitle(routeEntries[unlockedLimit].module)}" para desbloquear este bloque.`
               : 'Completa el bloque anterior para avanzar.';
 
           return (
@@ -561,7 +587,7 @@ function ProgressTab({ computed, progress, coursePlan, coursePrefs, answers, ass
           </div>
           <div className="summary-item">
             <strong>Fortalezas visibles</strong>
-            <p>{insights.strengths.length ? insights.strengths.join(' | ') : 'Todavía no hay suficiente historial.'}</p>
+            <p>{insights.strengths.length ? insights.strengths.join(' · ') : 'Todavía no hay suficiente historial.'}</p>
           </div>
           <div className="summary-item">
             <strong>Lo que conviene reforzar</strong>
@@ -691,7 +717,17 @@ export default function CoursesView({
   onOpenModule,
 }) {
   const [activeTab, setActiveTab] = useState('ruta');
-  const route = Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : [];
+  const route = (Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : []).map((module) => ({
+    ...module,
+    titulo: displayModuleTitle(module),
+    descripcion: cleanText(module?.descripcion),
+    actividades: (Array.isArray(module?.actividades) ? module.actividades : []).map((activity) => ({
+      ...activity,
+      titulo: cleanText(activity?.titulo),
+      escenario: cleanText(activity?.escenario),
+      prompt: cleanText(activity?.prompt),
+    })),
+  }));
   const routeEntries = route.map((module, index) => ({
     module,
     index,

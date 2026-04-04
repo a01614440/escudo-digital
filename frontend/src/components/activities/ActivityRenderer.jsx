@@ -188,15 +188,19 @@ function ActivitySummaryBar({ items = [] }) {
 }
 
 function ConceptActivity({ activity, startedAtRef, onComplete }) {
-  const blocks = Array.isArray(activity.bloques) ? activity.bloques : [];
+  const blocks = (Array.isArray(activity.bloques) ? activity.bloques : []).map((block) => ({
+    ...block,
+    titulo: repairPossibleMojibake(block?.titulo || ''),
+    texto: repairPossibleMojibake(block?.texto || ''),
+  }));
   const leadBlock = blocks[0] || null;
   const supportBlocks = leadBlock ? blocks.slice(1) : blocks;
-  const narrative = splitParagraphs(activity.contenido);
+  const narrative = splitParagraphs(repairPossibleMojibake(activity.contenido));
   const takeawayItems = (
     Array.isArray(activity.claves) && activity.claves.length
-      ? activity.claves
+      ? activity.claves.map((item) => repairPossibleMojibake(item))
       : supportBlocks.length
-        ? supportBlocks.slice(0, 3).map((block) => `${block.titulo}: ${block.texto}`)
+        ? supportBlocks.slice(0, 3).map((block) => `${repairPossibleMojibake(block.titulo)}: ${repairPossibleMojibake(block.texto)}`)
         : narrative.slice(0, 3)
   ).filter(Boolean);
 
@@ -224,17 +228,21 @@ function ConceptActivity({ activity, startedAtRef, onComplete }) {
       <section className="concept-stage">
         <article className="concept-hero-card">
           <span className="concept-kicker">Idea central</span>
-          <h3>{leadBlock?.titulo || activity.titulo || 'Qué debes recordar'}</h3>
+          <h3>{repairPossibleMojibake(leadBlock?.titulo || activity.titulo || 'Qué debes recordar')}</h3>
           <p>
-            {leadBlock?.texto ||
-              narrative[0] ||
-              'Esta actividad resume la señal principal que debes reconocer antes de avanzar.'}
+            {repairPossibleMojibake(
+              leadBlock?.texto ||
+                narrative[0] ||
+                'Esta actividad resume la señal principal que debes reconocer antes de avanzar.'
+            )}
           </p>
           <div className="concept-callout">
             <strong>Cómo se traduce en una decisión segura</strong>
             <p>
-              {narrative[1] ||
-                'No basta con detectar la señal: la clave es pausar, verificar y salir del canal sospechoso si hace falta.'}
+              {repairPossibleMojibake(
+                narrative[1] ||
+                  'No basta con detectar la señal: la clave es pausar, verificar y salir del canal sospechoso si hace falta.'
+              )}
             </p>
           </div>
         </article>
@@ -243,8 +251,8 @@ function ConceptActivity({ activity, startedAtRef, onComplete }) {
             {supportBlocks.map((block) => (
               <article className="concept-card" key={`${block.titulo}-${block.texto}`}>
                 <span className="concept-card-index">Clave</span>
-                <p className="concept-card-title">{block.titulo}</p>
-                <p className="concept-card-text">{block.texto}</p>
+                <p className="concept-card-title">{repairPossibleMojibake(block.titulo)}</p>
+                <p className="concept-card-text">{repairPossibleMojibake(block.texto)}</p>
               </article>
             ))}
           </div>
@@ -255,7 +263,7 @@ function ConceptActivity({ activity, startedAtRef, onComplete }) {
           <p className="eyebrow">Qué debes aplicar al salir de aquí</p>
           <div className="activity-copy">
             {narrative.slice(leadBlock ? 1 : 0).map((line) => (
-              <p key={line}>{line}</p>
+              <p key={line}>{repairPossibleMojibake(line)}</p>
             ))}
           </div>
         </section>
@@ -272,7 +280,7 @@ function ConceptActivity({ activity, startedAtRef, onComplete }) {
           <div className="summary-list">
             {takeawayItems.map((item) => (
               <div className="summary-item concept-takeaway-item" key={item}>
-                <p>{item}</p>
+                <p>{repairPossibleMojibake(item)}</p>
               </div>
             ))}
           </div>

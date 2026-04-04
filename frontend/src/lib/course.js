@@ -99,7 +99,62 @@ const BROKEN_ACCENT_SUFFIX_MAP = new Map([
   ['\u0091', '\u00d1'],
 ]);
 
-const MODULE_TITLE_LABELS = {
+const EXTREME_MOJIBAKE_REPLACEMENTS = new Map();
+
+function decodeLatin1Utf8(value) {
+  try {
+    return Buffer.from(value, 'latin1').toString('utf8');
+  } catch {
+    return value;
+  }
+}
+
+function mojibakePenalty(value) {
+  return (
+    (value.match(/[ÃÂÆ�]/g) || []).length * 4 +
+    (value.match(/â€|ðŸ|ï¿½/g) || []).length * 5 +
+    (value.match(/[\u0000-\u001f]/g) || []).length * 8 +
+    (value.match(/\?{2,}/g) || []).length * 3 +
+    (value.match(/\bM\?dulo\b|\btodav\?a\b/gi) || []).length * 5
+  );
+}
+
+function readabilityBonus(value) {
+  return (
+    (value.match(/[áéíóúñÁÉÍÓÚÑ¿¡]/g) || []).length * 2 +
+    (
+      value.match(
+        /\b(señal|módulo|hábito|verificación|página|simulación|contraseña|cómo|último)\b/gi
+      ) || []
+    )
+      .length *
+      2
+  );
+}
+
+function chooseBestDecoded(candidates, current) {
+  const unique = [...new Set(candidates.filter(Boolean))];
+  return unique.reduce(
+    (best, candidate) => {
+      const score = readabilityBonus(candidate) - mojibakePenalty(candidate);
+      if (score > best.score) return { value: candidate, score };
+      return best;
+    },
+    { value: current, score: readabilityBonus(current) - mojibakePenalty(current) }
+  ).value;
+}
+
+function decodeRepeated(value, decoder, limit = 6) {
+  let result = value;
+  for (let attempt = 0; attempt < limit; attempt += 1) {
+    const next = decoder(result);
+    if (!next || next === result) break;
+    result = next;
+  }
+  return result;
+}
+
+export const MODULE_TITLE_LABELS = {
   web: 'Detecta P\u00e1ginas Clonadas',
   whatsapp: 'WhatsApp: Suplantaci\u00f3n y Enlaces',
   sms: 'SMS: Detecta Mensajes Falsos',
@@ -145,6 +200,9 @@ function decodeCp1252Utf8(value) {
 
 function fixBrokenAccentChains(value) {
   let result = value;
+  EXTREME_MOJIBAKE_REPLACEMENTS.forEach((replacement, broken) => {
+    result = result.replaceAll(broken, replacement);
+  });
   BROKEN_ACCENT_PREFIXES.forEach((prefix) => {
     BROKEN_ACCENT_SUFFIX_MAP.forEach((replacement, suffix) => {
       result = result.replaceAll(prefix + suffix, replacement);
@@ -160,7 +218,26 @@ export const repairPossibleMojibake = (value) => {
 
   let result = value;
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const next = fixBrokenAccentChains(decodeCp1252Utf8(fixBrokenAccentChains(result)))
+    const repeatedCp1252 = decodeRepeated(result, decodeCp1252Utf8);
+    const repeatedLatin1 = decodeRepeated(result, decodeLatin1Utf8);
+    const candidates = [
+      result,
+      fixBrokenAccentChains(result),
+      decodeCp1252Utf8(result),
+      decodeLatin1Utf8(result),
+      repeatedCp1252,
+      fixBrokenAccentChains(repeatedCp1252),
+      repeatedLatin1,
+      fixBrokenAccentChains(repeatedLatin1),
+      decodeCp1252Utf8(fixBrokenAccentChains(result)),
+      decodeLatin1Utf8(fixBrokenAccentChains(result)),
+      decodeLatin1Utf8(decodeCp1252Utf8(result)),
+      decodeCp1252Utf8(decodeLatin1Utf8(result)),
+      decodeLatin1Utf8(decodeLatin1Utf8(result)),
+      decodeCp1252Utf8(decodeCp1252Utf8(result)),
+    ];
+
+    const next = chooseBestDecoded(candidates, result)
       .replaceAll('\u00e2\u20ac\u0153', '\u201c')
       .replaceAll('\u00e2\u20ac\u009d', '\u201d')
       .replaceAll('\u00e2\u20ac\u2122', '\u2019')
@@ -168,7 +245,14 @@ export const repairPossibleMojibake = (value) => {
       .replaceAll('\u00e2\u20ac\u201d', '\u2014')
       .replaceAll('\u00c2\u00bf', '\u00bf')
       .replaceAll('\u00c2\u00a1', '\u00a1')
+      .replaceAll('Â·', '·')
+      .replaceAll('Âº', 'º')
+      .replaceAll('Âª', 'ª')
+      .replaceAll('Â«', '«')
+      .replaceAll('Â»', '»')
       .replace(/\bcontrasena\b/gi, (match) => (match[0] === 'C' ? 'Contrase\u00f1a' : 'contrase\u00f1a'))
+      .replace(/\bmodulo\b/gi, (match) => (match[0] === 'M' ? 'Módulo' : 'módulo'))
+      .replace(/\btodavia\b/gi, (match) => (match[0] === 'T' ? 'Todavía' : 'todavía'))
       .replace(/\ufffd/g, '');
 
     if (next === result) break;
@@ -289,12 +373,16 @@ function inferModuleTitleCategory(title) {
 }
 
 function normalizeModuleTitle(category, title) {
+  const canonical = MODULE_TITLE_LABELS[category] || 'Módulo';
   const clean = toCleanText(title);
-  const canonical = MODULE_TITLE_LABELS[category] || 'M?dulo';
   if (!clean) return canonical;
   const inferred = inferModuleTitleCategory(clean);
-  if (inferred && inferred !== category) return canonical;
-  return clean;
+  if (!inferred || inferred === category) return canonical;
+  return canonical;
+}
+
+export function normalizeModuleTitleForDisplay(category, title) {
+  return normalizeModuleTitle(normalizeCategory(category), title);
 }
 
 export const ensureCourseState = (plan) => {
@@ -319,7 +407,7 @@ export const ensureCourseState = (plan) => {
       const id = String(module.id || `m${moduleIndex + 1}`).trim() || `m${moduleIndex + 1}`;
       const categoria = normalizeCategory(module.categoria || module.category || 'habitos');
       const nivel = normalizeModuleLevel(module.nivel || module.level || module.dificultad || '');
-      const titulo = normalizeModuleTitle(categoria, module.titulo || module.title || `Modulo ${moduleIndex + 1}`);
+      const titulo = normalizeModuleTitle(categoria, module.titulo || module.title || `Módulo ${moduleIndex + 1}`);
       const descripcion = toCleanText(module.descripcion || module.description || '');
       const acts = Array.isArray(module.actividades) ? module.actividades : [];
 
@@ -1019,7 +1107,7 @@ export const feedbackToText = (payload) => {
     payload.signal ? `Señal detectada: ${payload.signal}` : '',
     payload.risk ? `Riesgo: ${payload.risk}` : '',
     payload.action ? `Acción segura: ${payload.action}` : '',
-    payload.extra ? String(payload.extra) : '',
+    payload.extra ?? '',
     Array.isArray(payload.detected) && payload.detected.length
       ? `Señales detectadas: ${payload.detected.join(', ')}`
       : '',
