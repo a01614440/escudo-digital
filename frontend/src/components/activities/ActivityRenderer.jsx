@@ -1305,23 +1305,39 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     return {
       ...source,
       marca: repairPossibleMojibake(source.marca || ''),
+      brandMark: repairPossibleMojibake(source.brandMark || ''),
       dominio: repairPossibleMojibake(source.dominio || ''),
       browserTitle: repairPossibleMojibake(source.browserTitle || ''),
+      themeVariant: repairPossibleMojibake(source.themeVariant || ''),
+      layoutVariant: repairPossibleMojibake(source.layoutVariant || ''),
+      guideMode: repairPossibleMojibake(source.guideMode || ''),
+      headerTagline: repairPossibleMojibake(source.headerTagline || ''),
+      heroTitle: repairPossibleMojibake(source.heroTitle || ''),
+      heroBody: repairPossibleMojibake(source.heroBody || ''),
+      sealLabel: repairPossibleMojibake(source.sealLabel || ''),
       banner: repairPossibleMojibake(source.banner || ''),
       sub: repairPossibleMojibake(source.sub || ''),
       contacto: repairPossibleMojibake(source.contacto || ''),
       shipping: repairPossibleMojibake(source.shipping || ''),
       reviews: repairPossibleMojibake(source.reviews || ''),
+      reviewsLabel: repairPossibleMojibake(source.reviewsLabel || ''),
       policy: repairPossibleMojibake(source.policy || ''),
+      cartHeadline: repairPossibleMojibake(source.cartHeadline || ''),
       cartNote: repairPossibleMojibake(source.cartNote || ''),
+      checkoutHeadline: repairPossibleMojibake(source.checkoutHeadline || ''),
       checkoutPrompt: repairPossibleMojibake(source.checkoutPrompt || ''),
       pagos: Array.isArray(source.pagos) ? source.pagos.map((item) => repairPossibleMojibake(item)) : [],
+      liveToasts: Array.isArray(source.liveToasts)
+        ? source.liveToasts.map((item) => repairPossibleMojibake(item)).filter(Boolean)
+        : [],
       productos: Array.isArray(source.productos)
         ? source.productos.map((product) => ({
             ...product,
             nombre: repairPossibleMojibake(product?.nombre || ''),
             antes: repairPossibleMojibake(product?.antes || ''),
             precio: repairPossibleMojibake(product?.precio || ''),
+            badge: repairPossibleMojibake(product?.badge || ''),
+            caption: repairPossibleMojibake(product?.caption || ''),
           }))
         : [],
     };
@@ -1346,6 +1362,45 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     [activity.decisionOptions]
   );
   const products = Array.isArray(page.productos) ? page.productos : [];
+  const themeVariant = page.themeVariant || 'flash';
+  const layoutVariant = page.layoutVariant || 'classic';
+  const guideMode = page.guideMode || 'coached';
+  const hotspotMap = useMemo(() => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])), [hotspots]);
+  const correctHotspots = useMemo(() => hotspots.filter((hotspot) => hotspot.correcta), [hotspots]);
+  const goalCount = Math.max(1, correctHotspots.length);
+  const buildGuideHint = (mode, flaggedCount = 0) => {
+    if (mode === 'minimal') {
+      return {
+        kind: 'info',
+        title: flaggedCount ? 'Lectura fina' : 'Exploración libre',
+        text: flaggedCount
+          ? `Marcas registradas: ${flaggedCount} de ${goalCount}. Quédate solo con lo que realmente te haría frenar la compra.`
+          : 'Recorre producto, carrito y checkout. Marca solo las señales que realmente cambiarían tu decisión final.',
+      };
+    }
+    if (mode === 'light') {
+      return {
+        kind: 'info',
+        title: flaggedCount ? 'Sigue contrastando' : 'Explora la tienda',
+        text: flaggedCount
+          ? `Hallazgos marcados: ${flaggedCount} de ${goalCount}. Revisa soporte, políticas y pago antes de decidir.`
+          : 'Sigue el flujo completo y marca únicamente lo que sí comprometería una compra real.',
+      };
+    }
+    return {
+      kind: 'info',
+      title: flaggedCount ? 'Sigue explorando' : 'Modo exploración',
+      text: flaggedCount
+        ? `Hallazgos encontrados: ${flaggedCount} de ${goalCount}. Recorre producto, carrito y checkout antes de decidir.`
+        : 'Encuentra las señales sospechosas integradas en la tienda antes de decidir si comprarías aquí.',
+    };
+  };
+  const missionText =
+    guideMode === 'minimal'
+      ? `Explora la tienda y marca las ${goalCount} señales que realmente te harían detener la compra.`
+      : guideMode === 'light'
+        ? `Marca al menos ${goalCount} señales que sí cambiarían tu decisión antes de pagar.`
+        : `Encuentra al menos ${goalCount} señales sospechosas antes de decidir si comprarías aquí.`;
   const [stage, setStage] = useState('product');
   const [flagged, setFlagged] = useState(() => new Set());
   const [neutralTargets, setNeutralTargets] = useState(() => new Set());
@@ -1354,30 +1409,25 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
   const [result, setResult] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [countdown, setCountdown] = useState(754);
-  const [hint, setHint] = useState({
-    kind: 'info',
-    title: 'Modo exploración',
-    text: 'Encuentra las señales sospechosas integradas en la tienda antes de decidir si comprarías aquí.',
-  });
+  const [hint, setHint] = useState(() => buildGuideHint(guideMode, 0));
   const [toastIndex, setToastIndex] = useState(0);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [inspectedTarget, setInspectedTarget] = useState('');
   const [inspectedNote, setInspectedNote] = useState({ kind: 'info', text: '' });
   const hintTimeoutRef = useRef(null);
-
-  const hotspotMap = useMemo(() => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])), [hotspots]);
-  const correctHotspots = useMemo(() => hotspots.filter((hotspot) => hotspot.correcta), [hotspots]);
-  const goalCount = Math.max(1, correctHotspots.length);
   const browserUrl = page.dominio || 'cyberzone-ofertas.shop';
   const browserTitle = page.browserTitle || `${page.marca || 'Cyber Zone MX'} | Oferta especial`;
   const liveToasts = useMemo(
-    () => [
-      'Laura de Guadalajara acaba de comprar una Tablet Mini.',
-      'Carlos de Monterrey agregó una Laptop Air 14 al carrito.',
-      'Sofía de CDMX está pagando con descuento relámpago.',
-      'Miguel de Puebla apartó Audífonos Pro hace 1 min.',
-    ],
-    []
+    () =>
+      page.liveToasts.length
+        ? page.liveToasts
+        : [
+            'Laura de Guadalajara acaba de comprar una Tablet Mini.',
+            'Carlos de Monterrey agregó una Laptop Air 14 al carrito.',
+            'Sofía de CDMX está pagando con descuento relámpago.',
+            'Miguel de Puebla apartó Audífonos Pro hace 1 min.',
+          ],
+    [page.liveToasts]
   );
   const targetLabels = useMemo(() => {
     const labels = {
@@ -1398,6 +1448,21 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     });
     return labels;
   }, [products]);
+  const detectedSummary = (() => {
+    if (!flagged.size) {
+      return guideMode === 'coached'
+        ? 'Todavía no has marcado ninguna alerta.'
+        : guideMode === 'light'
+          ? 'Aún no registras hallazgos. Revisa producto, carrito y checkout.'
+          : 'Aún no registras marcas. Quédate solo con señales decisivas.';
+    }
+    const labels = Array.from(flagged)
+      .map((target) => hotspotMap.get(target)?.label || target)
+      .join(' · ');
+    if (guideMode === 'coached') return labels;
+    if (guideMode === 'light') return `${flagged.size} hallazgos registrados. Ajusta tu criterio antes de evaluar.`;
+    return `${flagged.size} marcas registradas. Evita sobredetectar: busca solo señales decisivas.`;
+  })();
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -1430,11 +1495,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     setHint(nextHint);
     if (hintTimeoutRef.current) window.clearTimeout(hintTimeoutRef.current);
     hintTimeoutRef.current = window.setTimeout(() => {
-      setHint({
-        kind: 'info',
-        title: 'Sigue explorando',
-        text: `Hallazgos encontrados: ${flaggedCount} de ${goalCount}. Recorre producto, carrito y checkout antes de decidir.`,
-      });
+      setHint(buildGuideHint(guideMode, flaggedCount));
     }, 2400);
   };
 
@@ -1588,10 +1649,11 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
         <>
           <section className="fraud-store-hero">
             <div className="fraud-store-sale-copy">
-              <span className="fraud-store-sale-chip">{page.banner || 'Liquidación total hoy'}</span>
-              <h3>{page.marca ? `${page.marca} remata tecnología y hogar` : 'Hasta 85% de descuento hoy'}</h3>
+              <span className="fraud-store-sale-chip">{page.sealLabel || page.banner || 'Liquidación total hoy'}</span>
+              <h3>{page.heroTitle || (page.marca ? `${page.marca} remata tecnología y hogar` : 'Hasta 85% de descuento hoy')}</h3>
               <p>
-                {page.sub ||
+                {page.heroBody ||
+                  page.sub ||
                   'Aprovecha precios muy bajos en tecnología, hogar y accesorios antes de que termine la oferta.'}
               </p>
             </div>
@@ -1670,16 +1732,16 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 <div className="fraud-product-copy">
                   <div className="fraud-product-top">
                     <strong>{product.nombre || 'Producto'}</strong>
-                    <span className="fraud-discount-badge">87% OFF</span>
+                    <span className="fraud-discount-badge">{product.badge || '87% OFF'}</span>
                   </div>
                   <p className="fraud-product-pricing">
                     {product.antes ? <span>{product.antes}</span> : null}
                     <strong>{product.precio || '$0'}</strong>
                   </p>
                   <div className="fraud-product-notes">
-                    <span>Garantía premium</span>
-                    <span>Envío express</span>
-                    <span>Compra protegida</span>
+                    {product.caption ? <span>{product.caption}</span> : null}
+                    <span>{themeVariant === 'premium' || themeVariant === 'sage' ? 'Entrega curada' : 'Envío express'}</span>
+                    <span>{themeVariant === 'street' ? 'Drop limitado' : 'Compra protegida'}</span>
                   </div>
                   {renderInlineNote(`product_${index}`)}
                 </div>
@@ -1691,7 +1753,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
           </section>
           <section className="fraud-store-reviews-shell">
             <div className="fraud-store-section-head">
-              <h4>Lo que dicen nuestros clientes</h4>
+              <h4>{page.reviewsLabel || 'Lo que dicen nuestros clientes'}</h4>
               <span>4.9 / 5</span>
             </div>
             <button
@@ -1715,7 +1777,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
           <section className="fraud-cart-banner">
             <div>
               <span className="fraud-store-sale-chip subtle">Carrito reservado</span>
-              <h4>Tus artículos siguen apartados por tiempo limitado</h4>
+              <h4>{page.cartHeadline || 'Tus artículos siguen apartados por tiempo limitado'}</h4>
               <p>{page.cartNote || 'Si sales del checkout, la oferta se recalcula automáticamente.'}</p>
             </div>
             <button
@@ -1771,7 +1833,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
         <div className="fraud-checkout-layout">
           <section className="fraud-checkout-main">
             <div className="fraud-store-section-head">
-                <h4>Datos de envío</h4>
+                <h4>{page.checkoutHeadline || 'Datos de envío'}</h4>
               <span>Paso 2 de 2</span>
             </div>
             <div className="fraud-form-grid">
@@ -1908,7 +1970,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
       <section className="web-lab-mission">
         <div>
           <p className="eyebrow">Objetivo de la simulación</p>
-          <h3>Encuentra al menos {goalCount} señales sospechosas antes de decidir si comprarías aquí.</h3>
+          <h3>{missionText}</h3>
         </div>
         <div className={`web-lab-progress-card ${flagged.size >= goalCount ? 'is-complete' : ''}`.trim()}>
           <span>{`Hallazgos encontrados: ${flagged.size} / ${goalCount}`}</span>
@@ -1918,7 +1980,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
         </div>
       </section>
 
-      <section className="web-lab-immersive">
+      <section className={`web-lab-immersive theme-${themeVariant} layout-${layoutVariant} guide-${guideMode}`.trim()}>
         <div className={`web-lab-hint ${hint.kind}`.trim()}>
           <strong>{hint.title}</strong>
           <p>{hint.text}</p>
@@ -1943,13 +2005,13 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
           </button>
         </div>
 
-        <div className="fraud-store-shell">
+        <div className={`fraud-store-shell theme-${themeVariant} layout-${layoutVariant} guide-${guideMode}`.trim()}>
           <header className="fraud-store-header">
             <div className="fraud-store-logo">
-              <span>CZ</span>
+              <span>{page.brandMark || (page.marca || 'CZ').slice(0, 2).toUpperCase()}</span>
               <div>
                 <strong>{page.marca || 'CYBER ZONE MX'}</strong>
-                <small>Ofertas exclusivas del día</small>
+                <small>{page.headerTagline || 'Ofertas exclusivas del día'}</small>
               </div>
             </div>
 
@@ -2005,13 +2067,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
         <div className="web-lab-detective-bar">
           <div className="web-lab-detective-copy">
             <strong>Señales detectadas</strong>
-            <p>
-              {flagged.size
-                ? Array.from(flagged)
-                    .map((target) => hotspotMap.get(target)?.label || target)
-                    .join(' · ')
-                : 'Todavía no has marcado ninguna alerta.'}
-            </p>
+            <p>{detectedSummary}</p>
           </div>
           <div className="web-lab-detective-count">{`${flagged.size}/${goalCount}`}</div>
         </div>
@@ -2083,17 +2139,13 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 setFeedback(null);
                 setFlagged(new Set());
                 setNeutralTargets(new Set());
-                  setDecision(null);
-                  setCartItems([]);
-                  setStage('product');
-                  setInspectedTarget('');
-                  setInspectedNote({ kind: 'info', text: '' });
-                  setHint({
-                    kind: 'info',
-                    title: 'Modo exploración',
-                    text: 'Encuentra las señales sospechosas integradas en la tienda antes de decidir si comprarías aquí.',
-                  });
-                }}
+                setDecision(null);
+                setCartItems([]);
+                setStage('product');
+                setInspectedTarget('');
+                setInspectedNote({ kind: 'info', text: '' });
+                setHint(buildGuideHint(guideMode, 0));
+              }}
               >
               Reintentar simulación
             </button>
