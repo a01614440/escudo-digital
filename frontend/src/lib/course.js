@@ -8,11 +8,11 @@ export const CATEGORY_LABELS = {
   web: 'Web',
   llamadas: 'Llamadas',
   correo_redes: 'Correo/Redes',
-  habitos: 'Hábitos',
+  habitos: 'H\u00e1bitos',
 };
 
 export const LEVEL_LABELS = {
-  basico: 'Básico',
+  basico: 'B\u00e1sico',
   refuerzo: 'Refuerzo',
   avanzado: 'Avanzado',
 };
@@ -20,11 +20,11 @@ export const LEVEL_LABELS = {
 export const ACTIVITY_LABELS = {
   concepto: 'Concepto',
   quiz: 'Quiz',
-  simulacion: 'Simulación',
+  simulacion: 'Simulaci\u00f3n',
   abierta: 'Respuesta abierta',
-  sim_chat: 'Simulación (chat)',
+  sim_chat: 'Simulaci\u00f3n (chat)',
   checklist: 'Checklist',
-  compare_domains: 'Comparación',
+  compare_domains: 'Comparaci\u00f3n',
   signal_hunt: 'Modo detective',
   inbox: 'Inbox',
   web_lab: 'Laboratorio web',
@@ -34,34 +34,148 @@ export const ACTIVITY_LABELS = {
 
 export const COMP_KEYS = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
 
-export const repairPossibleMojibake = (value) => {
-  if (typeof value !== 'string') return value;
-  if (!/[ÃÂâ€œâ€â€™â€“â€”]/.test(value) && !/\bcontrasena\b/i.test(value)) return value;
+const CP1252_UNICODE_TO_BYTE = new Map([
+  [0x20ac, 0x80],
+  [0x201a, 0x82],
+  [0x0192, 0x83],
+  [0x201e, 0x84],
+  [0x2026, 0x85],
+  [0x2020, 0x86],
+  [0x2021, 0x87],
+  [0x02c6, 0x88],
+  [0x2030, 0x89],
+  [0x0160, 0x8a],
+  [0x2039, 0x8b],
+  [0x0152, 0x8c],
+  [0x017d, 0x8e],
+  [0x2018, 0x91],
+  [0x2019, 0x92],
+  [0x201c, 0x93],
+  [0x201d, 0x94],
+  [0x2022, 0x95],
+  [0x2013, 0x96],
+  [0x2014, 0x97],
+  [0x02dc, 0x98],
+  [0x2122, 0x99],
+  [0x0161, 0x9a],
+  [0x203a, 0x9b],
+  [0x0153, 0x9c],
+  [0x017e, 0x9e],
+  [0x0178, 0x9f],
+]);
+
+const MOJIBAKE_MARKERS = [
+  '\u00c3',
+  '\u00c2',
+  '\u00c6',
+  '\u00e2\u20ac',
+  '\u00e2\u20ac\u2122',
+  '\u00e2\u20ac\u0153',
+  '\u00e2\u20ac\u009d',
+  '\u00e2\u20ac\u201c',
+  '\u00e2\u20ac\u201d',
+  '\ufffd',
+];
+
+const BROKEN_ACCENT_PREFIXES = [
+  '\u00c3\u0192\u00c6\u2019\u00c3\u2020\u2019\u00c3\u00e2\u20ac\u0161\u00c3\u201a\u00c2',
+  '\u00c3\u0192\u00c6\u2019\u00c3\u201a\u00c2',
+  '\u00c3\u0192\u00c2',
+  '\u00c3\u00c2',
+];
+
+const BROKEN_ACCENT_SUFFIX_MAP = new Map([
+  ['\u00a1', '\u00e1'],
+  ['\u00a9', '\u00e9'],
+  ['\u00ad', '\u00ed'],
+  ['\u00b3', '\u00f3'],
+  ['\u00ba', '\u00fa'],
+  ['\u00b1', '\u00f1'],
+  ['\u0081', '\u00c1'],
+  ['\u0089', '\u00c9'],
+  ['\u008d', '\u00cd'],
+  ['\u0093', '\u00d3'],
+  ['\u009a', '\u00da'],
+  ['\u0091', '\u00d1'],
+]);
+
+const MODULE_TITLE_LABELS = {
+  web: 'Detecta P\u00e1ginas Clonadas',
+  whatsapp: 'WhatsApp: Suplantaci\u00f3n y Enlaces',
+  sms: 'SMS: Detecta Mensajes Falsos',
+  llamadas: 'Llamadas Fraudulentas',
+  correo_redes: 'Correo/Redes: Phishing',
+  habitos: 'H\u00e1bitos de Verificaci\u00f3n',
+};
+
+const MODULE_TITLE_HINTS = {
+  web: /(p[a\u00e1]ginas?|dominios?|clonad|checkout|carrito|tienda)/i,
+  whatsapp: /(whatsapp|suplantaci[o\u00f3]n|enlaces?)/i,
+  sms: /(^|\W)sms(\W|$)|mensajes?\s+falsos/i,
+  llamadas: /(llamadas?\s+fraudulentas|vishing|llamada)/i,
+  correo_redes: /(correo|redes|phishing)/i,
+  habitos: /(h[a\u00e1]bitos?|verificaci[o\u00f3]n|rutina)/i,
+};
+
+function looksLikeMojibake(value) {
+  return MOJIBAKE_MARKERS.some((marker) => value.includes(marker)) || /\bcontrasena\b/i.test(value);
+}
+
+function decodeCp1252Utf8(value) {
+  const bytes = [];
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    if (code <= 0xff) {
+      bytes.push(code);
+      continue;
+    }
+    if (CP1252_UNICODE_TO_BYTE.has(code)) {
+      bytes.push(CP1252_UNICODE_TO_BYTE.get(code));
+      continue;
+    }
+    return value;
+  }
 
   try {
-    return decodeURIComponent(escape(value));
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes));
   } catch {
-    return value
-      .replaceAll('Ã¡', 'á')
-      .replaceAll('Ã©', 'é')
-      .replaceAll('Ã­', 'í')
-      .replaceAll('Ã³', 'ó')
-      .replaceAll('Ãº', 'ú')
-      .replaceAll('Ã±', 'ñ')
-      .replaceAll('Ã', 'Á')
-      .replaceAll('Ã‰', 'É')
-      .replaceAll('Ã', 'Í')
-      .replaceAll('Ã“', 'Ó')
-      .replaceAll('Ãš', 'Ú')
-      .replaceAll('â€œ', '“')
-      .replaceAll('â€', '”')
-      .replaceAll('â€™', '’')
-      .replaceAll('â€“', '–')
-      .replaceAll('â€”', '—')
-      .replaceAll('Â¿', '¿')
-      .replaceAll('Â¡', '¡')
-      .replace(/\bcontrasena\b/gi, (match) => (match[0] === 'C' ? 'Contraseña' : 'contraseña'));
+    return value;
   }
+}
+
+function fixBrokenAccentChains(value) {
+  let result = value;
+  BROKEN_ACCENT_PREFIXES.forEach((prefix) => {
+    BROKEN_ACCENT_SUFFIX_MAP.forEach((replacement, suffix) => {
+      result = result.replaceAll(prefix + suffix, replacement);
+    });
+  });
+
+  return result;
+}
+
+export const repairPossibleMojibake = (value) => {
+  if (typeof value !== 'string') return value;
+  if (!looksLikeMojibake(value)) return value;
+
+  let result = value;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const next = fixBrokenAccentChains(decodeCp1252Utf8(fixBrokenAccentChains(result)))
+      .replaceAll('\u00e2\u20ac\u0153', '\u201c')
+      .replaceAll('\u00e2\u20ac\u009d', '\u201d')
+      .replaceAll('\u00e2\u20ac\u2122', '\u2019')
+      .replaceAll('\u00e2\u20ac\u201c', '\u2013')
+      .replaceAll('\u00e2\u20ac\u201d', '\u2014')
+      .replaceAll('\u00c2\u00bf', '\u00bf')
+      .replaceAll('\u00c2\u00a1', '\u00a1')
+      .replace(/\bcontrasena\b/gi, (match) => (match[0] === 'C' ? 'Contrase\u00f1a' : 'contrase\u00f1a'))
+      .replace(/\ufffd/g, '');
+
+    if (next === result) break;
+    result = next;
+  }
+
+  return result;
 };
 
 [CATEGORY_LABELS, LEVEL_LABELS, ACTIVITY_LABELS].forEach((dictionary) => {
@@ -71,7 +185,7 @@ export const repairPossibleMojibake = (value) => {
 });
 
 export const normalizeRiskLevel = (value) => {
-  const raw = String(value || '').trim();
+  const raw = repairPossibleMojibake(String(value || '').trim());
   const lower = raw.toLowerCase();
   if (lower.startsWith('alto')) return 'Alto';
   if (lower.startsWith('medio')) return 'Medio';
@@ -80,7 +194,7 @@ export const normalizeRiskLevel = (value) => {
 };
 
 export const normalizeCategory = (value) => {
-  const raw = String(value || '').trim().toLowerCase();
+  const raw = repairPossibleMojibake(String(value || '').trim()).toLowerCase();
   if (!raw) return 'habitos';
   if (raw.startsWith('web')) return 'web';
   if (raw.startsWith('whats') || raw === 'wa') return 'whatsapp';
@@ -92,7 +206,7 @@ export const normalizeCategory = (value) => {
 };
 
 export const normalizeModuleLevel = (value) => {
-  const raw = String(value || '').trim().toLowerCase();
+  const raw = repairPossibleMojibake(String(value || '').trim()).toLowerCase();
   if (raw.startsWith('ava')) return 'avanzado';
   if (raw.startsWith('ref')) return 'refuerzo';
   if (raw.startsWith('bas')) return 'basico';
@@ -154,8 +268,37 @@ export const computePlanSignature = (plan) => {
 
 const cloneJson = (value) => JSON.parse(JSON.stringify(value ?? null));
 
+function toCleanText(value, fallback = '') {
+  const base = value ?? fallback;
+  return repairPossibleMojibake(String(base || '')).trim();
+}
+
+function repairNestedStrings(value) {
+  if (typeof value === 'string') return repairPossibleMojibake(value);
+  if (Array.isArray(value)) return value.map((entry) => repairNestedStrings(entry));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, repairNestedStrings(entry)]));
+  }
+  return value;
+}
+
+function inferModuleTitleCategory(title) {
+  const clean = toCleanText(title).toLowerCase();
+  if (!clean) return '';
+  return Object.entries(MODULE_TITLE_HINTS).find(([, pattern]) => pattern.test(clean))?.[0] || '';
+}
+
+function normalizeModuleTitle(category, title) {
+  const clean = toCleanText(title);
+  const canonical = MODULE_TITLE_LABELS[category] || 'M?dulo';
+  if (!clean) return canonical;
+  const inferred = inferModuleTitleCategory(clean);
+  if (inferred && inferred !== category) return canonical;
+  return clean;
+}
+
 export const ensureCourseState = (plan) => {
-  const safe = plan && typeof plan === 'object' ? cloneJson(plan) : {};
+  const safe = repairNestedStrings(plan && typeof plan === 'object' ? cloneJson(plan) : {});
   safe.planVersion = Number.isFinite(Number(safe.planVersion)) ? Number(safe.planVersion) : 0;
   safe.score_name = String(safe.score_name || 'Blindaje Digital').trim() || 'Blindaje Digital';
   safe.planScope = String(safe.planScope || 'standard').trim() || 'standard';
@@ -176,8 +319,8 @@ export const ensureCourseState = (plan) => {
       const id = String(module.id || `m${moduleIndex + 1}`).trim() || `m${moduleIndex + 1}`;
       const categoria = normalizeCategory(module.categoria || module.category || 'habitos');
       const nivel = normalizeModuleLevel(module.nivel || module.level || module.dificultad || '');
-      const titulo = String(module.titulo || `Modulo ${moduleIndex + 1}`).trim();
-      const descripcion = String(module.descripcion || '').trim();
+      const titulo = normalizeModuleTitle(categoria, module.titulo || module.title || `Modulo ${moduleIndex + 1}`);
+      const descripcion = toCleanText(module.descripcion || module.description || '');
       const acts = Array.isArray(module.actividades) ? module.actividades : [];
 
       const actividades = acts
