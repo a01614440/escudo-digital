@@ -150,18 +150,17 @@ function ShieldCard({
   strongestTopic,
   weakestTopic,
   prioritySummary,
-  onShowProgress,
 }) {
   return (
     <section className="panel dashboard-card shield-card-clean">
-      <div className="section-title-row dashboard-title-row">
+      <div className="dashboard-title-stack">
         <div>
           <p className="eyebrow">Blindaje actual</p>
           <h2>Vista general</h2>
+          <p className="lead shield-intro">
+            Tu blindaje combina tu evaluación inicial con el progreso real que llevas en actividades y módulos.
+          </p>
         </div>
-        <button className="btn ghost" type="button" onClick={onShowProgress}>
-          Ver progreso
-        </button>
       </div>
 
       <div className="shield-card-body">
@@ -171,6 +170,14 @@ function ShieldCard({
               <strong>{formatPercent(scoreTotal)}</strong>
               <span>Blindaje Digital</span>
             </div>
+          </div>
+          <div className="shield-donut-caption">
+            <strong>{completedModules === totalModules ? 'Ruta al día' : 'Sigue sumando progreso'}</strong>
+            <p>
+              {completedModules === totalModules
+                ? 'Ya cubriste todos los módulos activos de esta ruta.'
+                : 'Tu puntaje sube conforme completas bloques y mejoras tu toma de decisiones.'}
+            </p>
           </div>
         </div>
 
@@ -199,6 +206,21 @@ function ShieldCard({
             <strong>{formatDate(lastAccessAt)}</strong>
             <p>Guardado automático.</p>
           </article>
+        </div>
+      </div>
+
+      <div className="shield-highlight-bar">
+        <div className="shield-highlight-chip">
+          <span>Mejor desempeño</span>
+          <strong>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong>
+        </div>
+        <div className="shield-highlight-chip">
+          <span>Siguiente foco</span>
+          <strong>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}</strong>
+        </div>
+        <div className="shield-highlight-chip">
+          <span>Contexto</span>
+          <strong>{prioritySummary}</strong>
         </div>
       </div>
     </section>
@@ -679,7 +701,6 @@ export default function CoursesView({
           strongestTopic={strongestTopic}
           weakestTopic={weakestTopic}
           prioritySummary={prioritySummary}
-          onShowProgress={() => setActiveTab('progreso')}
         />
 
         <SpotlightCard

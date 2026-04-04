@@ -24,8 +24,10 @@ import {
   clearLocalState,
   readLocalState,
   readSessionToken,
+  readThemePreference,
   writeLocalState,
   writeSessionToken,
+  writeThemePreference,
 } from './lib/storage.js';
 
 function createInitialState() {
@@ -111,6 +113,7 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  const [theme, setTheme] = useState(readThemePreference());
 
   const visibleQuestions = useMemo(() => getVisibleQuestions(answers), [answers]);
 
@@ -460,6 +463,12 @@ export default function App() {
   }, [answers, assessment, coursePlan, courseProgress]);
 
   useEffect(() => {
+    document.body.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    writeThemePreference(theme);
+  }, [theme]);
+
+  useEffect(() => {
     if (surveyIndex > visibleQuestions.length - 1) {
       setSurveyIndex(Math.max(visibleQuestions.length - 1, 0));
     }
@@ -577,7 +586,9 @@ export default function App() {
         <SessionBar
           user={currentUser}
           currentView={currentView}
+          theme={theme}
           onViewChange={handleViewChange}
+          onThemeToggle={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
           onLogout={handleLogout}
         />
 

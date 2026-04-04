@@ -60,7 +60,7 @@ canvas {
 .session-detail-card,
 .session-detail-actions {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .session-identity h2,
@@ -207,6 +207,7 @@ canvas {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
+  line-height: 1.3;
 }
 
 .activity-type {
@@ -710,7 +711,7 @@ canvas {
 
 .dashboard-shell-panel {
   display: grid;
-  gap: 20px;
+  gap: 24px;
   background:
     radial-gradient(circle at top left, rgba(47, 107, 255, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 255, 0.98)),
@@ -721,10 +722,16 @@ canvas {
   align-items: start;
 }
 
+.dashboard-title-stack {
+  display: grid;
+  gap: 10px;
+}
+
 .shield-card-clean,
 .spotlight-card-clean {
   background:
-    radial-gradient(circle at top left, rgba(47, 107, 255, 0.13), transparent 34%),
+    radial-gradient(circle at top left, rgba(47, 107, 255, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(111, 177, 255, 0.1), transparent 32%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 255, 0.98)),
     var(--panel);
 }
@@ -736,6 +743,22 @@ canvas {
 
 .shield-card-donut {
   gap: 16px;
+}
+
+.shield-intro {
+  max-width: 58ch;
+}
+
+.shield-donut-caption {
+  display: grid;
+  gap: 8px;
+  max-width: 220px;
+  text-align: center;
+}
+
+.shield-donut-caption strong,
+.shield-highlight-chip strong {
+  line-height: 1.35;
 }
 
 .shield-summary-strip {
@@ -769,6 +792,35 @@ canvas {
   line-height: 1.2;
 }
 
+.shield-summary-tile p,
+.shield-donut-caption p {
+  line-height: 1.55;
+}
+
+.shield-highlight-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(47, 107, 255, 0.12);
+  border-radius: 20px;
+  background:
+    linear-gradient(120deg, rgba(47, 107, 255, 0.08), rgba(255, 255, 255, 0.7));
+}
+
+.shield-highlight-chip {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.shield-highlight-chip span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .spotlight-card-clean {
   align-content: start;
 }
@@ -779,6 +831,7 @@ canvas {
 
 .spotlight-lead {
   max-width: 54ch;
+  line-height: 1.6;
 }
 
 .spotlight-metrics {
@@ -855,7 +908,7 @@ canvas {
 
 .module-accordion-list {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .module-accordion {
@@ -889,7 +942,7 @@ canvas {
 
 .module-accordion-copy {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .module-accordion-title-row {
@@ -919,6 +972,7 @@ canvas {
 .summary-item p,
 .history-item p {
   margin: 0;
+  line-height: 1.55;
 }
 
 .module-accordion-body-grid,
@@ -966,12 +1020,70 @@ canvas {
 
 .summary-item,
 .history-item {
-  gap: 6px;
+  gap: 8px;
 }
 
 .summary-item strong,
 .history-item strong {
   line-height: 1.25;
+}
+
+body[data-theme='dark'] .session-bar-compact {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(15, 24, 40, 0.96));
+}
+
+body[data-theme='dark'] .shield-card-clean,
+body[data-theme='dark'] .spotlight-card-clean,
+body[data-theme='dark'] .dashboard-shell-panel,
+body[data-theme='dark'] .settings-panel-clean,
+body[data-theme='dark'] .lesson-header,
+body[data-theme='dark'] .lesson-card,
+body[data-theme='dark'] .activity-guide,
+body[data-theme='dark'] .module-accordion {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(15, 24, 40, 0.96));
+}
+
+body[data-theme='dark'] .shield-summary-tile,
+body[data-theme='dark'] .focus-metric,
+body[data-theme='dark'] .module-fact,
+body[data-theme='dark'] .activity-guide .summary-item,
+body[data-theme='dark'] .session-detail-card,
+body[data-theme='dark'] .session-detail-actions {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body[data-theme='dark'] .dashboard-tabs,
+body[data-theme='dark'] .shield-highlight-bar {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.12), transparent 36%),
+    rgba(255, 255, 255, 0.03);
+}
+
+body[data-theme='dark'] .dashboard-tab.active,
+body[data-theme='dark'] .level-pill.active,
+body[data-theme='dark'] .status-pill.locked,
+body[data-theme='dark'] .activity-pill,
+body[data-theme='dark'] .badge,
+body[data-theme='dark'] .badge.subtle,
+body[data-theme='dark'] .badge.level {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+body[data-theme='dark'] .activity-pill.soft,
+body[data-theme='dark'] .pill.soft {
+  background: rgba(255, 191, 105, 0.15);
+  color: #ffd7a2;
+}
+
+body[data-theme='dark'] .shield-donut {
+  background:
+    radial-gradient(circle closest-side, rgba(15, 24, 40, 1) 68%, transparent 69% 100%),
+    conic-gradient(var(--primary) calc(var(--p) * 1%), rgba(114, 160, 255, 0.14) 0);
 }
 
 .topic-toggle-grid {
@@ -1015,6 +1127,7 @@ canvas {
   .module-accordion-body-grid,
   .shield-card-body,
   .shield-summary-strip,
+  .shield-highlight-bar,
   .spotlight-metrics {
     grid-template-columns: 1fr;
   }
@@ -1118,6 +1231,7 @@ canvas {
   }
 
   .shield-summary-strip,
+  .shield-highlight-bar,
   .spotlight-metrics,
   .module-accordion-body-grid {
     grid-template-columns: 1fr;

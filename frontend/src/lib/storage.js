@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   answers: 'escudo_answers_v1',
   coursePlan: 'escudo_course_plan_v4',
   courseProgress: 'escudo_course_progress_v4',
+  theme: 'escudo_theme_v1',
 };
 
 export const safeJsonParse = (value) => {
@@ -40,6 +41,23 @@ export const writeSessionToken = (token) => {
   try {
     if (token) localStorage.setItem(STORAGE_KEYS.session, token);
     else localStorage.removeItem(STORAGE_KEYS.session);
+  } catch {
+    // ignore
+  }
+};
+
+export const readThemePreference = () => {
+  try {
+    const value = localStorage.getItem(STORAGE_KEYS.theme);
+    return value === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+};
+
+export const writeThemePreference = (theme) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.theme, theme === 'dark' ? 'dark' : 'light');
   } catch {
     // ignore
   }

@@ -8,7 +8,7 @@ const VIEW_LABELS = {
   admin: 'Panel interno',
 };
 
-export default function SessionBar({ user, currentView, onViewChange, onLogout }) {
+export default function SessionBar({ user, currentView, theme, onViewChange, onThemeToggle, onLogout }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const activeViewLabel = VIEW_LABELS[currentView] || 'Escudo Digital';
 
@@ -45,6 +45,9 @@ export default function SessionBar({ user, currentView, onViewChange, onLogout }
               Panel interno
             </button>
           ) : null}
+          <button className="btn ghost compact" type="button" onClick={onThemeToggle}>
+            {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+          </button>
           <button className="btn ghost compact" type="button" onClick={() => setDetailsOpen((value) => !value)}>
             {detailsOpen ? 'Ocultar cuenta' : 'Mi cuenta'}
           </button>
