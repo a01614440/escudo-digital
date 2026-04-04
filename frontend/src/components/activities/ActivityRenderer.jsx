@@ -161,20 +161,100 @@ function ActivitySummaryBar({ items = [] }) {
 }
 
 function ConceptActivity({ activity, startedAtRef, onComplete }) {
+  const blocks = Array.isArray(activity.bloques) ? activity.bloques : [];
+  const leadBlock = blocks[0] || null;
+  const supportBlocks = leadBlock ? blocks.slice(1) : blocks;
+  const narrative = splitParagraphs(activity.contenido);
+  const takeawayItems = (
+    Array.isArray(activity.claves) && activity.claves.length
+      ? activity.claves
+      : supportBlocks.length
+        ? supportBlocks.slice(0, 3).map((block) => `${block.titulo}: ${block.texto}`)
+        : narrative.slice(0, 3)
+  ).filter(Boolean);
+
   return (
     <>
-      {Array.isArray(activity.bloques) && activity.bloques.length ? (
-        <div className="concept-grid">
-          {activity.bloques.map((block) => (
-            <article className="concept-card" key={`${block.titulo}-${block.texto}`}>
-              <p className="concept-card-title">{block.titulo}</p>
-              <p className="concept-card-text">{block.texto}</p>
-            </article>
-          ))}
-        </div>
+      <ActivitySummaryBar
+        items={[
+          {
+            label: 'Meta',
+            value: 'Entender antes de actuar',
+            caption: 'Primero internaliza la idea; luego la aplicas en la práctica.',
+          },
+          {
+            label: 'Ideas clave',
+            value: Math.max(blocks.length, takeawayItems.length) || 1,
+            caption: 'Quédate con una o dos reglas para recordar después.',
+          },
+          {
+            label: 'Al cerrar',
+            value: 'Rutina segura',
+            caption: 'La meta es que puedas repetir la verificación sin improvisar.',
+          },
+        ]}
+      />
+      <section className="concept-stage">
+        <article className="concept-hero-card">
+          <span className="concept-kicker">Idea central</span>
+          <h3>{leadBlock?.titulo || activity.titulo || 'Qué debes recordar'}</h3>
+          <p>
+            {leadBlock?.texto ||
+              narrative[0] ||
+              'Esta actividad resume la señal principal que debes reconocer antes de avanzar.'}
+          </p>
+          <div className="concept-callout">
+            <strong>Cómo se traduce en una decisión segura</strong>
+            <p>
+              {narrative[1] ||
+                'No basta con detectar la señal: la clave es pausar, verificar y salir del canal sospechoso si hace falta.'}
+            </p>
+          </div>
+        </article>
+        {supportBlocks.length ? (
+          <div className="concept-grid enhanced">
+            {supportBlocks.map((block) => (
+              <article className="concept-card" key={`${block.titulo}-${block.texto}`}>
+                <span className="concept-card-index">Clave</span>
+                <p className="concept-card-title">{block.titulo}</p>
+                <p className="concept-card-text">{block.texto}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+      {narrative.length ? (
+        <section className="info-panel concept-detail-panel">
+          <p className="eyebrow">Qué debes aplicar al salir de aquí</p>
+          <div className="activity-copy">
+            {narrative.slice(leadBlock ? 1 : 0).map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        </section>
       ) : null}
-      <Paragraphs text={activity.contenido} />
+      {takeawayItems.length ? (
+        <section className="result-card concept-takeaways">
+          <div className="feedback-head">
+            <div>
+              <p className="eyebrow">Antes de continuar</p>
+              <h3>Qué te conviene llevarte de esta idea</h3>
+            </div>
+            <div className="feedback-pill">Resumen útil</div>
+          </div>
+          <div className="summary-list">
+            {takeawayItems.map((item) => (
+              <div className="summary-item concept-takeaway-item" key={item}>
+                <p>{item}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <div className="activity-actions">
+        <p className="activity-inline-note">
+          Cuando esta idea ya te quede clara, pasa a la práctica para convertirla en hábito.
+        </p>
         <button
           className="btn primary"
           type="button"
@@ -235,7 +315,7 @@ function QuizActivity({ activity, startedAtRef, onComplete }) {
       <ActivitySummaryBar
         items={[
           { label: 'Opciones', value: options.length || 0, caption: 'Revisa todas antes de elegir.' },
-          { label: 'Meta', value: 'Elegir con criterio', caption: 'La mejor respuesta no siempre es la mas rapida.' },
+          { label: 'Meta', value: 'Elegir con criterio', caption: 'La mejor respuesta no siempre es la más rápida.' },
         ]}
       />
       <div className="option-grid">
@@ -323,10 +403,10 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
           title: 'Falta completar el checklist',
           score: selectedCount / Math.max(items.length, 1),
           signal: `Marcaste ${selectedCount} de ${items.length} pasos.`,
-          risk: 'Si omites un paso de verificacion, tu rutina se debilita justo cuando necesitas claridad.',
+          risk: 'Si omites un paso de verificación, tu rutina se debilita justo cuando necesitas claridad.',
           action: 'Completa los pasos restantes antes de avanzar.',
           missed: remainingItems.slice(0, 4),
-          extra: 'La idea es fijar un habito completo, no marcar solo lo mas facil.',
+          extra: 'La idea es fijar un hábito completo, no marcar solo lo más fácil.',
         })
       );
       return;
@@ -352,9 +432,9 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
       <Paragraphs text={activity.intro || 'Marca cada punto antes de continuar.'} />
       <ActivitySummaryBar
         items={[
-          { label: 'Pasos', value: items.length || 0, caption: 'Tu rutina minima de verificacion.' },
-          { label: 'Completados', value: `${selectedCount}/${items.length}`, caption: allChecked ? 'Rutina completa.' : 'Aun faltan pasos por marcar.' },
-          { label: 'Meta', value: 'No saltarte ninguno', caption: 'La consistencia vale mas que la velocidad.' },
+          { label: 'Pasos', value: items.length || 0, caption: 'Tu rutina mínima de verificación.' },
+          { label: 'Completados', value: `${selectedCount}/${items.length}`, caption: allChecked ? 'Rutina completa.' : 'Aún faltan pasos por marcar.' },
+          { label: 'Meta', value: 'No saltarte ninguno', caption: 'La consistencia vale más que la velocidad.' },
         ]}
       />
       <div className="question-body">
@@ -432,11 +512,11 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
       <ActivitySummaryBar
         items={[
           { label: 'Formato', value: 'Respuesta abierta', caption: 'Describe tu criterio con claridad.' },
-          { label: 'Meta', value: 'Explicar y justificar', caption: 'Cuenta como pausarias, verificarias o cortarias el riesgo.' },
+          { label: 'Meta', value: 'Explicar y justificar', caption: 'Cuenta cómo pausarías, verificarías o cortarías el riesgo.' },
         ]}
       />
       {Array.isArray(activity.pistas) && activity.pistas.length ? (
-        <p className="hint">{`Tip: ${activity.pistas.join(' Â· ')}`}</p>
+        <p className="hint">{`Tip: ${activity.pistas.join(' · ')}`}</p>
       ) : null}
       <textarea
         value={answer}
@@ -502,9 +582,9 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
         buildFeedback({
           title: feedbackRatingLabel(score),
           score,
-          signal: 'Cerraste la conversacion sin seguir el ritmo del estafador.',
+          signal: 'Cerraste la conversación sin seguir el ritmo del estafador.',
           risk: 'El mayor riesgo en este tipo de chat es quedarte resolviendo dentro del mismo canal.',
-          action: 'Corta la conversacion y verifica por una llamada o canal oficial que tu controles.',
+          action: 'Corta la conversación y verifica por una llamada o canal oficial que tú controles.',
           extra: 'Usa un cierre corto, firme y sin justificarte demasiado.',
         })
       );
@@ -544,13 +624,13 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
           score,
           signal:
             response?.signal_detected ||
-            'La conversacion mete presion para que resuelvas dentro del mismo chat.',
+            'La conversación mete presión para que resuelvas dentro del mismo chat.',
           risk:
             response?.risk ||
-            'Si sigues en el mismo canal, el estafador controla el contexto y tu decision.',
+            'Si sigues en el mismo canal, el estafador controla el contexto y tu decisión.',
           action:
             response?.safe_action ||
-            'Deten la conversacion y verifica por un canal oficial que tu controles.',
+            'Detén la conversación y verifica por un canal oficial que tú controles.',
           extra: response?.coach_feedback || '',
         })
       );
@@ -575,7 +655,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
       {activity.escenario ? <Paragraphs text={activity.escenario} /> : null}
       <ActivitySummaryBar
         items={[
-          { label: 'Turnos usados', value: `${turns}/${activity.turnos_max || 6}`, caption: 'Puedes cerrar cuando ya marcaste un limite claro.' },
+          { label: 'Turnos usados', value: `${turns}/${activity.turnos_max || 6}`, caption: 'Puedes cerrar cuando ya marcaste un límite claro.' },
           { label: 'Objetivo', value: 'Frenar y verificar', caption: 'No necesitas convencer al atacante para hacerlo bien.' },
         ]}
       />
@@ -669,10 +749,10 @@ function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
         title: feedbackRatingLabel(score),
         score,
         signal: isCorrect
-          ? 'Elegiste el dominio mas consistente para verificar por tu cuenta.'
-          : 'El dominio seguro suele ser el mas simple y coherente con la marca real.',
-        risk: 'Un cambio pequeno en letras o extensiones puede llevarte a una web clonada.',
-        action: 'Si dudas, no abras el enlace desde el mensaje. Escribe tu el dominio en el navegador.',
+          ? 'Elegiste el dominio más consistente para verificar por tu cuenta.'
+          : 'El dominio seguro suele ser el más simple y coherente con la marca real.',
+        risk: 'Un cambio pequeño en letras o extensiones puede llevarte a una web clonada.',
+        action: 'Si dudas, no abras el enlace desde el mensaje. Escribe tú el dominio en el navegador.',
         extra: `${activity.explicacion || ''}${activity.tip ? ` Tip: ${activity.tip}` : ''}`.trim(),
       })
     );
@@ -683,8 +763,8 @@ function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
       <Paragraphs text={activity.prompt || 'Elige el dominio legítimo.'} />
       <ActivitySummaryBar
         items={[
-          { label: 'Dominios', value: domains.length || 0, caption: 'Busca el mas simple y coherente.' },
-          { label: 'Regla', value: 'Escribirlo tu mismo', caption: 'Si dudas, no abras el enlace desde el mensaje.' },
+          { label: 'Dominios', value: domains.length || 0, caption: 'Busca el más simple y coherente.' },
+          { label: 'Regla', value: 'Escribirlo tú mismo', caption: 'Si dudas, no abras el enlace desde el mensaje.' },
         ]}
       />
       <div className="option-grid">
@@ -908,8 +988,8 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
           message.explicacion ||
           message.signal ||
           (correctChoice === 'estafa'
-            ? 'Habia senales de urgencia, enlace o identidad dudosa.'
-            : 'No aparecian indicios claros de fraude en este ejemplo.'),
+            ? 'Había señales de urgencia, enlace o identidad dudosa.'
+            : 'No aparecían indicios claros de fraude en este ejemplo.'),
       };
     });
 
@@ -929,7 +1009,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
         risk:
           kind === 'sms'
             ? 'Los SMS fraudulentos aprovechan urgencia, premios y enlaces acortados.'
-            : 'Los correos fraudulentos intentan parecer legitimos usando remitentes o asuntos creibles.',
+            : 'Los correos fraudulentos intentan parecer legítimos usando remitentes o asuntos creíbles.',
         action: 'Si dudas, no respondas ni abras el enlace desde el mismo canal. Verifica por una ruta oficial.',
         detected: review.filter((item) => item.status === 'correct').map((item) => item.label),
         missed,
@@ -951,17 +1031,17 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
           {
             label: 'Mensajes',
             value: messages.length,
-            caption: kind === 'sms' ? 'clasifica cada SMS' : 'clasifica cada correo',
+            caption: kind === 'sms' ? 'Clasifica cada SMS' : 'Clasifica cada correo',
           },
           {
             label: 'Clasificados',
             value: `${Object.keys(selections).length}/${messages.length}`,
-            caption: 'puedes revisar antes de evaluar',
+            caption: 'Puedes revisar antes de evaluar',
           },
           {
             label: 'Meta',
-            value: 'precision',
-            caption: 'no te guies solo por la apariencia',
+            value: 'Precisión',
+            caption: 'No te guíes solo por la apariencia',
           },
         ]}
       />
@@ -1079,7 +1159,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
 
             <div className="email-reader-footer">
               <p className="email-classify-title">
-                {kind === 'correo' ? '¿Como clasificarias este correo?' : '¿Como clasificarias este mensaje?'}
+                {kind === 'correo' ? '¿Cómo clasificarías este correo?' : '¿Cómo clasificarías este mensaje?'}
               </p>
               <div className="email-classify-actions">
                 {['seguro', 'estafa'].map((choice) => (
@@ -1103,14 +1183,14 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                       {selectedReview.status === 'correct'
                         ? 'Bien clasificado'
                         : selectedReview.status === 'wrong'
-                          ? 'Hay que corregir esta decision'
-                          : 'Falto clasificar este mensaje'}
+                          ? 'Hay que corregir esta decisión'
+                          : 'Faltó clasificar este mensaje'}
                     </strong>
                     <span>{`Correcto: ${selectedReview.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'}`}</span>
                   </div>
                   <p>
                     {selectedReview.picked
-                      ? `Tu elegiste: ${selectedReview.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}.`
+                      ? `Tú elegiste: ${selectedReview.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}.`
                       : 'No lo clasificaste antes de evaluar.'}
                   </p>
                   <p>{selectedReview.reason}</p>
@@ -1150,7 +1230,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
       <div className="activity-actions">
         {!result ? (
           <button className="btn primary" type="button" onClick={evaluate}>
-            Evaluar clasificacion
+            Evaluar clasificación
           </button>
         ) : (
           <>
@@ -1177,7 +1257,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                 setShowDetails(false);
               }}
             >
-              Reintentar clasificacion
+              Reintentar clasificación
             </button>
           </>
         )}
@@ -1231,7 +1311,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     const decisionLabel =
       Number.isFinite(Number(decision)) && activity.decisionOptions?.[decision]
         ? activity.decisionOptions[decision]
-        : 'Sin decision final';
+        : 'Sin decisión final';
 
     setResult({
       score,
@@ -1250,7 +1330,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
         action: 'Si la web mete prisa, descuentos absurdos o contactos raros, sal y valida por una fuente oficial.',
         detected: matched.map((target) => hotspotMap.get(target)?.label || target),
         missed: missed.slice(0, 4),
-        extra: wrong.length ? `Tambien marcaste: ${wrong.join(', ')}` : `Decision final: ${decisionLabel}.`,
+        extra: wrong.length ? `También marcaste: ${wrong.join(', ')}` : `Decisión final: ${decisionLabel}.`,
       })
     );
   };
@@ -1359,7 +1439,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
             type="button"
             onClick={() => toggleTarget('pago')}
           >
-            {`Metodos de pago: ${page.pagos.join(' | ')}`}
+            {`Métodos de pago: ${page.pagos.join(' | ')}`}
           </button>
         ) : null}
       </>
@@ -1371,19 +1451,19 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
       {activity.intro ? <Paragraphs text={activity.intro} /> : null}
       <ActivitySummaryBar
         items={[
-          { label: 'Etapas', value: 'Producto -> Carrito -> Checkout', caption: 'recorre las tres vistas' },
+          { label: 'Etapas', value: 'Producto -> Carrito -> Checkout', caption: 'Recorre las tres vistas' },
           {
-            label: 'Senales clave',
+            label: 'Señales clave',
             value: hotspots.filter((hotspot) => hotspot.correcta).length,
-            caption: 'hallazgos importantes',
+            caption: 'Hallazgos importantes',
           },
-          { label: 'Marcadas', value: flagged.size, caption: 'puedes ajustar antes de evaluar' },
+          { label: 'Marcadas', value: flagged.size, caption: 'Puedes ajustar antes de evaluar' },
         ]}
       />
       <div className="web-lab-brief">
         <p className="web-lab-title">Explora la tienda completa antes de decidir.</p>
         <p>
-          Revisa dominio, oferta, carrito y checkout. Marca solo las senales que realmente te harian salir del sitio o
+          Revisa dominio, oferta, carrito y checkout. Marca solo las señales que realmente te harían salir del sitio o
           verificar por fuera.
         </p>
       </div>
@@ -1455,32 +1535,32 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
         <div className="review-grid">
           <article className="review-card correct">
             <div className="review-card-head">
-              <strong>Senales acertadas</strong>
+              <strong>Señales acertadas</strong>
               <span>{`${result.matched.length}/${result.expectedCount}`}</span>
             </div>
             <p>
               {result.matched.length
                 ? result.matched.map((target) => hotspotMap.get(target)?.label || target).join(' | ')
-                : 'Todavia no marcaste las senales clave esperadas.'}
+                : 'Todavía no marcaste las señales clave esperadas.'}
             </p>
           </article>
           <article className={`review-card ${result.missed.length ? 'wrong' : 'correct'}`.trim()}>
             <div className="review-card-head">
-              <strong>Te falto revisar</strong>
+              <strong>Te faltó revisar</strong>
               <span>{result.missed.length}</span>
             </div>
-            <p>{result.missed.length ? result.missed.join(' | ') : 'Cubriste las senales principales.'}</p>
+            <p>{result.missed.length ? result.missed.join(' | ') : 'Cubriste las señales principales.'}</p>
           </article>
           <article className={`review-card ${result.wrong.length ? 'warn' : 'correct'}`.trim()}>
             <div className="review-card-head">
-              <strong>Marcas de mas</strong>
+              <strong>Marcas de más</strong>
               <span>{result.wrong.length}</span>
             </div>
-            <p>{result.wrong.length ? result.wrong.join(' | ') : 'Marcaste con buena precision.'}</p>
+            <p>{result.wrong.length ? result.wrong.join(' | ') : 'Marcaste con buena precisión.'}</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
-              <strong>Decision final</strong>
+              <strong>Decisión final</strong>
               <span>{formatPercent(result.score)}</span>
             </div>
             <p>{result.decisionLabel}</p>
@@ -1517,7 +1597,7 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 setStage('product');
               }}
             >
-              Reintentar revision
+              Reintentar revisión
             </button>
           </>
         )}
@@ -1597,7 +1677,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
           <div className="call-transcript">
             {transcript.map((entry, index) => (
               <div className={`call-bubble ${entry.speaker}`} key={`${entry.speaker}-${index}`}>
-                <strong>{entry.speaker === 'caller' ? 'Llamada' : 'Tu'}</strong>
+                <strong>{entry.speaker === 'caller' ? 'Llamada' : 'Tú'}</strong>
                 <p>{entry.text}</p>
               </div>
             ))}
@@ -1627,7 +1707,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
               <strong>Promedio de seguridad</strong>
               <span>{formatPercent(finalScore)}</span>
             </div>
-            <p>Tu salida mas segura fue cortar la llamada y verificar por un canal oficial controlado por ti.</p>
+            <p>Tu salida más segura fue cortar la llamada y verificar por un canal oficial controlado por ti.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
@@ -1641,7 +1721,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
               <strong>Cierre recomendado</strong>
               <span>{activity.callerName || 'Llamada'}</span>
             </div>
-            <p>Cuelga, entra a tu app o llama tu mismo al numero oficial, y nunca compartas codigos ni instales apps.</p>
+            <p>Cuelga, entra a tu app o llama tú mismo al número oficial, y nunca compartas códigos ni instales apps.</p>
           </article>
         </div>
       ) : null}
@@ -1724,7 +1804,7 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
           {
             label: 'Paso',
             value: finished ? 'Finalizado' : `${Math.min(stepIndex + 1, steps.length)}/${steps.length || 1}`,
-            caption: 'Cada decision cambia lo que sigue.',
+            caption: 'Cada decisión cambia lo que sigue.',
           },
           {
             label: 'Decisiones seguras',
@@ -1770,7 +1850,7 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
               <strong>Promedio de criterio</strong>
               <span>{formatPercent(finalScore)}</span>
             </div>
-            <p>Tu mejor defensa fue mantener la rutina aun cuando el escenario parecia cotidiano o creible.</p>
+            <p>Tu mejor defensa fue mantener la rutina aún cuando el escenario parecía cotidiano o creíble.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
@@ -1781,7 +1861,7 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
           </article>
           <article className="review-card">
             <div className="review-card-head">
-              <strong>Ultima respuesta</strong>
+              <strong>Última respuesta</strong>
               <span>{latestChoice ? 'Registrada' : 'Sin dato'}</span>
             </div>
             <p>{latestChoice?.choice || 'Terminaste el flujo sin una respuesta final registrada.'}</p>

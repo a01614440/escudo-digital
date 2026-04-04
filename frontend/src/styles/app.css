@@ -296,6 +296,188 @@ canvas {
   border-bottom: 1px solid rgba(47, 107, 255, 0.12);
 }
 
+.activity-copy {
+  font-size: 1rem;
+  line-height: 1.72;
+}
+
+.activity-copy p {
+  max-width: 74ch;
+}
+
+.activity-inline-note {
+  flex: 1 1 280px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.concept-stage {
+  display: grid;
+  gap: 18px;
+}
+
+.concept-hero-card,
+.concept-detail-panel,
+.concept-takeaways {
+  border: 1px solid rgba(47, 107, 255, 0.12);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(47, 107, 255, 0.14), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.98));
+  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.06);
+}
+
+.concept-hero-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px 24px;
+}
+
+.concept-kicker,
+.concept-card-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(47, 107, 255, 0.1);
+  color: var(--primary);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.concept-hero-card h3,
+.concept-takeaways h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.concept-hero-card p,
+.concept-detail-panel p,
+.concept-takeaways p {
+  margin: 0;
+  line-height: 1.68;
+}
+
+.concept-callout {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid rgba(47, 107, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.concept-callout strong {
+  font-size: 0.98rem;
+}
+
+.concept-grid.enhanced {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.concept-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 180px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(47, 107, 255, 0.1);
+  background:
+    radial-gradient(circle at top right, rgba(47, 107, 255, 0.1), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.98));
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
+}
+
+.concept-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.concept-card-text {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.68;
+}
+
+.concept-takeaways {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+}
+
+.concept-takeaway-item {
+  min-height: 72px;
+}
+
+.wa-phone,
+.email-sim,
+.browser-sim,
+.call-phone {
+  border: 1px solid rgba(47, 107, 255, 0.12);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(47, 107, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.98));
+  box-shadow: 0 24px 46px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.wa-screen,
+.email-reader,
+.browser-sim,
+.call-screen,
+.flow,
+.detective-panel {
+  background:
+    radial-gradient(circle at top right, rgba(47, 107, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.98));
+}
+
+.email-reader-head,
+.email-reader-footer,
+.browser-top,
+.store-nav,
+.detective-panel {
+  border-color: rgba(47, 107, 255, 0.12);
+}
+
+.message-box,
+.email-link-preview,
+.flow-text {
+  background:
+    radial-gradient(circle at top right, rgba(47, 107, 255, 0.1), transparent 34%),
+    rgba(247, 250, 255, 0.96);
+}
+
+.option-btn,
+.domain-btn,
+.signal-row {
+  border-radius: 16px;
+  padding: 15px 16px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.signal-row span,
+.review-card p,
+.message-review-card p,
+.email-open-meta,
+.email-list-preview,
+.email-body-line,
+.review-card-meta {
+  line-height: 1.62;
+}
+
 .activity-title {
   margin: 0;
   font-size: 1.2rem;
@@ -1391,6 +1573,24 @@ body[data-theme='dark'] .alert {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.email-reader-head,
+.email-reader-footer,
+.browser-top,
+.store-nav {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 248, 255, 0.78));
+}
+
+.email-warning {
+  box-shadow: 0 10px 22px rgba(255, 173, 74, 0.12);
+}
+
+.store-nav-btn,
+.detective-chip,
+.email-attachment {
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
 body[data-theme='dark'] .session-detail-card,
 body[data-theme='dark'] .session-detail-actions,
 body[data-theme='dark'] .option,
@@ -1414,6 +1614,105 @@ body[data-theme='dark'] .message-box {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
   border-color: var(--border);
+}
+
+body[data-theme='dark'] .concept-hero-card,
+body[data-theme='dark'] .concept-card,
+body[data-theme='dark'] .concept-detail-panel,
+body[data-theme='dark'] .concept-takeaways,
+body[data-theme='dark'] .wa-phone,
+body[data-theme='dark'] .email-sim,
+body[data-theme='dark'] .browser-sim,
+body[data-theme='dark'] .call-phone,
+body[data-theme='dark'] .flow,
+body[data-theme='dark'] .detective-panel,
+body[data-theme='dark'] .message-box,
+body[data-theme='dark'] .email-link-preview {
+  background:
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.15), transparent 34%),
+    linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(15, 24, 40, 0.96));
+  border-color: rgba(159, 181, 221, 0.16);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.24);
+}
+
+body[data-theme='dark'] .concept-callout,
+body[data-theme='dark'] .wa-screen,
+body[data-theme='dark'] .email-reader,
+body[data-theme='dark'] .email-body-card,
+body[data-theme='dark'] .call-screen,
+body[data-theme='dark'] .flow-text,
+body[data-theme='dark'] .store-stage {
+  background:
+    radial-gradient(circle at top right, rgba(114, 160, 255, 0.1), transparent 32%),
+    linear-gradient(180deg, rgba(18, 27, 44, 0.96), rgba(11, 18, 32, 0.96));
+  border-color: rgba(159, 181, 221, 0.14);
+}
+
+body[data-theme='dark'] .concept-kicker,
+body[data-theme='dark'] .concept-card-index {
+  background: rgba(114, 160, 255, 0.16);
+  color: #d7e4ff;
+}
+
+body[data-theme='dark'] .concept-hero-card h3,
+body[data-theme='dark'] .concept-card-title,
+body[data-theme='dark'] .concept-callout strong,
+body[data-theme='dark'] .email-open-subject,
+body[data-theme='dark'] .email-classify-title,
+body[data-theme='dark'] .store-brand,
+body[data-theme='dark'] .store-product-name,
+body[data-theme='dark'] .call-name,
+body[data-theme='dark'] .flow-text,
+body[data-theme='dark'] .detective-count {
+  color: var(--ink);
+}
+
+body[data-theme='dark'] .concept-hero-card p,
+body[data-theme='dark'] .concept-card-text,
+body[data-theme='dark'] .concept-detail-panel p,
+body[data-theme='dark'] .activity-inline-note,
+body[data-theme='dark'] .email-open-meta,
+body[data-theme='dark'] .email-list-preview,
+body[data-theme='dark'] .email-body-from,
+body[data-theme='dark'] .email-body-line,
+body[data-theme='dark'] .store-sub,
+body[data-theme='dark'] .store-product-price,
+body[data-theme='dark'] .call-number,
+body[data-theme='dark'] .review-card-meta {
+  color: var(--muted);
+}
+
+body[data-theme='dark'] .wa-screen {
+  background:
+    linear-gradient(rgba(14, 21, 36, 0.95), rgba(14, 21, 36, 0.95)),
+    radial-gradient(circle at top left, rgba(114, 160, 255, 0.08), transparent 32%);
+}
+
+body[data-theme='dark'] .email-reader-head,
+body[data-theme='dark'] .email-reader-footer,
+body[data-theme='dark'] .browser-top,
+body[data-theme='dark'] .store-nav {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025));
+}
+
+body[data-theme='dark'] .store-nav-btn,
+body[data-theme='dark'] .detective-chip,
+body[data-theme='dark'] .email-attachment {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(159, 181, 221, 0.14);
+  color: var(--ink);
+}
+
+body[data-theme='dark'] .store-nav-btn.active {
+  background: rgba(114, 160, 255, 0.18);
+  color: #dce8ff;
+}
+
+body[data-theme='dark'] .email-warning {
+  background: linear-gradient(180deg, rgba(73, 45, 13, 0.94), rgba(33, 24, 14, 0.94));
+  color: #ffd8a8;
+  border-color: rgba(255, 191, 105, 0.24);
 }
 
 body[data-theme='dark'] .dashboard-tabs,
