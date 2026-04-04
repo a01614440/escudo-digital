@@ -1,5 +1,6 @@
 ﻿import { useMemo, useRef, useState } from 'react';
 import { postJson } from '../../lib/api.js';
+import { useEffect } from 'react';
 import { splitParagraphs } from '../../lib/format.js';
 import {
   ACTIVITY_LABELS,
@@ -1270,71 +1271,313 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
   );
 }
 
+const repairPossibleMojibake = (value) => {
+  if (typeof value !== 'string') return value;
+  if (!/[ÃÂâ€œâ€â€™â€“â€”]/.test(value)) return value;
+  try {
+    return decodeURIComponent(escape(value));
+  } catch {
+    return value
+      .replaceAll('Ã¡', 'á')
+      .replaceAll('Ã©', 'é')
+      .replaceAll('Ã­', 'í')
+      .replaceAll('Ã³', 'ó')
+      .replaceAll('Ãº', 'ú')
+      .replaceAll('Ã±', 'ñ')
+      .replaceAll('Ã', 'Á')
+      .replaceAll('Ã‰', 'É')
+      .replaceAll('Ã', 'Í')
+      .replaceAll('Ã“', 'Ó')
+      .replaceAll('Ãš', 'Ú')
+      .replaceAll('â€œ', '“')
+      .replaceAll('â€', '”')
+      .replaceAll('â€™', '’')
+      .replaceAll('â€“', '–')
+      .replaceAll('â€”', '—')
+      .replaceAll('Â¿', '¿')
+      .replaceAll('Â¡', '¡');
+  }
+};
+
 function WebLabActivity({ activity, startedAtRef, onComplete }) {
-  const page = activity.pagina || {};
-  const hotspots = Array.isArray(activity.hotspots) ? activity.hotspots : [];
+  const page = useMemo(() => {
+    const source = activity.pagina && typeof activity.pagina === 'object' ? activity.pagina : {};
+    return {
+      ...source,
+      marca: repairPossibleMojibake(source.marca || ''),
+      dominio: repairPossibleMojibake(source.dominio || ''),
+      browserTitle: repairPossibleMojibake(source.browserTitle || ''),
+      banner: repairPossibleMojibake(source.banner || ''),
+      sub: repairPossibleMojibake(source.sub || ''),
+      contacto: repairPossibleMojibake(source.contacto || ''),
+      shipping: repairPossibleMojibake(source.shipping || ''),
+      reviews: repairPossibleMojibake(source.reviews || ''),
+      policy: repairPossibleMojibake(source.policy || ''),
+      cartNote: repairPossibleMojibake(source.cartNote || ''),
+      checkoutPrompt: repairPossibleMojibake(source.checkoutPrompt || ''),
+      pagos: Array.isArray(source.pagos) ? source.pagos.map((item) => repairPossibleMojibake(item)) : [],
+      productos: Array.isArray(source.productos)
+        ? source.productos.map((product) => ({
+            ...product,
+            nombre: repairPossibleMojibake(product?.nombre || ''),
+            antes: repairPossibleMojibake(product?.antes || ''),
+            precio: repairPossibleMojibake(product?.precio || ''),
+          }))
+        : [],
+    };
+  }, [activity.pagina]);
+  const hotspots = useMemo(
+    () =>
+      Array.isArray(activity.hotspots)
+        ? activity.hotspots.map((hotspot) => ({
+            ...hotspot,
+            label: repairPossibleMojibake(hotspot?.label || ''),
+            explicacion: repairPossibleMojibake(hotspot?.explicacion || ''),
+          }))
+        : [],
+    [activity.hotspots]
+  );
+  const decisionPrompt = repairPossibleMojibake(activity.decisionPrompt || '');
+  const decisionOptions = useMemo(
+    () =>
+      Array.isArray(activity.decisionOptions)
+        ? activity.decisionOptions.map((option) => repairPossibleMojibake(option))
+        : [],
+    [activity.decisionOptions]
+  );
+  const products = Array.isArray(page.productos) ? page.productos : [];
   const [stage, setStage] = useState('product');
   const [flagged, setFlagged] = useState(() => new Set());
+  const [neutralTargets, setNeutralTargets] = useState(() => new Set());
   const [decision, setDecision] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [result, setResult] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [countdown, setCountdown] = useState(754);
+  const [hint, setHint] = useState({
+    kind: 'info',
+    title: 'Modo exploración',
+    text: 'Encuentra las señales sospechosas integradas en la tienda antes de decidir si comprarías aquí.',
+  });
+  const [toastIndex, setToastIndex] = useState(0);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [inspectedTarget, setInspectedTarget] = useState('');
+  const [inspectedNote, setInspectedNote] = useState({ kind: 'info', text: '' });
+  const hintTimeoutRef = useRef(null);
 
-  const toggleTarget = (target) => {
+  const hotspotMap = useMemo(() => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])), [hotspots]);
+  const correctHotspots = useMemo(() => hotspots.filter((hotspot) => hotspot.correcta), [hotspots]);
+  const goalCount = Math.max(1, correctHotspots.length);
+  const browserUrl = page.dominio || 'cyberzone-ofertas.shop';
+  const browserTitle = page.browserTitle || `${page.marca || 'Cyber Zone MX'} | Oferta especial`;
+  const liveToasts = useMemo(
+    () => [
+      'Laura de Guadalajara acaba de comprar una Tablet Mini.',
+      'Carlos de Monterrey agregó una Laptop Air 14 al carrito.',
+      'Sofía de CDMX está pagando con descuento relámpago.',
+      'Miguel de Puebla apartó Audífonos Pro hace 1 min.',
+    ],
+    []
+  );
+  const targetLabels = useMemo(() => {
+    const labels = {
+      domain: 'Dominio visible',
+      banner: 'Banner principal',
+      reviews: 'Reseñas del sitio',
+      shipping: 'Envío asegurado',
+      contacto: 'Módulo de contacto',
+      pago: 'Métodos de pago',
+      policy: 'Políticas y devoluciones',
+      search: 'Barra de búsqueda',
+      cart_icon: 'Icono del carrito',
+      order_summary: 'Resumen de compra',
+      address_form: 'Formulario de envío',
+    };
+    products.forEach((product, index) => {
+      labels[`product_${index}`] = product.nombre || `Producto ${index + 1}`;
+    });
+    return labels;
+  }, [products]);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
+    const toastId = window.setInterval(() => {
+      setToastIndex((current) => (current + 1) % liveToasts.length);
+    }, 4200);
+    return () => {
+      window.clearInterval(timerId);
+      window.clearInterval(toastId);
+      if (hintTimeoutRef.current) window.clearTimeout(hintTimeoutRef.current);
+    };
+  }, [liveToasts.length]);
+
+  const formatCountdown = (seconds) => {
+    const safe = Math.max(0, Number(seconds) || 0);
+    const mins = String(Math.floor(safe / 60)).padStart(2, '0');
+    const secs = String(safe % 60).padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  const targetState = (target) => {
+    if (flagged.has(target)) return 'is-risk';
+    if (neutralTargets.has(target)) return 'is-neutral';
+    return '';
+  };
+
+  const setTransientHint = (nextHint, flaggedCount = flagged.size) => {
+    setHint(nextHint);
+    if (hintTimeoutRef.current) window.clearTimeout(hintTimeoutRef.current);
+    hintTimeoutRef.current = window.setTimeout(() => {
+      setHint({
+        kind: 'info',
+        title: 'Sigue explorando',
+        text: `Hallazgos encontrados: ${flaggedCount} de ${goalCount}. Recorre producto, carrito y checkout antes de decidir.`,
+      });
+    }, 2400);
+  };
+
+  const setInlineNote = (target, note) => {
+    setInspectedTarget(target);
+    setInspectedNote(note);
+  };
+
+  const renderInlineNote = (target) =>
+    inspectedTarget === target && inspectedNote.text ? (
+      <span className={`fraud-click-note ${inspectedNote.kind}`.trim()}>{inspectedNote.text}</span>
+    ) : null;
+
+  const registerClick = (target, neutralMessage = 'Esto no es una señal clara de fraude.') => {
     if (result) return;
-    setFlagged((current) => {
+    const hotspot = hotspotMap.get(target);
+    const label = hotspot?.label || targetLabels[target] || target;
+
+    if (hotspot?.correcta) {
+      setFlagged((current) => {
+        const next = new Set(current);
+        if (next.has(target)) next.delete(target);
+        else next.add(target);
+        const nextCount = next.size;
+        const nextText = hotspot.explicacion || `${label}: aquí hay una alerta importante.`;
+        setInlineNote(target, {
+          kind: 'risk',
+          text: nextText,
+        });
+        setTransientHint(
+          {
+            kind: 'risk',
+            title: 'Señal de riesgo detectada',
+            text: nextText,
+          },
+          nextCount
+        );
+        return next;
+      });
+      setNeutralTargets((current) => {
+        const next = new Set(current);
+        next.delete(target);
+        return next;
+      });
+      return;
+    }
+
+    setNeutralTargets((current) => {
       const next = new Set(current);
       if (next.has(target)) next.delete(target);
       else next.add(target);
       return next;
     });
+    setInlineNote(target, {
+      kind: 'neutral',
+      text: hotspot?.explicacion || neutralMessage,
+    });
+    setTransientHint({
+      kind: 'neutral',
+      title: 'Sigue investigando',
+      text: hotspot?.explicacion || neutralMessage,
+    });
   };
 
-  const hotspotMap = useMemo(() => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])), [hotspots]);
+  const addToCart = (product) => {
+    setCartItems((current) => [...current, { ...product, cartId: `${product.nombre}-${current.length}` }]);
+    setInspectedTarget('');
+    setInspectedNote({ kind: 'info', text: '' });
+    setStage('cart');
+    setTransientHint({
+      kind: 'success',
+      title: 'Producto agregado',
+      text: `${product.nombre} entró al carrito. Ahora revisa si la tienda mantiene un flujo confiable.`,
+    });
+  };
+
+  const goToCheckout = () => {
+    setCheckoutBusy(true);
+    window.setTimeout(() => {
+      setCheckoutBusy(false);
+      setInspectedTarget('');
+      setInspectedNote({ kind: 'info', text: '' });
+      setStage('checkout');
+      setTransientHint({
+        kind: 'info',
+        title: 'Llegaste al checkout',
+        text: 'Aquí suelen aparecer las señales más delicadas: pagos inseguros, políticas ambiguas y presión para pagar.',
+      });
+    }, 600);
+  };
 
   const calculateScore = () => {
-    const correctTargets = hotspots.filter((hotspot) => hotspot.correcta).map((hotspot) => hotspot.target);
+    const correctTargets = correctHotspots.map((hotspot) => hotspot.target);
+    const matchedCount = correctTargets.filter((target) => flagged.has(target)).length;
+    const recall = matchedCount / Math.max(correctTargets.length, 1);
+    const precision = matchedCount / Math.max(matchedCount + neutralTargets.size, 1);
     const hotspotScore =
-      correctTargets.filter((target) => flagged.has(target)).length / Math.max(correctTargets.length, 1);
+      recall + precision === 0 ? 0 : (2 * recall * precision) / (recall + precision);
     const decisionScore =
-      Number.isFinite(Number(activity.correctDecision)) && activity.decisionOptions?.length
+      Number.isFinite(Number(activity.correctDecision)) && decisionOptions.length
         ? decision === activity.correctDecision
           ? 1
-          : 0.25
+          : decision === null
+            ? 0
+            : 0.25
         : 1;
-    return Math.max(0, Math.min(1, hotspotScore * 0.7 + decisionScore * 0.3));
+    return Math.max(0, Math.min(1, hotspotScore * 0.75 + decisionScore * 0.25));
   };
 
   const evaluate = () => {
-    const correctTargets = hotspots.filter((hotspot) => hotspot.correcta).map((hotspot) => hotspot.target);
-    const matched = correctTargets.filter((target) => flagged.has(target));
-    const missed = hotspots
-      .filter((hotspot) => hotspot.correcta && !flagged.has(hotspot.target))
+    const matchedHotspots = correctHotspots.filter((hotspot) => flagged.has(hotspot.target));
+    const missed = correctHotspots
+      .filter((hotspot) => !flagged.has(hotspot.target))
       .map((hotspot) => hotspot.label);
-    const wrong = Array.from(flagged).filter((target) => !correctTargets.includes(target));
+    const wrong = Array.from(neutralTargets).map(
+      (target) => targetLabels[target] || hotspotMap.get(target)?.label || target
+    );
     const score = calculateScore();
     const decisionLabel =
-      Number.isFinite(Number(decision)) && activity.decisionOptions?.[decision]
-        ? activity.decisionOptions[decision]
+      Number.isFinite(Number(decision)) && decisionOptions[decision]
+        ? decisionOptions[decision]
         : 'Sin decisión final';
 
     setResult({
       score,
-      matched,
+      matched: matchedHotspots,
       missed,
       wrong,
       decisionLabel,
-      expectedCount: correctTargets.length,
+      expectedCount: correctHotspots.length,
     });
     setFeedback(
       buildFeedback({
         title: feedbackRatingLabel(score),
         score,
-        signal: `Marcaste ${matched.length} hallazgos relevantes.`,
-        risk: 'Una pagina clonada puede pedir pagos inseguros o robar datos personales.',
-        action: 'Si la web mete prisa, descuentos absurdos o contactos raros, sal y valida por una fuente oficial.',
-        detected: matched.map((target) => hotspotMap.get(target)?.label || target),
-        missed: missed.slice(0, 4),
-        extra: wrong.length ? `También marcaste: ${wrong.join(', ')}` : `Decisión final: ${decisionLabel}.`,
+        signal: `Detectaste ${matchedHotspots.length} de ${correctHotspots.length} señales importantes dentro de la tienda.`,
+        risk: 'El riesgo aparece cuando el sitio combina urgencia, pagos inseguros, contacto ambiguo y políticas que te dejan sin respaldo.',
+        action: 'Antes de pagar, valida el dominio, la empresa, las políticas y el método de pago por fuera del propio sitio.',
+        detected: matchedHotspots.map((hotspot) => hotspot.label),
+        missed: missed.slice(0, 5),
+        extra: wrong.length
+          ? `También marcaste elementos que no eran señal clara: ${wrong.join(' | ')}. Decisión final: ${decisionLabel}.`
+          : `Decisión final: ${decisionLabel}.`,
       })
     );
   };
@@ -1343,108 +1586,318 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
     if (stage === 'product') {
       return (
         <>
-          <div className="store-hero">
-            <p className="store-brand">{page.marca || 'Tienda demo'}</p>
+          <section className="fraud-store-hero">
+            <div className="fraud-store-sale-copy">
+              <span className="fraud-store-sale-chip">{page.banner || 'Liquidación total hoy'}</span>
+              <h3>{page.marca ? `${page.marca} remata tecnología y hogar` : 'Hasta 85% de descuento hoy'}</h3>
+              <p>
+                {page.sub ||
+                  'Aprovecha precios muy bajos en tecnología, hogar y accesorios antes de que termine la oferta.'}
+              </p>
+            </div>
             <button
-              className={`store-banner-button ${flagged.has('banner') ? 'flagged' : ''}`.trim()}
+              className={`fraud-store-countdown ${targetState('banner')}`.trim()}
               type="button"
-              onClick={() => toggleTarget('banner')}
+              onClick={() => registerClick('banner', 'La cuenta regresiva por sí sola no basta: revisa si además mete presión para actuar hoy.')}
             >
-              {page.banner || 'Oferta especial'}
+              <span>Termina en</span>
+              <strong>{formatCountdown(countdown)}</strong>
+              <small>Presión artificial para cerrar la compra rápido</small>
+              {renderInlineNote('banner')}
             </button>
-            {page.sub ? <p className="store-sub">{page.sub}</p> : null}
-          </div>
-          <div className="store-product-grid">
-            {(Array.isArray(page.productos) ? page.productos : []).map((product) => (
-              <article className="store-product-card" key={product.id}>
-                <p className="store-product-name">{product.nombre || 'Producto'}</p>
-                <p className="store-product-price">
-                  {product.antes ? `${product.antes} -> ${product.precio}` : product.precio || ''}
-                </p>
-                <button className="btn ghost compact" type="button" onClick={() => setStage('cart')}>
+          </section>
+
+          <section className="fraud-store-utility-grid">
+            <button
+              className={`fraud-utility-card ${targetState('contacto')}`.trim()}
+              type="button"
+              onClick={() =>
+                registerClick(
+                  'contacto',
+                  'Un módulo de atención no es suficiente si no muestra empresa, razón social o domicilio verificable.'
+                )
+              }
+            >
+              <span className="fraud-utility-label">Soporte del vendedor</span>
+              <strong>{page.contacto || 'Atención rápida por chat y formulario'}</strong>
+              {renderInlineNote('contacto')}
+            </button>
+            <button
+              className={`fraud-utility-card ${targetState('shipping')}`.trim()}
+              type="button"
+              onClick={() =>
+                registerClick(
+                  'shipping',
+                  'El envío puede ser normal, pero aquí se presenta con una promesa ambigua y sin respaldo claro.'
+                )
+              }
+            >
+              <span className="fraud-utility-label">Entrega y protección</span>
+              <strong>{page.shipping || 'Entrega asegurada con costo adicional'}</strong>
+              {renderInlineNote('shipping')}
+            </button>
+            <button
+              className={`fraud-utility-card ${targetState('policy')}`.trim()}
+              type="button"
+              onClick={() =>
+                registerClick(
+                  'policy',
+                  'Las políticas ambiguas son una señal muy importante cuando compras en una tienda nueva.'
+                )
+              }
+            >
+              <span className="fraud-utility-label">Cambios y devoluciones</span>
+              <strong>{page.policy || 'Devoluciones sujetas a validación interna'}</strong>
+              {renderInlineNote('policy')}
+            </button>
+          </section>
+
+          <section className="fraud-store-product-grid">
+            {products.map((product, index) => (
+              <article className={`fraud-product-card ${targetState(`product_${index}`)}`.trim()} key={`${product.nombre}-${index}`}>
+                <button
+                  className="fraud-product-media"
+                  type="button"
+                  onClick={() =>
+                    registerClick(
+                      `product_${index}`,
+                      'El producto por sí solo no confirma fraude. Lo importante es revisar pagos, dominio, urgencia y políticas.'
+                    )
+                  }
+                >
+                  <span>{(product.nombre || 'P').slice(0, 1)}</span>
+                </button>
+                <div className="fraud-product-copy">
+                  <div className="fraud-product-top">
+                    <strong>{product.nombre || 'Producto'}</strong>
+                    <span className="fraud-discount-badge">87% OFF</span>
+                  </div>
+                  <p className="fraud-product-pricing">
+                    {product.antes ? <span>{product.antes}</span> : null}
+                    <strong>{product.precio || '$0'}</strong>
+                  </p>
+                  <div className="fraud-product-notes">
+                    <span>Garantía premium</span>
+                    <span>Envío express</span>
+                    <span>Compra protegida</span>
+                  </div>
+                  {renderInlineNote(`product_${index}`)}
+                </div>
+                <button className="fraud-primary-btn" type="button" onClick={() => addToCart(product)}>
                   Agregar al carrito
                 </button>
               </article>
             ))}
-          </div>
-          {page.reviews ? (
+          </section>
+          <section className="fraud-store-reviews-shell">
+            <div className="fraud-store-section-head">
+              <h4>Lo que dicen nuestros clientes</h4>
+              <span>4.9 / 5</span>
+            </div>
             <button
-              className={`store-section-button ${flagged.has('reviews') ? 'flagged' : ''}`.trim()}
+              className={`fraud-store-review-strip ${targetState('reviews')}`.trim()}
               type="button"
-              onClick={() => toggleTarget('reviews')}
+              onClick={() => registerClick('reviews', 'Las reseñas pueden ser útiles, pero no siempre una tira de testimonios es prueba suficiente.')}
             >
-              {page.reviews}
+              <strong>★★★★★</strong>
+              <span>{page.reviews || 'Testimonios muy positivos y poco verificables.'}</span>
+              {renderInlineNote('reviews')}
             </button>
-          ) : null}
+          </section>
         </>
       );
     }
 
     if (stage === 'cart') {
+      const items = cartItems.length ? cartItems : products.slice(0, 1);
       return (
         <>
-          {page.cartNote ? (
+          <section className="fraud-cart-banner">
+            <div>
+              <span className="fraud-store-sale-chip subtle">Carrito reservado</span>
+              <h4>Tus artículos siguen apartados por tiempo limitado</h4>
+              <p>{page.cartNote || 'Si sales del checkout, la oferta se recalcula automáticamente.'}</p>
+            </div>
             <button
-              className={`store-section-button ${flagged.has('banner') ? 'flagged' : ''}`.trim()}
+              className={`fraud-store-reserve ${targetState('banner')}`.trim()}
               type="button"
-              onClick={() => toggleTarget('banner')}
+              onClick={() => registerClick('banner', 'La reserva temporal del carrito es normal a veces, pero aquí está diseñada para apurarte.')}
             >
-              {page.cartNote}
+              <span>Tu carrito expira en</span>
+              <strong>{formatCountdown(Math.max(0, countdown - 61))}</strong>
+              {renderInlineNote('banner')}
             </button>
-          ) : null}
-          {page.shipping ? (
-            <button
-              className={`store-section-button ${flagged.has('shipping') ? 'flagged' : ''}`.trim()}
-              type="button"
-              onClick={() => toggleTarget('shipping')}
-            >
-              {page.shipping}
-            </button>
-          ) : null}
-          <button className="btn primary" type="button" onClick={() => setStage('checkout')}>
-            Seguir al checkout
-          </button>
+          </section>
+
+          <div className="fraud-cart-layout">
+            <div className="fraud-cart-list">
+              {items.map((item, index) => (
+                <article className="fraud-cart-item" key={item.cartId || `${item.nombre}-${index}`}>
+                  <div className="fraud-cart-thumb">{(item.nombre || 'P').slice(0, 1)}</div>
+                  <div className="fraud-cart-copy">
+                    <strong>{item.nombre || 'Producto'}</strong>
+                    <span>{item.precio || '$0'}</span>
+                  </div>
+                  <span className="fraud-cart-qty">1x</span>
+                </article>
+              ))}
+            </div>
+
+            <aside className="fraud-cart-summary">
+              <button
+                className={`fraud-signal-card ${targetState('shipping')}`.trim()}
+                type="button"
+                onClick={() => registerClick('shipping', 'Este cargo extra no siempre es una estafa, pero aquí el texto es ambiguo y obligatorio.')}
+              >
+                <span>Envío asegurado obligatorio</span>
+                <strong>{page.shipping || 'Costo extra aplicado para garantizar la entrega.'}</strong>
+                {renderInlineNote('shipping')}
+              </button>
+              <div className="fraud-summary-total">
+                <span>Total</span>
+                <strong>{items[0]?.precio || '$3,499'}</strong>
+              </div>
+              <button className="fraud-primary-btn wide" type="button" onClick={goToCheckout} disabled={checkoutBusy}>
+                {checkoutBusy ? 'Preparando checkout...' : 'Ir al checkout'}
+              </button>
+            </aside>
+          </div>
         </>
       );
     }
 
     return (
       <>
-        {page.checkoutPrompt ? (
-          <button
-            className={`store-section-button ${flagged.has('banner') ? 'flagged' : ''}`.trim()}
-            type="button"
-            onClick={() => toggleTarget('banner')}
-          >
-            {page.checkoutPrompt}
-          </button>
-        ) : null}
-        {page.contacto ? (
-          <button
-            className={`store-section-button ${flagged.has('contacto') ? 'flagged' : ''}`.trim()}
-            type="button"
-            onClick={() => toggleTarget('contacto')}
-          >
-            {page.contacto}
-          </button>
-        ) : null}
-        {page.policy ? (
-          <button
-            className={`store-section-button ${flagged.has('policy') ? 'flagged' : ''}`.trim()}
-            type="button"
-            onClick={() => toggleTarget('policy')}
-          >
-            {page.policy}
-          </button>
-        ) : null}
-        {(Array.isArray(page.pagos) ? page.pagos.length : 0) ? (
-          <button
-            className={`store-section-button ${flagged.has('pago') ? 'flagged' : ''}`.trim()}
-            type="button"
-            onClick={() => toggleTarget('pago')}
-          >
-            {`Métodos de pago: ${page.pagos.join(' | ')}`}
-          </button>
+        <div className="fraud-checkout-layout">
+          <section className="fraud-checkout-main">
+            <div className="fraud-store-section-head">
+                <h4>Datos de envío</h4>
+              <span>Paso 2 de 2</span>
+            </div>
+            <div className="fraud-form-grid">
+              <button
+                className={`fraud-form-field ${targetState('address_form')}`.trim()}
+                type="button"
+                onClick={() => registerClick('address_form', 'Pedir datos de envío es normal; aquí no está la señal principal.')}
+              >
+                Nombre completo
+              </button>
+              <button
+                className={`fraud-form-field ${targetState('address_form')}`.trim()}
+                type="button"
+                onClick={() => registerClick('address_form', 'Este bloque es parte normal del checkout. Sigue buscando señales en pagos y políticas.')}
+              >
+                Dirección de entrega
+              </button>
+              <button
+                className={`fraud-form-field ${targetState('address_form')}`.trim()}
+                type="button"
+                onClick={() => registerClick('address_form', 'Los datos de envío no son por sí solos una señal de fraude.')}
+              >
+                Telefono de contacto
+              </button>
+              <button
+                className={`fraud-form-field ${targetState('address_form')}`.trim()}
+                type="button"
+                onClick={() => registerClick('address_form', 'Este campo no es una señal clara. Revisa mejor los módulos laterales.')}
+              >
+                Referencias
+              </button>
+            </div>
+
+            <button
+              className={`fraud-signal-card urgent ${targetState('banner')}`.trim()}
+              type="button"
+              onClick={() => registerClick('banner', 'Aquí la urgencia está integrada en el flujo final de pago para presionarte.')}
+            >
+              <span>Paga hoy para mantener el descuento</span>
+              <strong>{page.checkoutPrompt || 'Para mantener el descuento, termina el pago hoy.'}</strong>
+              {renderInlineNote('banner')}
+            </button>
+          </section>
+
+          <aside className="fraud-checkout-side">
+            <button
+              className={`fraud-signal-card ${targetState('pago')}`.trim()}
+              type="button"
+              onClick={() => registerClick('pago', 'Los métodos ofrecidos te sacan de formas de pago más protegidas.')}
+            >
+              <span>Métodos de pago</span>
+              <strong>{Array.isArray(page.pagos) ? page.pagos.join(' · ') : 'Transferencia bancaria · Pago por enlace externo'}</strong>
+              {renderInlineNote('pago')}
+            </button>
+
+            <button
+              className={`fraud-signal-card ${targetState('contacto')}`.trim()}
+              type="button"
+              onClick={() => registerClick('contacto', 'No muestra empresa, dirección ni un canal de atención confiable.')}
+            >
+              <span>Atención al cliente</span>
+              <strong>{page.contacto || 'Atención solo por formulario. Sin razón social visible.'}</strong>
+              {renderInlineNote('contacto')}
+            </button>
+
+            <button
+              className={`fraud-signal-card ${targetState('policy')}`.trim()}
+              type="button"
+              onClick={() => registerClick('policy', 'La política no deja claro cómo devolver, reclamar o recuperar el dinero.')}
+            >
+              <span>Devoluciones y políticas</span>
+              <strong>{page.policy || 'Devoluciones sujetas a aprobación interna.'}</strong>
+              {renderInlineNote('policy')}
+            </button>
+
+            <div className="fraud-order-box">
+              <div className="fraud-store-section-head tight">
+                <h4>Resumen de compra</h4>
+                <span>{cartItems.length || 1} item</span>
+              </div>
+              <button
+                className={`fraud-order-line ${targetState('order_summary')}`.trim()}
+                type="button"
+                onClick={() => registerClick('order_summary', 'El resumen por sí solo no es una señal clara; la alerta está en pagos, urgencia y políticas.')}
+              >
+                <span>Subtotal</span>
+                <strong>{cartItems[0]?.precio || products[0]?.precio || '$3,499'}</strong>
+                {renderInlineNote('order_summary')}
+              </button>
+              <button
+                className={`fraud-order-line ${targetState('shipping')}`.trim()}
+                type="button"
+                onClick={() => registerClick('shipping', 'Aquí el costo extra y el discurso de protección están integrados para presionar la compra.')}
+              >
+                <span>Envío asegurado</span>
+                <strong>$249</strong>
+                {renderInlineNote('shipping')}
+              </button>
+              <div className="fraud-order-total">
+                <span>Total hoy</span>
+                <strong>{cartItems[0]?.precio || products[0]?.precio || '$3,499'}</strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        {decisionPrompt && decisionOptions.length ? (
+          <div className="fraud-decision-panel">
+            <div className="fraud-store-section-head">
+              <h4>{decisionPrompt}</h4>
+              <span>Decisión final</span>
+            </div>
+            <div className="fraud-decision-options">
+              {decisionOptions.map((option, index) => (
+                <button
+                  key={option}
+                  className={`fraud-decision-btn ${decision === index ? 'active' : ''}`.trim()}
+                  type="button"
+                  onClick={() => setDecision(index)}
+                  disabled={Boolean(result)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : null}
       </>
     );
@@ -1452,99 +1905,130 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <ActivitySummaryBar
-        items={[
-          { label: 'Etapas', value: 'Producto -> Carrito -> Checkout', caption: 'Recorre las tres vistas' },
-          {
-            label: 'Señales clave',
-            value: hotspots.filter((hotspot) => hotspot.correcta).length,
-            caption: 'Hallazgos importantes',
-          },
-          { label: 'Marcadas', value: flagged.size, caption: 'Puedes ajustar antes de evaluar' },
-        ]}
-      />
-      <div className="web-lab-brief">
-        <p className="web-lab-title">Explora la tienda completa antes de decidir.</p>
-        <p>
-          Revisa dominio, oferta, carrito y checkout. Marca solo las señales que realmente te harían salir del sitio o
-          verificar por fuera.
-        </p>
-      </div>
-      <div className="browser-sim">
-        <div className="browser-top">
-          <div className="browser-dots">
-            <span />
-            <span />
-            <span />
+      <section className="web-lab-mission">
+        <div>
+          <p className="eyebrow">Objetivo de la simulación</p>
+          <h3>Encuentra al menos {goalCount} señales sospechosas antes de decidir si comprarías aquí.</h3>
+        </div>
+        <div className={`web-lab-progress-card ${flagged.size >= goalCount ? 'is-complete' : ''}`.trim()}>
+          <span>{`Hallazgos encontrados: ${flagged.size} / ${goalCount}`}</span>
+          <div className="web-lab-progress-track" aria-hidden="true">
+            <span style={{ width: `${Math.round((flagged.size / goalCount) * 100)}%` }} />
+          </div>
+        </div>
+      </section>
+
+      <section className="web-lab-immersive">
+        <div className={`web-lab-hint ${hint.kind}`.trim()}>
+          <strong>{hint.title}</strong>
+          <p>{hint.text}</p>
+        </div>
+
+        <div className="web-lab-browser-bar">
+          <div className="web-lab-browser-meta">
+            <div className="web-lab-browser-tabs">
+              <span />
+              <span />
+              <span />
+            </div>
+            <strong>{browserTitle}</strong>
           </div>
           <button
-            className={`browser-url ${flagged.has('domain') ? 'flagged' : ''}`.trim()}
+            className={`web-lab-domain ${targetState('domain')}`.trim()}
             type="button"
-            onClick={() => toggleTarget('domain')}
+            onClick={() => registerClick('domain', 'El dominio visible es uno de los primeros puntos que conviene revisar.')}
           >
-            {page.dominio || 'tienda-demo.com'}
+            {browserUrl}
+            {renderInlineNote('domain')}
           </button>
         </div>
 
-        <div className="store-nav">
-          {['product', 'cart', 'checkout'].map((value) => (
-            <button
-              key={value}
-              className={`store-nav-btn ${stage === value ? 'active' : ''}`.trim()}
-              type="button"
-              onClick={() => setStage(value)}
-            >
-              {value === 'product' ? 'Producto' : value === 'cart' ? 'Carrito' : 'Checkout'}
-            </button>
-          ))}
-        </div>
-
-        <div className="store-stage">
-          {renderStage()}
-          {activity.decisionPrompt && activity.decisionOptions?.length ? (
-            <div className="store-decision-box">
-              <p className="store-decision-title">{activity.decisionPrompt}</p>
-              <div className="store-decision-options">
-                {activity.decisionOptions.map((option, index) => (
-                  <button
-                    key={option}
-                    className={`btn ${decision === index ? 'primary' : 'ghost'} compact`}
-                    type="button"
-                    onClick={() => setDecision(index)}
-                    disabled={Boolean(result)}
-                  >
-                    {option}
-                  </button>
-                ))}
+        <div className="fraud-store-shell">
+          <header className="fraud-store-header">
+            <div className="fraud-store-logo">
+              <span>CZ</span>
+              <div>
+                <strong>{page.marca || 'CYBER ZONE MX'}</strong>
+                <small>Ofertas exclusivas del día</small>
               </div>
             </div>
-          ) : null}
-        </div>
-      </div>
 
-      <div className="detective-panel">
-        <p className="detective-count">{`Hallazgos marcados: ${flagged.size}`}</p>
-        <div className="detective-findings">
-          {Array.from(flagged).map((target) => (
-            <span className="detective-chip" key={target}>
-              {hotspotMap.get(target)?.label || target}
-            </span>
-          ))}
+            <button
+              className={`fraud-store-search ${targetState('search')}`.trim()}
+              type="button"
+              onClick={() => registerClick('search', 'La barra de búsqueda no es una señal de fraude por sí sola.')}
+            >
+              Buscar productos, marcas y categorías...
+            </button>
+
+            <button
+              className={`fraud-store-cart ${targetState('cart_icon')}`.trim()}
+              type="button"
+              onClick={() => {
+                setInspectedTarget('');
+                setInspectedNote({ kind: 'info', text: '' });
+                setStage('cart');
+                registerClick('cart_icon', 'El carrito es parte normal de una tienda. La alerta está en lo que pasa dentro del flujo de compra.');
+              }}
+            >
+              <span>Carrito</span>
+              <strong>{cartItems.length}</strong>
+            </button>
+          </header>
+
+          <div className="fraud-live-toast">{liveToasts[toastIndex % liveToasts.length]}</div>
+
+          <nav className="fraud-store-tabs">
+            {[
+              ['product', 'Producto'],
+              ['cart', 'Carrito'],
+              ['checkout', 'Checkout'],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                className={`fraud-store-tab ${stage === value ? 'active' : ''}`.trim()}
+                type="button"
+                onClick={() => {
+                  setInspectedTarget('');
+                  setInspectedNote({ kind: 'info', text: '' });
+                  setStage(value);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="fraud-store-stage">{renderStage()}</div>
         </div>
-      </div>
+
+        <div className="web-lab-detective-bar">
+          <div className="web-lab-detective-copy">
+            <strong>Señales detectadas</strong>
+            <p>
+              {flagged.size
+                ? Array.from(flagged)
+                    .map((target) => hotspotMap.get(target)?.label || target)
+                    .join(' · ')
+                : 'Todavía no has marcado ninguna alerta.'}
+            </p>
+          </div>
+          <div className="web-lab-detective-count">{`${flagged.size}/${goalCount}`}</div>
+        </div>
+      </section>
 
       <FeedbackPanel feedback={feedback} />
       {result ? (
         <div className="review-grid">
           <article className="review-card correct">
             <div className="review-card-head">
-              <strong>Señales acertadas</strong>
+              <strong>Detectaste bien</strong>
               <span>{`${result.matched.length}/${result.expectedCount}`}</span>
             </div>
             <p>
               {result.matched.length
-                ? result.matched.map((target) => hotspotMap.get(target)?.label || target).join(' | ')
-                : 'Todavía no marcaste las señales clave esperadas.'}
+                ? result.matched.map((hotspot) => hotspot.label).join(' | ')
+                : 'No detectaste las señales clave esperadas en este sitio.'}
             </p>
           </article>
           <article className={`review-card ${result.missed.length ? 'wrong' : 'correct'}`.trim()}>
@@ -1556,14 +2040,14 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
           </article>
           <article className={`review-card ${result.wrong.length ? 'warn' : 'correct'}`.trim()}>
             <div className="review-card-head">
-              <strong>Marcas de más</strong>
+              <strong>Marcaste de más</strong>
               <span>{result.wrong.length}</span>
             </div>
-            <p>{result.wrong.length ? result.wrong.join(' | ') : 'Marcaste con buena precisión.'}</p>
+            <p>{result.wrong.length ? result.wrong.join(' | ') : 'Tus hallazgos fueron bastante precisos.'}</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
-              <strong>Decisión final</strong>
+              <strong>Tu decisión final</strong>
               <span>{formatPercent(result.score)}</span>
             </div>
             <p>{result.decisionLabel}</p>
@@ -1583,7 +2067,9 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
               onClick={() =>
                 completePayload(startedAtRef, onComplete, result.score, feedbackToText(feedback), {
                   flaggedTargets: Array.from(flagged),
+                  neutralTargets: Array.from(neutralTargets),
                   decision,
+                  stage,
                 })
               }
             >
@@ -1596,11 +2082,20 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 setResult(null);
                 setFeedback(null);
                 setFlagged(new Set());
-                setDecision(null);
-                setStage('product');
-              }}
-            >
-              Reintentar revisión
+                setNeutralTargets(new Set());
+                  setDecision(null);
+                  setCartItems([]);
+                  setStage('product');
+                  setInspectedTarget('');
+                  setInspectedNote({ kind: 'info', text: '' });
+                  setHint({
+                    kind: 'info',
+                    title: 'Modo exploración',
+                    text: 'Encuentra las señales sospechosas integradas en la tienda antes de decidir si comprarías aquí.',
+                  });
+                }}
+              >
+              Reintentar simulación
             </button>
           </>
         )}
