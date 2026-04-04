@@ -64,7 +64,9 @@ canvas {
 .admin-card,
 .stat-card,
 .chat-drawer,
-.course-settings {
+.course-settings,
+.result-card,
+.info-panel {
   background:
     radial-gradient(circle at top left, rgba(47, 107, 255, 0.08), transparent 34%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.97));
@@ -140,7 +142,25 @@ canvas {
 }
 
 .session-details {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.admin-route-note,
+.module-admin-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.admin-pill,
+.admin-mode-chip {
+  border-color: rgba(47, 107, 255, 0.16);
+}
+
+.module-admin-note {
+  padding: 12px 14px;
+  border: 1px dashed rgba(47, 107, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(47, 107, 255, 0.06);
 }
 
 .dashboard-grid,
@@ -224,6 +244,23 @@ canvas {
 .history-item p,
 .activity-copy p {
   margin: 0;
+}
+
+.result-card .summary-item {
+  background:
+    radial-gradient(circle at top left, rgba(47, 107, 255, 0.06), transparent 32%),
+    rgba(255, 255, 255, 0.9);
+}
+
+.result-card,
+.info-panel,
+.result-card .summary-item,
+.alert {
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .lesson-header {
@@ -1346,7 +1383,11 @@ body[data-theme='dark'] .activity-summary-stat,
 body[data-theme='dark'] .review-card,
 body[data-theme='dark'] .message-review-card,
 body[data-theme='dark'] .web-lab-brief,
-body[data-theme='dark'] .feedback-score {
+body[data-theme='dark'] .feedback-score,
+body[data-theme='dark'] .result-card,
+body[data-theme='dark'] .info-panel,
+body[data-theme='dark'] .result-card .summary-item,
+body[data-theme='dark'] .alert {
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -1403,6 +1444,41 @@ body[data-theme='dark'] .activity-pill.soft,
 body[data-theme='dark'] .pill.soft {
   background: rgba(255, 191, 105, 0.15);
   color: #ffd7a2;
+}
+
+body[data-theme='dark'] .result-card,
+body[data-theme='dark'] .info-panel,
+body[data-theme='dark'] .result-card .summary-item {
+  border-color: rgba(159, 181, 221, 0.14);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.26);
+}
+
+body[data-theme='dark'] .result-card h3,
+body[data-theme='dark'] .result-card h4,
+body[data-theme='dark'] .info-panel h3,
+body[data-theme='dark'] .risk-level,
+body[data-theme='dark'] .summary-item strong {
+  color: var(--ink);
+}
+
+body[data-theme='dark'] .result-list,
+body[data-theme='dark'] .result-card .hint,
+body[data-theme='dark'] .info-panel .hint,
+body[data-theme='dark'] .module-admin-note,
+body[data-theme='dark'] .admin-route-note {
+  color: var(--muted);
+}
+
+body[data-theme='dark'] .module-admin-note {
+  background: rgba(114, 160, 255, 0.08);
+  border-color: rgba(114, 160, 255, 0.18);
+}
+
+body[data-theme='dark'] .alert {
+  border-color: rgba(255, 191, 105, 0.24);
+  color: #ffd8a8;
+  background:
+    linear-gradient(180deg, rgba(64, 38, 9, 0.92), rgba(15, 24, 40, 0.96));
 }
 
 body[data-theme='dark'] .shield-donut {

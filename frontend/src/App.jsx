@@ -114,6 +114,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
   const [theme, setTheme] = useState(readThemePreference());
+  const [adminPreviewAsUser, setAdminPreviewAsUser] = useState(false);
 
   const visibleQuestions = useMemo(() => getVisibleQuestions(answers), [answers]);
 
@@ -267,6 +268,7 @@ export default function App() {
     setSession('', null);
     resetAppState();
     setAuthMode('login');
+    setAdminPreviewAsUser(false);
   };
 
   const handleAuthSuccess = (data) => {
@@ -375,11 +377,12 @@ export default function App() {
     }));
   };
 
-  const handleOpenModule = (moduleIndex) => {
+  const handleOpenModule = (moduleIndex, options = {}) => {
     if (!coursePlan || !courseProgress) return;
+    const restart = Boolean(options?.restart);
     setCurrentLesson({
       moduleIndex,
-      activityIndex: pickNextActivityIndex(coursePlan, courseProgress, moduleIndex),
+      activityIndex: restart ? 0 : pickNextActivityIndex(coursePlan, courseProgress, moduleIndex),
     });
     setCurrentView('lesson');
   };
@@ -552,6 +555,18 @@ export default function App() {
     }
   }, [currentUser?.role, currentView]);
 
+  useEffect(() => {
+    if (currentUser?.role !== 'admin' && adminPreviewAsUser) {
+      setAdminPreviewAsUser(false);
+    }
+  }, [adminPreviewAsUser, currentUser?.role]);
+
+  useEffect(() => {
+    if (adminPreviewAsUser && currentView === 'admin') {
+      setCurrentView(coursePlan && courseProgress ? 'courses' : 'survey');
+    }
+  }, [adminPreviewAsUser, coursePlan, courseProgress, currentView]);
+
   if (sessionLoading) {
     return (
       <main className="page">
@@ -587,8 +602,10 @@ export default function App() {
           user={currentUser}
           currentView={currentView}
           theme={theme}
+          adminPreviewAsUser={adminPreviewAsUser}
           onViewChange={handleViewChange}
           onThemeToggle={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+          onToggleAdminPreview={() => setAdminPreviewAsUser((current) => !current)}
           onLogout={handleLogout}
         />
 
@@ -622,6 +639,7 @@ export default function App() {
             coursePlan={coursePlan}
             courseProgress={courseProgress}
             coursePrefs={coursePrefs}
+            adminAccess={currentUser?.role === 'admin' && !adminPreviewAsUser}
             generating={generatingCourse}
             onCoursePrefsChange={setCoursePrefs}
             onGenerateCourse={() => generateCourse({ reset: Boolean(coursePlan) })}

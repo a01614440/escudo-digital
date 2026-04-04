@@ -150,6 +150,7 @@ function ShieldCard({
   strongestTopic,
   weakestTopic,
   prioritySummary,
+  adminAccess = false,
 }) {
   return (
     <section className="panel dashboard-card shield-card-clean">
@@ -222,12 +223,18 @@ function ShieldCard({
           <span>Contexto</span>
           <strong>{prioritySummary}</strong>
         </div>
+        {adminAccess ? (
+          <div className="shield-highlight-chip admin-mode-chip">
+            <span>Modo admin</span>
+            <strong>Acceso libre a todos los módulos</strong>
+          </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
-function SpotlightCard({ module, stats, onOpenModule, onShowRoute }) {
+function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onShowRoute }) {
   if (!module) {
     return (
       <section className="panel dashboard-card spotlight-card-clean empty-state">
@@ -249,6 +256,7 @@ function SpotlightCard({ module, stats, onOpenModule, onShowRoute }) {
           <span className={`status-pill ${stats.status}`}>{stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}</span>
           <span className="activity-pill">{CATEGORY_LABELS[module.categoria] || 'Curso'}</span>
           <span className="activity-pill">{LEVEL_LABELS[normalizeModuleLevel(module.nivel)] || 'Módulo'}</span>
+          {adminAccess ? <span className="activity-pill soft admin-pill">Admin</span> : null}
         </div>
       </div>
 
@@ -290,8 +298,20 @@ function SpotlightCard({ module, stats, onOpenModule, onShowRoute }) {
       </div>
 
       <div className="row inline spotlight-actions">
-        <button className="btn primary" type="button" onClick={() => onOpenModule(module.__moduleIndex)}>
-          {stats.completedCount ? 'Continuar módulo' : 'Empezar módulo'}
+        <button
+          className="btn primary"
+          type="button"
+          onClick={() =>
+            onOpenModule(module.__moduleIndex, {
+              restart: adminAccess && stats.pct >= 100,
+            })
+          }
+        >
+          {adminAccess && stats.pct >= 100
+            ? 'Repetir módulo'
+            : stats.completedCount
+              ? 'Continuar módulo'
+              : 'Empezar módulo'}
         </button>
         <button className="btn ghost" type="button" onClick={onShowRoute}>
           Ver ruta
@@ -323,6 +343,7 @@ function ModuleAccordionItem({
   isExpanded,
   isLocked,
   isRecommended,
+  adminAccess = false,
   unlockMessage,
   onToggle,
   onOpenModule,
@@ -383,10 +404,30 @@ function ModuleAccordionItem({
           </div>
 
           {isLocked ? <p className="module-lock-note">{unlockMessage}</p> : null}
+          {adminAccess ? (
+            <p className="module-admin-note">
+              Modo admin: puedes abrir, repetir y revisar este módulo sin bloqueos.
+            </p>
+          ) : null}
 
           <div className="row inline">
-            <button className="btn primary" type="button" disabled={isLocked} onClick={() => onOpenModule(index)}>
-              {isLocked ? 'Bloqueado' : stats.completedCount ? 'Continuar' : 'Abrir módulo'}
+            <button
+              className="btn primary"
+              type="button"
+              disabled={isLocked}
+              onClick={() =>
+                onOpenModule(index, {
+                  restart: adminAccess && stats.pct >= 100,
+                })
+              }
+            >
+              {isLocked
+                ? 'Bloqueado'
+                : adminAccess && stats.pct >= 100
+                  ? 'Repetir módulo'
+                  : stats.completedCount
+                    ? 'Continuar'
+                    : 'Abrir módulo'}
             </button>
           </div>
         </div>
@@ -404,6 +445,7 @@ function RouteTab({
   onToggleModule,
   recommendedIndex,
   unlockedLimit,
+  adminAccess = false,
   onOpenModule,
 }) {
   const levelEntries = routeEntries.filter((entry) => normalizeModuleLevel(entry.module.nivel) === activeLevel);
@@ -416,13 +458,18 @@ function RouteTab({
           <p className="eyebrow">{copy.eyebrow}</p>
           <h2>{copy.title}</h2>
           <p className="lead">{copy.description}</p>
+          {adminAccess ? (
+            <p className="hint admin-route-note">
+              Modo admin activo: acceso libre para revisar cualquier nivel y repetir módulos.
+            </p>
+          ) : null}
         </div>
         <LevelPicker levels={availableLevels} activeLevel={activeLevel} onChange={onChangeLevel} />
       </div>
 
       <div className="module-accordion-list">
         {levelEntries.map((entry) => {
-          const isLocked = entry.index > unlockedLimit;
+          const isLocked = adminAccess ? false : entry.index > unlockedLimit;
           const unlockMessage =
             routeEntries[unlockedLimit]?.module?.titulo
               ? `Completa "${routeEntries[unlockedLimit].module.titulo}" para desbloquear este bloque.`
@@ -435,6 +482,7 @@ function RouteTab({
               isExpanded={expandedModuleId === entry.module.id}
               isLocked={isLocked}
               isRecommended={entry.index === recommendedIndex}
+              adminAccess={adminAccess}
               unlockMessage={unlockMessage}
               onToggle={() => onToggleModule(entry.module.id)}
               onOpenModule={onOpenModule}
@@ -624,6 +672,7 @@ export default function CoursesView({
   coursePlan,
   courseProgress,
   coursePrefs,
+  adminAccess = false,
   generating,
   onCoursePrefsChange,
   onGenerateCourse,
@@ -646,7 +695,7 @@ export default function CoursesView({
   const weakestTopic = getWeakestTopic(computed.competencias);
   const completedModules = routeEntries.filter((entry) => entry.stats.pct >= 100).length;
   const prioritySummary = getPrioritySummary(answers, assessment);
-  const unlockedLimit = getUnlockedLimit(route, courseProgress);
+  const unlockedLimit = adminAccess ? route.length - 1 : getUnlockedLimit(route, courseProgress);
   const availableLevels = LEVEL_ORDER.filter((level) =>
     routeEntries.some((entry) => normalizeModuleLevel(entry.module.nivel) === level)
   );
@@ -701,11 +750,13 @@ export default function CoursesView({
           strongestTopic={strongestTopic}
           weakestTopic={weakestTopic}
           prioritySummary={prioritySummary}
+          adminAccess={adminAccess}
         />
 
         <SpotlightCard
           module={recommendedModule}
           stats={recommendedStats}
+          adminAccess={adminAccess}
           onOpenModule={onOpenModule}
           onShowRoute={() => setActiveTab('ruta')}
         />
@@ -734,6 +785,7 @@ export default function CoursesView({
             }
             recommendedIndex={recommendedIndex}
             unlockedLimit={unlockedLimit}
+            adminAccess={adminAccess}
             onOpenModule={onOpenModule}
           />
         ) : null}

@@ -23,58 +23,58 @@ function Paragraphs({ text, className = 'activity-copy' }) {
 const SIMULATION_GUIDES = {
   quiz: [
     'Lee el escenario completo antes de responder.',
-    'Elige la opciÃ³n mÃ¡s segura, no la mÃ¡s rÃ¡pida.',
-    'Revisa el feedback para entender por quÃ© esa decisiÃ³n era mejor.',
+    'Elige la opción más segura, no la más rápida.',
+    'Revisa el feedback para entender por qué esa decisión era mejor.',
   ],
   simulacion: [
     'Lee el escenario completo antes de responder.',
-    'Elige la opciÃ³n mÃ¡s segura, no la mÃ¡s rÃ¡pida.',
-    'Revisa el feedback para entender por quÃ© esa decisiÃ³n era mejor.',
+    'Elige la opción más segura, no la más rápida.',
+    'Revisa el feedback para entender por qué esa decisión era mejor.',
   ],
   sim_chat: [
-    'Responde como si fuera una conversaciÃ³n real.',
+    'Responde como si fuera una conversación real.',
     'La meta es detectar el riesgo, no agradar al contacto.',
     'Si dudas, pausa y verifica por fuera del chat.',
   ],
   compare_domains: [
-    'Busca cambios mÃ­nimos en letras, terminaciones o estructura.',
-    'El dominio mÃ¡s confiable suele ser el mÃ¡s simple y coherente.',
-    'Si sigues dudando, escribe tÃº mismo la direcciÃ³n oficial.',
+    'Busca cambios mínimos en letras, terminaciones o estructura.',
+    'El dominio más confiable suele ser el más simple y coherente.',
+    'Si sigues dudando, escribe tú mismo la dirección oficial.',
   ],
   signal_hunt: [
-    'Marca solo las seÃ±ales que realmente indiquen riesgo.',
-    'No necesitas marcar todo: importa la precisiÃ³n.',
-    'Piensa quÃ© parte del mensaje te quiere presionar o engaÃ±ar.',
+    'Marca solo las señales que realmente indiquen riesgo.',
+    'No necesitas marcar todo: importa la precisión.',
+    'Piensa qué parte del mensaje te quiere presionar o engañar.',
   ],
   inbox: [
-    'Abre el mensaje y revÃ­salo antes de clasificarlo.',
-    'FÃ­jate en remitente, asunto, cuerpo y enlaces visibles.',
-    'No te guÃ­es solo por el diseÃ±o: busca incoherencias concretas.',
+    'Abre el mensaje y revísalo antes de clasificarlo.',
+    'Fíjate en remitente, asunto, cuerpo y enlaces visibles.',
+    'No te guíes solo por el diseño: busca incoherencias concretas.',
   ],
   web_lab: [
-    'Recorre la pÃ¡gina como si fueras a comprar o registrarte.',
+    'Recorre la página como si fueras a comprar o registrarte.',
     'Marca hallazgos sospechosos mientras avanzas.',
-    'Al final decide si seguirÃ­as o saldrÃ­as del sitio.',
+    'Al final decide si seguirías o saldrías del sitio.',
   ],
   call_sim: [
     'Lee cada paso como si estuvieras en una llamada real.',
     'Prioriza cortar, pausar o verificar por fuera de la llamada.',
-    'No compartas datos ni resuelvas bajo presiÃ³n.',
+    'No compartas datos ni resuelvas bajo presión.',
   ],
   scenario_flow: [
-    'Cada decisiÃ³n cambia el escenario siguiente.',
+    'Cada decisión cambia el escenario siguiente.',
     'Piensa en la rutina segura antes de responder.',
-    'La meta es reducir riesgo, no terminar rÃ¡pido.',
+    'La meta es reducir riesgo, no terminar rápido.',
   ],
   abierta: [
-    'Explica quÃ© harÃ­as con tus propias palabras.',
-    'Incluye cÃ³mo pausarÃ­as, verificarÃ­as o cortarÃ­as el riesgo.',
-    'No hace falta escribir mucho, pero sÃ­ ser claro.',
+    'Explica qué harías con tus propias palabras.',
+    'Incluye cómo pausarías, verificarías o cortarías el riesgo.',
+    'No hace falta escribir mucho, pero sí ser claro.',
   ],
   checklist: [
-    'Marca cada paso solo si realmente lo revisarÃ­as.',
-    'Ãšsalo como una rutina mÃ­nima de verificaciÃ³n.',
-    'La idea es convertirlo en hÃ¡bito, no avanzar por avanzar.',
+    'Marca cada paso solo si realmente lo revisarías.',
+    'Úsalo como una rutina mínima de verificación.',
+    'La idea es convertirlo en hábito, no avanzar por avanzar.',
   ],
 };
 
@@ -84,7 +84,7 @@ function SimulationGuide({ activity }) {
 
   return (
     <section className="panel summary-card activity-guide">
-      <p className="eyebrow">CÃ³mo resolver esta actividad</p>
+      <p className="eyebrow">Cómo resolver esta actividad</p>
       <div className="summary-list">
         {steps.map((step) => (
           <div className="summary-item" key={step}>
@@ -210,21 +210,21 @@ function QuizActivity({ activity, startedAtRef, onComplete }) {
         signal:
           activity.senal ||
           (isCorrect
-            ? 'Detectaste la seÃ±al principal del escenario.'
-            : 'La seÃ±al clave estaba en la urgencia, el canal o la peticiÃ³n.'),
+            ? 'Detectaste la señal principal del escenario.'
+            : 'La señal clave estaba en la urgencia, el canal o la petición.'),
         risk:
           activity.riesgo ||
           'Responder sin verificar puede exponerte a robo de datos, dinero o acceso.',
         action:
           activity.accion ||
           (options[correctIndex]
-            ? `La acciÃ³n segura era: ${options[correctIndex]}`
+            ? `La acción segura era: ${options[correctIndex]}`
             : 'Verifica por un canal oficial antes de actuar.'),
         extra:
           activity.explicacion ||
           (isCorrect
-            ? 'Buena decisiÃ³n.'
-            : 'ValÃ­a la pena frenar y revisar mejor la situaciÃ³n.'),
+            ? 'Buena decisión.'
+            : 'Valía la pena frenar y revisar mejor la situación.'),
       })
     );
   };
@@ -339,8 +339,8 @@ function ChecklistActivity({ activity, startedAtRef, onComplete }) {
         buildFeedback({
           title: 'Buena',
           signal: 'Repasaste los pasos clave sin saltarte ninguno.',
-          risk: 'Si omites un paso de verificaciÃ³n, aumenta la probabilidad de actuar con prisa.',
-          action: 'Usa este checklist como rutina rÃ¡pida cuando un mensaje o llamada te meta presiÃ³n.',
+          risk: 'Si omites un paso de verificación, aumenta la probabilidad de actuar con prisa.',
+          action: 'Usa este checklist como rutina rápida cuando un mensaje o llamada te meta presión.',
         })
       ),
       { checkedItems: items, totalItems: items.length }
@@ -383,7 +383,7 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
 
   const submit = async () => {
     if (answer.trim().length < 6) {
-      setFeedback('Escribe un poco mÃ¡s para poder evaluarlo.');
+      setFeedback('Escribe un poco más para poder evaluarlo.');
       return;
     }
 
@@ -403,9 +403,9 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
         buildFeedback({
           title: feedbackRatingLabel(score),
           score,
-          signal: 'Tu respuesta mostrÃ³ cÃ³mo identificar o frenar el riesgo.',
+          signal: 'Tu respuesta mostró cómo identificar o frenar el riesgo.',
           risk: 'La idea es no resolver desde el canal sospechoso ni compartir datos.',
-          action: 'QuÃ©date con una frase corta, clara y orientada a verificar por canales oficiales.',
+          action: 'Quédate con una frase corta, clara y orientada a verificar por canales oficiales.',
           extra: text,
         })
       );
@@ -413,7 +413,7 @@ function OpenAnswerActivity({ module, activity, answers, assessment, startedAtRe
       setGradedScore(0.4);
       setFeedback(
         buildFeedback({
-          title: 'Sin evaluaciÃ³n',
+          title: 'Sin evaluación',
           score: 0.4,
           signal: 'No se pudo revisar esta respuesta con IA.',
           action:
@@ -559,7 +559,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
       setFeedback(
         buildFeedback({
           title: 'Sin respuesta',
-          signal: 'No pudimos continuar la simulaciÃ³n en este momento.',
+          signal: 'No pudimos continuar la simulación en este momento.',
           action: 'Reintenta o continua aplicando la regla: pausa y verifica por un canal oficial.',
           extra: error.message || '',
         })
@@ -640,7 +640,7 @@ function WhatsAppSimulation({ activity, answers, assessment, startedAtRef, onCom
                 startedAtRef,
                 onComplete,
                 bestScore || 0.6,
-                  feedbackToText(feedback || 'SimulaciÃ³n completada.'),
+                  feedbackToText(feedback || 'Simulación completada.'),
                 { history, turns }
               )
             }
@@ -680,7 +680,7 @@ function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <Paragraphs text={activity.prompt || 'Elige el dominio legÃ­timo.'} />
+      <Paragraphs text={activity.prompt || 'Elige el dominio legítimo.'} />
       <ActivitySummaryBar
         items={[
           { label: 'Dominios', value: domains.length || 0, caption: 'Busca el mas simple y coherente.' },
@@ -787,11 +787,11 @@ function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
     const payload = buildFeedback({
       title: feedbackRatingLabel(score),
       score,
-      signal: `Encontraste ${tp} de ${correctIds.size || 1} seÃ±ales relevantes.`,
-      risk: 'Cuando una seÃ±al pasa desapercibida, es mÃ¡s fÃ¡cil que el mensaje te arrastre al siguiente paso.',
+      signal: `Encontraste ${tp} de ${correctIds.size || 1} señales relevantes.`,
+      risk: 'Cuando una señal pasa desapercibida, es más fácil que el mensaje te arrastre al siguiente paso.',
       action:
         activity.accion ||
-        'DetÃ©n la conversaciÃ³n y verifica por el canal oficial antes de abrir links, pagar o responder.',
+        'Detén la conversación y verifica por el canal oficial antes de abrir links, pagar o responder.',
       detected: signals.filter((signal) => selected.has(signal.id) && signal.correcta).map((signal) => signal.label),
       missed: signals.filter((signal) => signal.correcta && !selected.has(signal.id)).map((signal) => signal.label),
     });
@@ -804,11 +804,11 @@ function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      <div className="message-box">{activity.mensaje || 'Detecta las seÃ±ales de riesgo.'}</div>
+      <div className="message-box">{activity.mensaje || 'Detecta las señales de riesgo.'}</div>
       <ActivitySummaryBar
         items={[
-          { label: 'SeÃ±ales clave', value: signals.filter((signal) => signal.correcta).length || 0, caption: 'No necesitas marcar todo, solo lo importante.' },
-          { label: 'Marcadas', value: selected.size, caption: result ? `Resultado ${formatPercent(result.score)}` : 'Puedes tocar una seÃ±al otra vez para quitarla.' },
+          { label: 'Señales clave', value: signals.filter((signal) => signal.correcta).length || 0, caption: 'No necesitas marcar todo, solo lo importante.' },
+          { label: 'Marcadas', value: selected.size, caption: result ? `Resultado ${formatPercent(result.score)}` : 'Puedes tocar una señal otra vez para quitarla.' },
         ]}
       />
       <div className="signal-list">
@@ -1552,7 +1552,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
         title: feedbackRatingLabel(score),
         signal: currentStep.texto,
         risk: 'Las llamadas fraudulentas intentan forzar decisiones sin darte espacio para verificar.',
-        action: option.feedback || 'Cuelga y verifica por un canal oficial antes de compartir informaciÃ³n.',
+        action: option.feedback || 'Cuelga y verifica por un canal oficial antes de compartir información.',
       })
     );
     setPendingNext(() => () => {
@@ -1593,7 +1593,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
         <div className="call-screen">
           <p className="call-chip">Llamada entrante</p>
           <h3 className="call-name">{activity.callerName || 'Llamada'}</h3>
-          <p className="call-number">{activity.callerNumber || 'NÃºmero no verificado'}</p>
+          <p className="call-number">{activity.callerNumber || 'Número no verificado'}</p>
           <div className="call-transcript">
             {transcript.map((entry, index) => (
               <div className={`call-bubble ${entry.speaker}`} key={`${entry.speaker}-${index}`}>
@@ -1665,7 +1665,7 @@ function CallSimActivity({ activity, startedAtRef, onComplete }) {
                     title: feedbackRatingLabel(finalScore),
                     signal: 'Aplicaste tu criterio frente a una llamada presionante.',
                     risk: 'El objetivo es que no resuelvas durante la llamada ni compartas datos sensibles.',
-                    action: 'Cuelga y confirma por un nÃºmero oficial que tÃº mismo busques.',
+                    action: 'Cuelga y confirma por un número oficial que tú mismo busques.',
                   })
                 ),
                 { transcript }
@@ -1806,9 +1806,9 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
                 feedbackToText(
                   buildFeedback({
                     title: feedbackRatingLabel(finalScore),
-                    signal: 'Aplicaste tu rutina de verificaciÃ³n en una situaciÃ³n cotidiana.',
+                    signal: 'Aplicaste tu rutina de verificación en una situación cotidiana.',
                     risk: 'Cuando la rutina se rompe, la urgencia o la confianza pueden tomar el control.',
-                    action: 'MantÃ©n la secuencia: pausa, verifica y confirma por canal oficial.',
+                    action: 'Mantén la secuencia: pausa, verifica y confirma por canal oficial.',
                   })
                 ),
                 { flowChoices }

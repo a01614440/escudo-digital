@@ -8,9 +8,19 @@ const VIEW_LABELS = {
   admin: 'Panel interno',
 };
 
-export default function SessionBar({ user, currentView, theme, onViewChange, onThemeToggle, onLogout }) {
+export default function SessionBar({
+  user,
+  currentView,
+  theme,
+  adminPreviewAsUser = false,
+  onViewChange,
+  onThemeToggle,
+  onToggleAdminPreview,
+  onLogout,
+}) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const activeViewLabel = VIEW_LABELS[currentView] || 'Escudo Digital';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <section className="panel session-bar session-bar-compact">
@@ -45,6 +55,15 @@ export default function SessionBar({ user, currentView, theme, onViewChange, onT
               Panel interno
             </button>
           ) : null}
+          {isAdmin ? (
+            <button
+              className={`btn ghost compact ${adminPreviewAsUser ? 'active' : ''}`}
+              type="button"
+              onClick={onToggleAdminPreview}
+            >
+              {adminPreviewAsUser ? 'Volver a modo admin' : 'Ver como usuario normal'}
+            </button>
+          ) : null}
           <button className="btn ghost compact" type="button" onClick={onThemeToggle}>
             {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
           </button>
@@ -57,16 +76,22 @@ export default function SessionBar({ user, currentView, theme, onViewChange, onT
       {detailsOpen ? (
         <div className="session-details">
           <div className="session-detail-card">
-            <span>Ultimo acceso</span>
+            <span>Último acceso</span>
             <strong>{formatDate(user?.lastAccessAt)}</strong>
           </div>
           <div className="session-detail-card">
             <span>Guardado</span>
-            <strong>Tu avance se sincroniza automaticamente</strong>
+            <strong>Tu avance se sincroniza automáticamente</strong>
           </div>
+          {isAdmin ? (
+            <div className="session-detail-card">
+              <span>Modo admin</span>
+              <strong>{adminPreviewAsUser ? 'Vista de usuario normal' : 'Acceso libre a todos los módulos'}</strong>
+            </div>
+          ) : null}
           <div className="session-detail-actions">
             <button className="btn primary" type="button" onClick={onLogout}>
-              Cerrar sesion
+              Cerrar sesión
             </button>
           </div>
         </div>
