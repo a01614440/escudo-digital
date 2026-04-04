@@ -3,11 +3,23 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
+    "start": "node server.js",
+    "dev:client": "vite",
+    "build:client": "vite build",
+    "preview:client": "vite preview"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.3"
   }
 }
