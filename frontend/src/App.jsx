@@ -574,6 +574,13 @@ export default function App() {
   return (
     <>
       <main className="page">
+        <SessionBar
+          user={currentUser}
+          currentView={currentView}
+          onViewChange={handleViewChange}
+          onLogout={handleLogout}
+        />
+
         {currentView === 'survey' ? (
           <SurveyView
             answers={answers}
@@ -646,13 +653,6 @@ export default function App() {
             }}
           />
         ) : null}
-
-        <SessionBar
-          user={currentUser}
-          currentView={currentView}
-          onViewChange={handleViewChange}
-          onLogout={handleLogout}
-        />
       </main>
 
       {currentView !== 'admin' ? (

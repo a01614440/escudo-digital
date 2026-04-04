@@ -46,7 +46,7 @@ export default function SessionBar({ user, currentView, onViewChange, onLogout }
             </button>
           ) : null}
           <button className="btn ghost compact" type="button" onClick={() => setDetailsOpen((value) => !value)}>
-            {detailsOpen ? 'Ocultar sesión' : 'Mi sesión'}
+            {detailsOpen ? 'Ocultar cuenta' : 'Mi cuenta'}
           </button>
         </div>
       </div>
