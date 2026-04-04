@@ -1,11 +1,15 @@
 import { formatDate } from '../lib/format.js';
 import {
+  ACTIVITY_LABELS,
   CATEGORY_LABELS,
   COMP_KEYS,
   LEVEL_LABELS,
   computeCompetenciesFromProgress,
   defaultTopicsFromAnswers,
   normalizeCategory,
+  normalizeModuleLevel,
+  normalizeRiskLevel,
+  pickNextActivityIndex,
   summarizeProgressInsights,
 } from '../lib/course.js';
 
@@ -13,6 +17,88 @@ const TOPIC_OPTIONS = COMP_KEYS.map((topic) => ({
   value: topic,
   label: CATEGORY_LABELS[topic] || topic,
 }));
+
+const PRIORITY_LABELS = {
+  sms: 'detectar SMS falsos',
+  web: 'verificar paginas web',
+  llamadas: 'evitar llamadas fraudulentas',
+  whatsapp: 'mejorar seguridad en WhatsApp',
+  todo: 'cubrir todos los frentes',
+};
+
+function formatMinutesFromMs(value) {
+  const minutes = Math.max(0, Math.round((Number(value) || 0) / 60000));
+  if (!minutes) return 'Sin tiempo registrado';
+  if (minutes === 1) return '1 min de practica';
+  return `${minutes} min de practica`;
+}
+
+function formatPercent(value) {
+  const safe = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  return `${safe}%`;
+}
+
+function getPrioritySummary(answers) {
+  return PRIORITY_LABELS[answers?.priority] || 'blindaje general';
+}
+
+function getWeakestTopic(competencias) {
+  const entries = Object.entries(competencias || {}).filter(([key]) => COMP_KEYS.includes(key));
+  if (!entries.length) return null;
+  return entries.sort((a, b) => a[1] - b[1])[0];
+}
+
+function getStrongestTopic(competencias) {
+  const entries = Object.entries(competencias || {}).filter(([key]) => COMP_KEYS.includes(key));
+  if (!entries.length) return null;
+  return entries.sort((a, b) => b[1] - a[1])[0];
+}
+
+function getModuleStats(module, progress) {
+  const activities = Array.isArray(module?.actividades) ? module.actividades : [];
+  const completedEntries = activities
+    .map((activity) => progress?.completed?.[activity.id])
+    .filter(Boolean);
+  const completedCount = completedEntries.length;
+  const total = activities.length;
+  const pct = total ? Math.round((completedCount / total) * 100) : 0;
+  const nextActivity =
+    activities.find((activity) => !progress?.completed?.[activity.id]) ||
+    activities[pickNextActivityIndex({ ruta: [module] }, { completed: progress?.completed || {} }, 0)] ||
+    activities[0] ||
+    null;
+  const avgScore = completedEntries.length
+    ? Math.round(
+        (completedEntries.reduce((acc, item) => acc + (Number(item.score) || 0), 0) /
+          completedEntries.length) *
+          100
+      )
+    : null;
+  const moduleEntry = module?.id ? progress?.modules?.[module.id] : null;
+  const seenKey = `${normalizeCategory(module?.categoria)}:${normalizeModuleLevel(module?.nivel)}`;
+  const seenCount = Array.isArray(progress?.seenScenarioIds?.[seenKey])
+    ? progress.seenScenarioIds[seenKey].length
+    : 0;
+
+  return {
+    activities,
+    completedCount,
+    total,
+    pct,
+    nextActivity,
+    avgScore,
+    visits: Number(moduleEntry?.visits) || 0,
+    durationLabel: formatMinutesFromMs(moduleEntry?.durationMs),
+    seenCount,
+    completedAt: moduleEntry?.completedAt || null,
+    status: pct >= 100 ? 'completed' : pct > 0 ? 'active' : 'pending',
+  };
+}
+
+function getRecommendedModuleIndex(route, progress) {
+  const firstIncomplete = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
+  return firstIncomplete === -1 ? 0 : firstIncomplete;
+}
 
 function DonutCard({ score, label }) {
   return (
@@ -74,7 +160,7 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
   };
 
   return (
-    <article className="panel summary-card">
+    <article className="panel summary-card course-preferences-panel">
       <div className="panel-header">
         <div>
           <p className="eyebrow">Ruta personalizada</p>
@@ -134,7 +220,10 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
       </div>
 
       <div className="question-body">
-        <p className="hint">Temas prioritarios</p>
+        <div className="section-title-row">
+          <p className="hint">Temas prioritarios</p>
+          <span className="pill soft">{selectedTopics.length} seleccionados</span>
+        </div>
         <div className="option-grid">
           {TOPIC_OPTIONS.map((topic) => (
             <label key={topic.value} className="option">
@@ -152,21 +241,237 @@ function CoursePreferences({ answers, value, onChange, onGenerate, generating, c
   );
 }
 
-function ModuleCard({ module, moduleIndex, progress, onOpen }) {
-  const activities = Array.isArray(module?.actividades) ? module.actividades : [];
-  const completed = activities.filter((activity) => Boolean(progress?.completed?.[activity.id])).length;
-  const total = activities.length || 1;
-  const pct = Math.round((completed / total) * 100);
-  const label = pct >= 100 ? 'Repasar' : pct > 0 ? 'Continuar' : 'Empezar';
+function CourseHero({
+  answers,
+  assessment,
+  coursePlan,
+  route,
+  completedCount,
+  totalActivities,
+  recommendedModule,
+  recommendedStats,
+  weakestTopic,
+  onContinue,
+}) {
+  const stateLabel = answers?.state || 'tu contexto';
+  const riskLabel = normalizeRiskLevel(assessment?.nivel || 'Medio');
+  const priorityLabel = getPrioritySummary(answers);
+  const weaknessText = weakestTopic
+    ? `${CATEGORY_LABELS[weakestTopic[0]] || weakestTopic[0]} (${weakestTopic[1]}%)`
+    : 'se seguira ajustando con tu progreso';
 
   return (
-    <article className="module-card">
+    <section className="course-hero-panel panel">
+      <div className="course-hero-copy">
+        <p className="eyebrow">Ruta activa</p>
+        <h1>Tu entrenamiento ya tiene direccion clara</h1>
+        <p className="lead">
+          Priorizamos {priorityLabel} para ayudarte desde {stateLabel}. Tu perfil actual se
+          encuentra en nivel {riskLabel}, y la ruta mezcla practica guiada con simulaciones para
+          reforzar donde mas te conviene.
+        </p>
+
+        <div className="hero-chip-row">
+          <span className="pill">Riesgo actual: {riskLabel}</span>
+          <span className="pill">Score base: {coursePlan?.score_name || 'Blindaje Digital'}</span>
+          <span className="pill">Actividades completadas: {completedCount}/{totalActivities}</span>
+          <span className="pill">Enfoque critico: {weaknessText}</span>
+        </div>
+
+        <div className="hero-actions">
+          <button className="btn primary" type="button" onClick={onContinue}>
+            Continuar ruta recomendada
+          </button>
+        </div>
+      </div>
+
+      <aside className="course-hero-aside">
+        <p className="eyebrow">Siguiente modulo sugerido</p>
+        <h3>{recommendedModule?.titulo || 'Tu siguiente paso'}</h3>
+        <p>{recommendedModule?.descripcion || 'Abriremos la siguiente actividad disponible.'}</p>
+        <div className="hero-next-grid">
+          <div className="hero-next-item">
+            <span>Categoria</span>
+            <strong>{CATEGORY_LABELS[recommendedModule?.categoria] || recommendedModule?.categoria}</strong>
+          </div>
+          <div className="hero-next-item">
+            <span>Nivel</span>
+            <strong>{LEVEL_LABELS[recommendedModule?.nivel] || recommendedModule?.nivel}</strong>
+          </div>
+          <div className="hero-next-item">
+            <span>Avance</span>
+            <strong>{formatPercent(recommendedStats?.pct)}</strong>
+          </div>
+          <div className="hero-next-item">
+            <span>Siguiente actividad</span>
+            <strong>{recommendedStats?.nextActivity?.titulo || 'Repaso recomendado'}</strong>
+          </div>
+        </div>
+      </aside>
+    </section>
+  );
+}
+
+function ProgressStats({ items }) {
+  return (
+    <section className="course-stat-grid">
+      {items.map((item) => (
+        <article className="stat-card compact" key={item.label}>
+          <p className="stat-label">{item.label}</p>
+          <p className="stat-value">{item.value}</p>
+          <p className="stat-note">{item.note}</p>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function FocusPanel({ insights, snapshots, strongestTopic, weakestTopic, lastAccessAt }) {
+  const lastSnapshot = snapshots[0] || null;
+  const previousSnapshot = snapshots[1] || null;
+  const delta =
+    lastSnapshot && previousSnapshot
+      ? Number(lastSnapshot.scoreTotal || 0) - Number(previousSnapshot.scoreTotal || 0)
+      : null;
+
+  return (
+    <section className="course-focus-grid">
+      <article className="panel summary-card">
+        <p className="eyebrow">Enfoque recomendado</p>
+        <h3>Que conviene reforzar ahora</h3>
+        <div className="focus-stack">
+          <div className="summary-item">
+            <strong>Fortaleza principal</strong>
+            <p>
+              {strongestTopic
+                ? `${CATEGORY_LABELS[strongestTopic[0]] || strongestTopic[0]} (${strongestTopic[1]}%)`
+                : 'Aun estamos recogiendo suficientes datos.'}
+            </p>
+          </div>
+          <div className="summary-item">
+            <strong>Zona a reforzar</strong>
+            <p>
+              {weakestTopic
+                ? `${CATEGORY_LABELS[weakestTopic[0]] || weakestTopic[0]} (${weakestTopic[1]}%)`
+                : 'La ruta se ira afinando conforme avances.'}
+            </p>
+          </div>
+          <div className="summary-item">
+            <strong>Temas visibles</strong>
+            <p>{insights?.focus?.join(' | ') || 'La app definira esto con tus siguientes actividades.'}</p>
+          </div>
+        </div>
+      </article>
+
+      <article className="panel summary-card">
+        <p className="eyebrow">Evolucion</p>
+        <h3>Senales recientes</h3>
+        <div className="focus-stack">
+          <div className="summary-item">
+            <strong>Ultimo acceso</strong>
+            <p>{lastAccessAt ? formatDate(lastAccessAt) : 'Aun sin registro.'}</p>
+          </div>
+          <div className="summary-item">
+            <strong>Movimiento de blindaje</strong>
+            <p>
+              {delta === null
+                ? 'Todavia no hay suficientes hitos para comparar.'
+                : delta >= 0
+                  ? `Subiste ${delta} puntos entre tus dos ultimos hitos.`
+                  : `Bajaste ${Math.abs(delta)} puntos; conviene repasar el bloque de refuerzo.`}
+            </p>
+          </div>
+          <div className="summary-item">
+            <strong>Errores mas frecuentes</strong>
+            <p>
+              {insights?.mistakes?.length
+                ? insights.mistakes.join(' | ')
+                : 'Aun no vemos errores repetidos; eso es buena senal.'}
+            </p>
+          </div>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function RouteMap({ route, progress, onOpenModule }) {
+  return (
+    <article className="panel summary-card">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Mapa de ruta</p>
+          <h3>Tu progreso modulo por modulo</h3>
+          <p className="hint">Cada bloque prioriza un canal y evita repetir escenarios vistos.</p>
+        </div>
+      </div>
+
+      <div className="route-map">
+        {route.map((module, moduleIndex) => {
+          const stats = getModuleStats(module, progress);
+          return (
+            <button
+              key={module.id || `${module.categoria}-${moduleIndex}`}
+              className={`route-step ${stats.status}`}
+              type="button"
+              onClick={() => onOpenModule(moduleIndex)}
+            >
+              <span className="route-step-index">{String(moduleIndex + 1).padStart(2, '0')}</span>
+              <div className="route-step-copy">
+                <div className="route-step-top">
+                  <strong>{module.titulo || `Modulo ${moduleIndex + 1}`}</strong>
+                  <span className={`status-pill ${stats.status}`}>
+                    {stats.status === 'completed'
+                      ? 'Completado'
+                      : stats.status === 'active'
+                        ? 'En curso'
+                        : 'Pendiente'}
+                  </span>
+                </div>
+                <p>{module.descripcion || 'Ruta personalizada para reforzar este tema.'}</p>
+                <div className="route-step-meta">
+                  <span>{CATEGORY_LABELS[module.categoria] || module.categoria}</span>
+                  <span>{LEVEL_LABELS[module.nivel] || module.nivel}</span>
+                  <span>{stats.completedCount}/{stats.total} actividades</span>
+                </div>
+              </div>
+              <span className="route-step-progress">{formatPercent(stats.pct)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
+function ModuleCard({ module, moduleIndex, progress, onOpen }) {
+  const stats = getModuleStats(module, progress);
+  const label = stats.pct >= 100 ? 'Repasar' : stats.pct > 0 ? 'Continuar' : 'Empezar';
+  const highlights = [
+    stats.nextActivity
+      ? `Sigue con: ${stats.nextActivity.titulo} (${ACTIVITY_LABELS[stats.nextActivity.tipo] || stats.nextActivity.tipo})`
+      : 'Modulo listo para repaso',
+    stats.avgScore === null ? 'Aun sin score promedio' : `Score promedio: ${stats.avgScore}%`,
+    `${stats.visits} visitas registradas`,
+    stats.durationLabel,
+  ];
+
+  return (
+    <article className={`module-card enhanced ${stats.status}`}>
+      <div className="module-step">Paso {moduleIndex + 1}</div>
       <div className="module-head">
         <div>
           <p className="module-title">{module.titulo || `Modulo ${moduleIndex + 1}`}</p>
           <p className="module-desc">{module.descripcion || 'Modulo personalizado por IA.'}</p>
         </div>
         <div className="badges">
+          <span className={`status-pill ${stats.status}`}>
+            {stats.status === 'completed'
+              ? 'Completado'
+              : stats.status === 'active'
+                ? 'En curso'
+                : 'Pendiente'}
+          </span>
           <span className="badge">{CATEGORY_LABELS[module.categoria] || module.categoria}</span>
           <span className={`badge level ${module.nivel}`}>
             {LEVEL_LABELS[module.nivel] || module.nivel}
@@ -175,12 +480,29 @@ function ModuleCard({ module, moduleIndex, progress, onOpen }) {
       </div>
 
       <div className="progress-mini">
-        <div className="fill" style={{ width: `${pct}%` }} />
+        <div className="fill" style={{ width: `${stats.pct}%` }} />
       </div>
 
       <div className="module-meta">
-        <span>{completed} de {activities.length} actividades</span>
-        <span>{pct}% completado</span>
+        <span>{stats.completedCount} de {stats.total} actividades</span>
+        <span>{formatPercent(stats.pct)} completado</span>
+      </div>
+
+      <div className="module-highlights">
+        {highlights.map((item) => (
+          <div className="module-highlight" key={item}>
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="activity-pill-row">
+        {stats.activities.slice(0, 4).map((activity) => (
+          <span className="activity-pill" key={activity.id}>
+            {ACTIVITY_LABELS[activity.tipo] || activity.tipo}
+          </span>
+        ))}
+        {stats.seenCount ? <span className="activity-pill soft">{stats.seenCount} escenarios vistos</span> : null}
       </div>
 
       <div className="module-actions">
@@ -212,10 +534,42 @@ export default function CoursesView({
       };
   const insights = hasPlan ? summarizeProgressInsights(coursePlan, courseProgress) : null;
   const route = Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : [];
-  const snapshots = Array.isArray(courseProgress?.snapshots)
-    ? courseProgress.snapshots.slice(-5).reverse()
-    : [];
+  const rawSnapshots = Array.isArray(courseProgress?.snapshots) ? courseProgress.snapshots : [];
+  const snapshots = rawSnapshots.slice(-5).reverse();
   const completedCount = Object.keys(courseProgress?.completed || {}).length;
+  const totalActivities = route.reduce(
+    (acc, module) => acc + (Array.isArray(module?.actividades) ? module.actividades.length : 0),
+    0
+  );
+  const completedModules = route.filter((module) => getModuleStats(module, courseProgress).pct >= 100).length;
+  const recommendedModuleIndex = route.length ? getRecommendedModuleIndex(route, courseProgress) : 0;
+  const recommendedModule = route[recommendedModuleIndex] || null;
+  const recommendedStats = recommendedModule ? getModuleStats(recommendedModule, courseProgress) : null;
+  const weakestTopic = getWeakestTopic(computed.competencias);
+  const strongestTopic = getStrongestTopic(computed.competencias);
+
+  const progressItems = [
+    {
+      label: 'Modulos cerrados',
+      value: `${completedModules}/${route.length || 0}`,
+      note: completedModules === route.length && route.length ? 'Ruta completada, lista para repaso.' : 'Cada modulo completo consolida tu blindaje.',
+    },
+    {
+      label: 'Actividades resueltas',
+      value: `${completedCount}/${totalActivities || 0}`,
+      note: totalActivities ? 'El progreso se guarda automaticamente.' : 'Genera primero tu ruta personalizada.',
+    },
+    {
+      label: 'Tema mas fuerte',
+      value: strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] || strongestTopic[0] : 'Aun sin datos',
+      note: strongestTopic ? `${strongestTopic[1]}% de dominio estimado.` : 'Se definira con tus primeras actividades.',
+    },
+    {
+      label: 'Tema a reforzar',
+      value: weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] || weakestTopic[0] : 'Sin prioridad',
+      note: weakestTopic ? `${weakestTopic[1]}% actual. Aqui conviene insistir.` : 'El sistema afinara esto conforme avances.',
+    },
+  ];
 
   return (
     <section id="coursesView" className="page">
@@ -224,7 +578,7 @@ export default function CoursesView({
         <h1>Tu ruta de aprendizaje</h1>
         <p className="lead">
           {assessment
-            ? 'Usamos tu assessment y tu progreso real para ajustar la ruta y evitar repeticiones.'
+            ? 'Usamos tu assessment y tu progreso real para ajustar la ruta, priorizar riesgos y evitar repeticiones.'
             : 'Completa primero la encuesta para generar una ruta personalizada.'}
         </p>
       </header>
@@ -240,10 +594,33 @@ export default function CoursesView({
 
       {hasPlan ? (
         <>
+          <CourseHero
+            answers={answers}
+            assessment={assessment}
+            coursePlan={coursePlan}
+            route={route}
+            completedCount={completedCount}
+            totalActivities={totalActivities}
+            recommendedModule={recommendedModule}
+            recommendedStats={recommendedStats}
+            weakestTopic={weakestTopic}
+            onContinue={() => onOpenModule(recommendedModuleIndex)}
+          />
+
+          <ProgressStats items={progressItems} />
+
           <section className="dashboard-grid">
             <DonutCard score={computed.score_total || 0} label={coursePlan?.score_name || 'Blindaje Digital'} />
             <CompetencyList competencias={computed.competencias} />
           </section>
+
+          <FocusPanel
+            insights={insights}
+            snapshots={snapshots}
+            strongestTopic={strongestTopic}
+            weakestTopic={weakestTopic}
+            lastAccessAt={courseProgress?.lastAccessAt}
+          />
 
           <section className="course-summary-grid">
             <article className="panel summary-card">
@@ -252,15 +629,15 @@ export default function CoursesView({
               <div className="summary-list">
                 <div className="summary-item">
                   <strong>Fortalezas</strong>
-                  <p>{insights?.strengths?.join(' · ') || 'Aun estamos recogiendo senales.'}</p>
+                  <p>{insights?.strengths?.join(' | ') || 'Aun estamos recogiendo senales.'}</p>
                 </div>
                 <div className="summary-item">
                   <strong>Enfoque</strong>
-                  <p>{insights?.focus?.join(' · ') || 'La ruta se ajustara con tu progreso.'}</p>
+                  <p>{insights?.focus?.join(' | ') || 'La ruta se ajustara con tu progreso.'}</p>
                 </div>
                 <div className="summary-item">
-                  <strong>Actividad completada</strong>
-                  <p>{completedCount} actividades registradas.</p>
+                  <strong>Prioridad declarada</strong>
+                  <p>{getPrioritySummary(answers)}</p>
                 </div>
               </div>
             </article>
@@ -275,7 +652,7 @@ export default function CoursesView({
                       <div>
                         <p className="history-title">{snapshot.scoreTotal || 0}% de blindaje</p>
                         <p className="history-meta">
-                          {formatDate(snapshot.at)} · {snapshot.completedCount || 0} actividades
+                          {formatDate(snapshot.at)} | {snapshot.completedCount || 0} actividades
                         </p>
                       </div>
                     </div>
@@ -289,17 +666,46 @@ export default function CoursesView({
             </article>
           </section>
 
+          <section className="course-route-layout">
+            <RouteMap route={route} progress={courseProgress} onOpenModule={onOpenModule} />
+
+            <article className="panel summary-card">
+              <p className="eyebrow">Ruta activa</p>
+              <h3>Que traen tus modulos</h3>
+              <div className="focus-stack">
+                <div className="summary-item">
+                  <strong>Version del plan</strong>
+                  <p>Version {coursePlan?.planVersion || '1'} con {route.length} modulos activos.</p>
+                </div>
+                <div className="summary-item">
+                  <strong>Simulaciones y practica</strong>
+                  <p>
+                    Tu ruta mezcla teoria, ejercicios, comparacion de dominios, inboxs y
+                    simulaciones con scenarioId para reducir repeticion.
+                  </p>
+                </div>
+                <div className="summary-item">
+                  <strong>Preferencias aplicadas</strong>
+                  <p>
+                    Estilo {coursePrefs?.estilo || 'mix'} | dificultad {coursePrefs?.dificultad || 'auto'} |
+                    sesiones de {coursePrefs?.duracion || '5-10'} min.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </section>
+
           <section className="panel">
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Modulos</p>
                 <h2>Tu plan activo</h2>
                 <p className="hint">
-                  Version {coursePlan?.planVersion || '1'} · {route.length} modulos
+                  Version {coursePlan?.planVersion || '1'} | {route.length} modulos
                 </p>
               </div>
             </div>
-            <div className="modules-list">
+            <div className="modules-list enhanced">
               {route.map((module, moduleIndex) => (
                 <ModuleCard
                   key={module.id || `${module.categoria}-${moduleIndex}`}
