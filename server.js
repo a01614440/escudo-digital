@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import {
   buildUserState,
@@ -21,6 +23,9 @@ import {
 dotenv.config();
 
 const app = express();
+const APP_ROOT = fileURLToPath(new URL('.', import.meta.url));
+const ROOT_INDEX_PATH = fileURLToPath(new URL('./index.html', import.meta.url));
+const DIST_INDEX_PATH = fileURLToPath(new URL('./dist/index.html', import.meta.url));
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -48,7 +53,38 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static('.'));
+const htmlNoStoreHeader = 'no-store, no-cache, must-revalidate';
+
+app.get('/', (_req, res) => {
+  res.setHeader('Cache-Control', htmlNoStoreHeader);
+  return res.sendFile(ROOT_INDEX_PATH);
+});
+
+app.get(/^\/dist$/, (_req, res) => {
+  res.setHeader('Cache-Control', htmlNoStoreHeader);
+  return res.redirect(302, '/dist/');
+});
+
+app.get('/dist/', (_req, res) => {
+  res.setHeader('Cache-Control', htmlNoStoreHeader);
+  return res.sendFile(DIST_INDEX_PATH);
+});
+
+app.use(
+  express.static(APP_ROOT, {
+    setHeaders: (res, filePath) => {
+      const normalizedPath = path.normalize(filePath);
+      if (normalizedPath.endsWith('.html')) {
+        res.setHeader('Cache-Control', htmlNoStoreHeader);
+        return;
+      }
+
+      if (normalizedPath.includes(path.normalize(path.join('dist', 'assets')))) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  })
+);
 
 const nowIso = () => new Date().toISOString();
 

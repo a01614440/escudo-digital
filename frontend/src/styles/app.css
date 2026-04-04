@@ -34,6 +34,66 @@ canvas {
   max-width: 100%;
 }
 
+.app-crash-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at top, rgba(96, 132, 255, 0.22), transparent 32%),
+    linear-gradient(180deg, #f6f9ff 0%, #ecf2ff 100%);
+}
+
+.app-crash-card {
+  width: min(100%, 720px);
+  padding: 32px;
+  border-radius: 28px;
+  border: 1px solid rgba(87, 118, 219, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 28px 80px rgba(32, 56, 125, 0.14);
+}
+
+.app-crash-card h1 {
+  margin: 8px 0 10px;
+}
+
+.app-crash-card .lead {
+  margin-bottom: 20px;
+  max-width: 56ch;
+}
+
+.app-crash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.app-crash-detail {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(50, 74, 145, 0.08);
+  color: var(--muted);
+  word-break: break-word;
+}
+
+body[data-theme='dark'] .app-crash-screen {
+  background:
+    radial-gradient(circle at top, rgba(72, 109, 255, 0.28), transparent 30%),
+    linear-gradient(180deg, #0d1527 0%, #09111f 100%);
+}
+
+body[data-theme='dark'] .app-crash-card {
+  border-color: rgba(118, 146, 255, 0.18);
+  background: rgba(12, 21, 40, 0.92);
+  box-shadow: 0 34px 90px rgba(1, 6, 18, 0.48);
+}
+
+body[data-theme='dark'] .app-crash-detail {
+  background: rgba(101, 131, 255, 0.12);
+  color: rgba(232, 239, 255, 0.82);
+}
+
 .auth-shell,
 .page,
 .panel,

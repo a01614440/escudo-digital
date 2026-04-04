@@ -2,3 +2,9 @@
 .npm-cache/
 node_modules/
 dist/
+.tmp-chrome/
+preview-log.txt
+server-log.txt
+server-check-*.txt
+tmp-white.png
+.DS_Store
