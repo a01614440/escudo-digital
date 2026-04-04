@@ -152,6 +152,10 @@ function ShieldCard({
   prioritySummary,
   adminAccess = false,
 }) {
+  const completionPct = totalModules ? Math.round((completedModules / totalModules) * 100) : 0;
+  const rhythmLabel =
+    completedModules === totalModules ? 'Ruta completa' : completionPct ? `${completionPct}% de avance` : 'Sin avance todavia';
+
   return (
     <section className="panel dashboard-card shield-card-clean">
       <div className="dashboard-title-stack">
@@ -180,7 +184,11 @@ function ShieldCard({
                 : 'Tu puntaje sube conforme completas bloques y mejoras tu toma de decisiones.'}
             </p>
           </div>
-        </div>
+            <div className="shield-mini-track" aria-hidden="true">
+              <span style={{ width: `${completionPct}%` }} />
+            </div>
+            <p className="shield-mini-caption">{`${completionPct}% de la ruta activa desbloqueada`}</p>
+          </div>
 
         <div className="shield-summary-strip">
           <article className="shield-summary-tile">
@@ -245,6 +253,9 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
     );
   }
 
+  const visibleActivities = (Array.isArray(module.actividades) ? module.actividades : []).slice(0, 3);
+  const extraActivities = Math.max((module.actividades?.length || 0) - visibleActivities.length, 0);
+
   return (
     <section className="panel dashboard-card spotlight-card-clean">
       <div className="section-title-row dashboard-title-row">
@@ -279,8 +290,8 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
           <strong>{stats.avgScore ? formatPercent(stats.avgScore) : 'Sin score'}</strong>
         </div>
         <div className="focus-metric">
-          <span>Visitas</span>
-          <strong>{stats.visits || 0}</strong>
+          <span>Escenarios</span>
+          <strong>{stats.seenCount || 0}</strong>
         </div>
         <div className="focus-metric">
           <span>Tiempo</span>
@@ -289,11 +300,12 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
       </div>
 
       <div className="activity-pill-row compact-row">
-        {(Array.isArray(module.actividades) ? module.actividades : []).slice(0, 4).map((activity) => (
+        {visibleActivities.map((activity) => (
           <span key={activity.id} className="activity-pill">
             {ACTIVITY_LABELS[activity.tipo] || activity.titulo}
           </span>
         ))}
+        {extraActivities ? <span className="activity-pill">{`+${extraActivities} formatos`}</span> : null}
         {stats.seenCount ? <span className="activity-pill soft">{`${stats.seenCount} escenarios vistos`}</span> : null}
       </div>
 

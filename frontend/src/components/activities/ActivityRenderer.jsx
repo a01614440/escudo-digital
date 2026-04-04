@@ -83,11 +83,15 @@ function SimulationGuide({ activity }) {
   if (!steps?.length) return null;
 
   return (
-    <section className="panel summary-card activity-guide">
-      <p className="eyebrow">Cómo resolver esta actividad</p>
+    <section className="activity-guide compact-guide">
+      <div className="activity-guide-head">
+        <p className="eyebrow">Cómo resolver esta actividad</p>
+        <span className="activity-guide-count">{`${steps.length} pasos`}</span>
+      </div>
       <div className="summary-list">
-        {steps.map((step) => (
-          <div className="summary-item" key={step}>
+        {steps.map((step, index) => (
+          <div className="summary-item activity-guide-item" key={step}>
+            <span className="activity-guide-index">{String(index + 1).padStart(2, '0')}</span>
             <p>{step}</p>
           </div>
         ))}
@@ -1448,7 +1452,6 @@ function WebLabActivity({ activity, startedAtRef, onComplete }) {
 
   return (
     <>
-      {activity.intro ? <Paragraphs text={activity.intro} /> : null}
       <ActivitySummaryBar
         items={[
           { label: 'Etapas', value: 'Producto -> Carrito -> Checkout', caption: 'Recorre las tres vistas' },
