@@ -131,13 +131,12 @@ function mojibakePenalty(value) {
 
 function readabilityBonus(value) {
   return (
-    (value.match(/[áéíóúñÁÉÍÓÚÑ¿¡]/g) || []).length * 2 +
+    (value.match(/[\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\u00c1\u00c9\u00cd\u00d3\u00da\u00d1\u00bf\u00a1]/g) || []).length * 2 +
     (
       value.match(
-        /\b(señal|módulo|hábito|verificación|página|simulación|contraseña|cómo|último)\b/gi
+        /\b(se\u00f1al|m\u00f3dulo|h\u00e1bito|verificaci\u00f3n|p\u00e1gina|simulaci\u00f3n|contrase\u00f1a|c\u00f3mo|\u00faltimo)\b/gi
       ) || []
-    )
-      .length *
+    ).length *
       2
   );
 }
@@ -183,7 +182,11 @@ const MODULE_TITLE_HINTS = {
 };
 
 function looksLikeMojibake(value) {
-  return MOJIBAKE_MARKERS.some((marker) => value.includes(marker)) || /\bcontrasena\b/i.test(value);
+  return (
+    MOJIBAKE_MARKERS.some((marker) => value.includes(marker)) ||
+    /\bcontrasena\b/i.test(value) ||
+    /\b[\p{L}]+\?[\p{L}]+\b/u.test(value)
+  );
 }
 
 function decodeCp1252Utf8(value) {
@@ -222,6 +225,105 @@ function fixBrokenAccentChains(value) {
   return result;
 }
 
+const BROKEN_SPANISH_REPLACEMENTS = [
+  ['Suplantaci?n', 'Suplantaci\u00f3n'],
+  ['suplantaci?n', 'suplantaci\u00f3n'],
+  ['Verificaci?n', 'Verificaci\u00f3n'],
+  ['verificaci?n', 'verificaci\u00f3n'],
+  ['Comparaci?n', 'Comparaci\u00f3n'],
+  ['comparaci?n', 'comparaci\u00f3n'],
+  ['Simulaci?n', 'Simulaci\u00f3n'],
+  ['simulaci?n', 'simulaci\u00f3n'],
+  ['Evaluaci?n', 'Evaluaci\u00f3n'],
+  ['evaluaci?n', 'evaluaci\u00f3n'],
+  ['Protecci?n', 'Protecci\u00f3n'],
+  ['protecci?n', 'protecci\u00f3n'],
+  ['Validaci?n', 'Validaci\u00f3n'],
+  ['validaci?n', 'validaci\u00f3n'],
+  ['Atenci?n', 'Atenci\u00f3n'],
+  ['atenci?n', 'atenci\u00f3n'],
+  ['Informaci?n', 'Informaci\u00f3n'],
+  ['informaci?n', 'informaci\u00f3n'],
+  ['Explicaci?n', 'Explicaci\u00f3n'],
+  ['explicaci?n', 'explicaci\u00f3n'],
+  ['Acci?n', 'Acci\u00f3n'],
+  ['acci?n', 'acci\u00f3n'],
+  ['Decisi?n', 'Decisi\u00f3n'],
+  ['decisi?n', 'decisi\u00f3n'],
+  ['P?gina', 'P\u00e1gina'],
+  ['p?gina', 'p\u00e1gina'],
+  ['P?ginas', 'P\u00e1ginas'],
+  ['p?ginas', 'p\u00e1ginas'],
+  ['Se?al', 'Se\u00f1al'],
+  ['se?al', 'se\u00f1al'],
+  ['Se?ales', 'Se\u00f1ales'],
+  ['se?ales', 'se\u00f1ales'],
+  ['Rese?a', 'Rese\u00f1a'],
+  ['rese?a', 'rese\u00f1a'],
+  ['Rese?as', 'Rese\u00f1as'],
+  ['rese?as', 'rese\u00f1as'],
+  ['Contrase?a', 'Contrase\u00f1a'],
+  ['contrase?a', 'contrase\u00f1a'],
+  ['C?digo', 'C\u00f3digo'],
+  ['c?digo', 'c\u00f3digo'],
+  ['C?digos', 'C\u00f3digos'],
+  ['c?digos', 'c\u00f3digos'],
+  ['N?mero', 'N\u00famero'],
+  ['n?mero', 'n\u00famero'],
+  ['N?meros', 'N\u00fameros'],
+  ['n?meros', 'n\u00fameros'],
+  ['M?dulo', 'M\u00f3dulo'],
+  ['m?dulo', 'm\u00f3dulo'],
+  ['Todav?a', 'Todav\u00eda'],
+  ['todav?a', 'todav\u00eda'],
+  ['Aqu?', 'Aqu\u00ed'],
+  ['aqu?', 'aqu\u00ed'],
+  ['Qu?', 'Qu\u00e9'],
+  ['qu?', 'qu\u00e9'],
+  ['C?mo', 'C\u00f3mo'],
+  ['c?mo', 'c\u00f3mo'],
+  ['Cu?l', 'Cu\u00e1l'],
+  ['cu?l', 'cu\u00e1l'],
+  ['M?s', 'M\u00e1s'],
+  ['m?s', 'm\u00e1s'],
+  ['M?todo', 'M\u00e9todo'],
+  ['m?todo', 'm\u00e9todo'],
+  ['M?todos', 'M\u00e9todos'],
+  ['m?todos', 'm\u00e9todos'],
+  ['R?pido', 'R\u00e1pido'],
+  ['r?pido', 'r\u00e1pido'],
+  ['B?sico', 'B\u00e1sico'],
+  ['b?sico', 'b\u00e1sico'],
+  ['H?bitos', 'H\u00e1bitos'],
+  ['h?bitos', 'h\u00e1bitos'],
+  ['Pol?ticas', 'Pol\u00edticas'],
+  ['pol?ticas', 'pol\u00edticas'],
+  ['Cr?dito', 'Cr\u00e9dito'],
+  ['cr?dito', 'cr\u00e9dito'],
+  ['Paqueter?a', 'Paqueter\u00eda'],
+  ['paqueter?a', 'paqueter\u00eda'],
+  ['Env?o', 'Env\u00edo'],
+  ['env?o', 'env\u00edo'],
+  ['Env?os', 'Env\u00edos'],
+  ['env?os', 'env\u00edos'],
+  ['Direcci?n', 'Direcci\u00f3n'],
+  ['direcci?n', 'direcci\u00f3n'],
+  ['Pr?ctica', 'Pr\u00e1ctica'],
+  ['pr?ctica', 'pr\u00e1ctica'],
+  ['Dif?cil', 'Dif\u00edcil'],
+  ['dif?cil', 'dif\u00edcil'],
+  ['M?xico', 'M\u00e9xico'],
+  ['m?xico', 'm\u00e9xico'],
+];
+
+function repairBrokenSpanishWords(value) {
+  let result = value;
+  BROKEN_SPANISH_REPLACEMENTS.forEach(([broken, replacement]) => {
+    result = result.replaceAll(broken, replacement);
+  });
+  return result;
+}
+
 export const repairPossibleMojibake = (value) => {
   if (typeof value !== 'string') return value;
   if (!looksLikeMojibake(value)) return value;
@@ -255,28 +357,23 @@ export const repairPossibleMojibake = (value) => {
       .replaceAll('\u00e2\u20ac\u201d', '\u2014')
       .replaceAll('\u00c2\u00bf', '\u00bf')
       .replaceAll('\u00c2\u00a1', '\u00a1')
-      .replaceAll('Â·', '·')
-      .replaceAll('Âº', 'º')
-      .replaceAll('Âª', 'ª')
-      .replaceAll('Â«', '«')
-      .replaceAll('Â»', '»')
+      .replaceAll('\u00c2\u00b7', '\u00b7')
+      .replaceAll('\u00c2\u00ba', '\u00ba')
+      .replaceAll('\u00c2\u00aa', '\u00aa')
+      .replaceAll('\u00c2\u00ab', '\u00ab')
+      .replaceAll('\u00c2\u00bb', '\u00bb')
       .replace(/\bcontrasena\b/gi, (match) => (match[0] === 'C' ? 'Contrase\u00f1a' : 'contrase\u00f1a'))
-      .replace(/\bmodulo\b/gi, (match) => (match[0] === 'M' ? 'Módulo' : 'módulo'))
-      .replace(/\btodavia\b/gi, (match) => (match[0] === 'T' ? 'Todavía' : 'todavía'))
+      .replace(/\bmodulo\b/gi, (match) => (match[0] === 'M' ? 'M\u00f3dulo' : 'm\u00f3dulo'))
+      .replace(/\btodavia\b/gi, (match) => (match[0] === 'T' ? 'Todav\u00eda' : 'todav\u00eda'))
       .replace(/\ufffd/g, '');
 
-    if (next === result) break;
-    result = next;
+    const repaired = repairBrokenSpanishWords(next);
+    if (repaired === result) break;
+    result = repaired;
   }
 
   return result;
 };
-
-[CATEGORY_LABELS, LEVEL_LABELS, ACTIVITY_LABELS].forEach((dictionary) => {
-  Object.keys(dictionary).forEach((key) => {
-    dictionary[key] = repairPossibleMojibake(dictionary[key]);
-  });
-});
 
 export const normalizeRiskLevel = (value) => {
   const raw = repairPossibleMojibake(String(value || '').trim());
