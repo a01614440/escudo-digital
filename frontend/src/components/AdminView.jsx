@@ -80,6 +80,7 @@ function AnalyticsTable({ title, rows, columns }) {
 }
 
 export default function AdminView({
+  viewport = 'desktop',
   analytics,
   loading,
   error,
@@ -90,7 +91,7 @@ export default function AdminView({
   const overview = analytics?.overview || {};
 
   return (
-    <section id="adminView" className="page">
+    <section id="adminView" className={`page admin-page admin-page-${viewport}`}>
       <header className="hero">
         <p className="eyebrow">Panel interno</p>
         <h1>Analítica del proyecto</h1>
@@ -100,10 +101,10 @@ export default function AdminView({
         </p>
       </header>
 
-      <section className="panel session-bar">
+      <section className="panel session-bar admin-action-bar">
         <div>
           <p className="eyebrow">Vista administrativa</p>
-          <h2>Métrica y seguimiento</h2>
+          <h2>Métricas y seguimiento</h2>
           <p className="hint">
             Puedes refrescar la información o exportar el snapshot actual para análisis externo.
           </p>

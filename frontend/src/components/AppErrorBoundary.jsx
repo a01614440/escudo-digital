@@ -33,10 +33,10 @@ export default class AppErrorBoundary extends Component {
     return (
       <section className="app-crash-screen" role="alert">
         <div className="app-crash-card">
-          <p className="eyebrow">Recuperacion de la app</p>
+          <p className="eyebrow">Recuperación de la app</p>
           <h1>Detectamos un error al cargar esta vista.</h1>
           <p className="lead">
-            Puede venir de una sesion vieja o de datos guardados que ya no coinciden con la version actual.
+            Puede venir de una sesión vieja o de datos guardados que ya no coinciden con la versión actual.
           </p>
           <div className="app-crash-actions">
             <button className="btn primary" type="button" onClick={this.handleReload}>

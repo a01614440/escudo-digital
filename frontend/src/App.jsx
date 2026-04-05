@@ -87,6 +87,10 @@ function getViewportProfile(width) {
   return 'desktop';
 }
 
+function isTouchViewport(viewport) {
+  return ['phone-small', 'phone', 'tablet-compact', 'tablet'].includes(viewport);
+}
+
 export default function App() {
   const initial = useMemo(() => createInitialState(), []);
   const [authMode, setAuthMode] = useState('login');
@@ -124,6 +128,9 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
   const [theme, setTheme] = useState(readThemePreference());
+  const [viewport, setViewport] = useState(() =>
+    typeof window === 'undefined' ? 'desktop' : getViewportProfile(window.innerWidth)
+  );
   const [adminPreviewAsUser, setAdminPreviewAsUser] = useState(false);
   const wantsAdminCourseAccess = currentUser?.role === 'admin' && !adminPreviewAsUser;
 
@@ -494,9 +501,9 @@ export default function App() {
   useEffect(() => {
     const applyViewportProfile = () => {
       const viewport = getViewportProfile(window.innerWidth);
+      setViewport(viewport);
       document.body.dataset.viewport = viewport;
-      document.body.dataset.inputMode =
-        ['phone-small', 'phone', 'tablet-compact', 'tablet'].includes(viewport) ? 'touch' : 'pointer';
+      document.body.dataset.inputMode = isTouchViewport(viewport) ? 'touch' : 'pointer';
     };
 
     applyViewportProfile();
@@ -620,7 +627,7 @@ export default function App() {
         <section className="panel">
           <p className="eyebrow">Cargando</p>
           <h1>Restaurando sesion</h1>
-          <p className="lead">Estamos recuperando tu informacion guardada.</p>
+          <p className="lead">Estamos recuperando tu información guardada.</p>
         </section>
       </main>
     );
@@ -629,6 +636,7 @@ export default function App() {
   if (!currentUser) {
     return (
       <AuthView
+        viewport={viewport}
         mode={authMode}
         email={authEmail}
         password={authPassword}
@@ -644,8 +652,9 @@ export default function App() {
 
   return (
     <>
-      <main className="page">
+      <main className={`page app-shell app-shell-${viewport} app-view-${currentView}`}>
         <SessionBar
+          viewport={viewport}
           user={currentUser}
           currentView={currentView}
           theme={theme}
@@ -658,6 +667,7 @@ export default function App() {
 
         {currentView === 'survey' ? (
           <SurveyView
+            viewport={viewport}
             answers={answers}
             visibleQuestions={visibleQuestions}
             surveyIndex={surveyIndex}
@@ -681,6 +691,7 @@ export default function App() {
 
         {currentView === 'courses' ? (
           <CoursesView
+            viewport={viewport}
             answers={answers}
             assessment={assessment}
             coursePlan={coursePlan}
@@ -696,6 +707,7 @@ export default function App() {
 
         {currentView === 'lesson' ? (
           <LessonView
+            viewport={viewport}
             coursePlan={coursePlan}
             currentLesson={currentLesson}
             answers={answers}
@@ -708,6 +720,7 @@ export default function App() {
 
         {currentView === 'admin' && currentUser.role === 'admin' ? (
           <AdminView
+            viewport={viewport}
             analytics={analytics}
             loading={analyticsLoading}
             error={analyticsError}
@@ -737,6 +750,7 @@ export default function App() {
             Chat
           </button>
           <ChatDrawer
+            viewport={viewport}
             open={chatOpen}
             messages={chatMessages}
             input={chatInput}

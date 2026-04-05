@@ -1,4 +1,5 @@
 export default function AuthView({
+  viewport = 'desktop',
   mode,
   email,
   password,
@@ -10,9 +11,10 @@ export default function AuthView({
   onSubmit,
 }) {
   const isLogin = mode === 'login';
+  const isCompact = ['phone-small', 'phone', 'tablet-compact'].includes(viewport);
 
   return (
-    <section id="authView" className="auth-shell">
+    <section id="authView" className={`auth-shell auth-shell-${viewport}`}>
       <div className="auth-hero">
         <p className="eyebrow">México | Prevención de estafas digitales</p>
         <h1>Escudo Digital</h1>
@@ -20,6 +22,12 @@ export default function AuthView({
           Inicia sesión para guardar tu avance, retomar tus módulos y seguir fortaleciendo tu
           seguridad digital.
         </p>
+        {isCompact ? (
+          <div className="auth-mini-highlights">
+            <span className="activity-pill">Avance sincronizado</span>
+            <span className="activity-pill">Rutas personalizadas</span>
+          </div>
+        ) : null}
       </div>
 
       <section className="panel auth-panel">
@@ -75,13 +83,7 @@ export default function AuthView({
 
           <div className={`alert ${error ? '' : 'hidden'}`}>{error}</div>
           <button className="btn primary" type="submit" disabled={submitting}>
-            {submitting
-              ? isLogin
-                ? 'Entrando...'
-                : 'Creando...'
-              : isLogin
-                ? 'Entrar'
-                : 'Crear cuenta'}
+            {submitting ? (isLogin ? 'Entrando...' : 'Creando...') : isLogin ? 'Entrar' : 'Crear cuenta'}
           </button>
         </form>
       </section>

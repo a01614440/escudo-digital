@@ -69,6 +69,7 @@ function renderInput(question, value, onChange) {
 }
 
 export default function SurveyView({
+  viewport = 'desktop',
   answers,
   visibleQuestions,
   surveyIndex,
@@ -85,16 +86,45 @@ export default function SurveyView({
   const question = visibleQuestions[surveyIndex];
   const total = visibleQuestions.length || 1;
   const progress = Math.round(((surveyIndex + 1) / total) * 100);
+  const isCompact = ['phone-small', 'phone', 'tablet-compact'].includes(viewport);
+
+  const infoPanel = (
+    <div className="survey-info-grid">
+      <div>
+        <h3>Tipos de estafa que cubrimos</h3>
+        <div className="pill-row">
+          <span className="pill">SMS con enlaces falsos</span>
+          <span className="pill">WhatsApp y suplantación</span>
+          <span className="pill">Páginas web clonadas</span>
+          <span className="pill">Llamadas fraudulentas</span>
+          <span className="pill">Correos y phishing</span>
+        </div>
+      </div>
+      <div>
+        <h3>Cómo funciona la IA</h3>
+        <p className="hint">
+          Analizamos hábitos, exposición y experiencia previa para estimar tu probabilidad de ser
+          víctima. Con eso adaptamos el contenido a lo que más necesitas.
+        </p>
+      </div>
+    </div>
+  );
 
   return (
-    <div id="surveyView">
-      <header id="hero" className="hero">
+    <div id="surveyView" className={`survey-layout survey-layout-${viewport}`}>
+      <header id="hero" className="hero survey-hero">
         <p className="eyebrow">México | Prevención de estafas digitales</p>
         <h1>Escudo Digital</h1>
         <p className="lead">
           Una encuesta rápida y dinámica para entender tu nivel de riesgo y recomendarte el
           aprendizaje ideal.
         </p>
+        {isCompact ? (
+          <div className="hero-mini-band">
+            <span className="activity-pill">Encuesta guiada</span>
+            <span className="activity-pill">Resultado con IA</span>
+          </div>
+        ) : null}
       </header>
 
       <section className={`panel ${surveyStage === 'survey' ? '' : 'hidden'}`} id="surveySection">
@@ -138,8 +168,8 @@ export default function SurveyView({
         <p className="eyebrow">Análisis en curso</p>
         <h2>Estamos revisando tus respuestas</h2>
         <p className="lead">
-          La IA está evaluando tu perfil para darte un resultado más preciso. Esto puede tardar unos
-          segundos.
+          La IA está evaluando tu perfil para darte un resultado más preciso. Esto puede tardar
+          unos segundos.
         </p>
         <div className="loader">
           <div className="loader-bar" />
@@ -190,24 +220,15 @@ export default function SurveyView({
         </div>
       </section>
 
-      <section className="panel info-panel" id="infoSection">
-        <div>
-          <h3>Tipos de estafa que cubrimos</h3>
-          <div className="pill-row">
-            <span className="pill">SMS con enlaces falsos</span>
-            <span className="pill">WhatsApp y suplantación</span>
-            <span className="pill">Páginas web clonadas</span>
-            <span className="pill">Llamadas fraudulentas</span>
-            <span className="pill">Correos y phishing</span>
-          </div>
-        </div>
-        <div>
-          <h3>Cómo funciona la IA</h3>
-          <p className="hint">
-            Analizamos hábitos, exposición y experiencia previa para estimar tu probabilidad de ser
-            víctima. Con eso adaptamos el contenido a lo que más necesitas.
-          </p>
-        </div>
+      <section className="panel info-panel survey-info-panel" id="infoSection">
+        {isCompact ? (
+          <details className="info-disclosure">
+            <summary>Ver qué cubre la plataforma</summary>
+            {infoPanel}
+          </details>
+        ) : (
+          infoPanel
+        )}
       </section>
     </div>
   );

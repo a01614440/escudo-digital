@@ -83,9 +83,28 @@ const SIMULATION_GUIDES = {
   ],
 };
 
-function SimulationGuide({ activity }) {
+function SimulationGuide({ activity, compact = false }) {
   const steps = SIMULATION_GUIDES[activity?.tipo];
   if (!steps?.length) return null;
+
+  if (compact) {
+    return (
+      <details className="activity-guide compact-guide activity-guide-disclosure">
+        <summary>
+          <span>Cómo resolver esta actividad</span>
+          <span>{`${steps.length} pasos`}</span>
+        </summary>
+        <div className="summary-list">
+          {steps.map((step, index) => (
+            <div className="summary-item activity-guide-item" key={step}>
+              <span className="activity-guide-index">{String(index + 1).padStart(2, '0')}</span>
+              <p>{step}</p>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
 
   return (
     <section className="activity-guide compact-guide">
@@ -105,7 +124,7 @@ function SimulationGuide({ activity }) {
   );
 }
 
-function ActivityChrome({ module, activity, children }) {
+function ActivityChrome({ module, activity, compact = false, children }) {
   const theme = moduleThemeMeta(module);
   return (
     <div
@@ -133,7 +152,7 @@ function ActivityChrome({ module, activity, children }) {
           <span className="activity-kicker-pill subtle">{theme.brief}</span>
         </div>
       </div>
-      <SimulationGuide activity={activity} />
+      <SimulationGuide activity={activity} compact={compact} />
       {children}
     </div>
   );
@@ -2855,6 +2874,7 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
 }
 
 export default function ActivityRenderer({
+  viewport = 'desktop',
   module,
   activity,
   answers,
@@ -2862,6 +2882,7 @@ export default function ActivityRenderer({
   onComplete,
 }) {
   const startedAtRef = useRef(Date.now());
+  const compact = ['phone-small', 'phone', 'tablet-compact'].includes(viewport);
   const safeModule = useMemo(() => sanitizeDeep(module || {}), [module]);
   const safeActivity = useMemo(() => sanitizeDeep(activity || {}), [activity]);
   const knownTypes = [
@@ -2880,7 +2901,7 @@ export default function ActivityRenderer({
   ];
 
   return (
-    <ActivityChrome module={safeModule} activity={safeActivity}>
+    <ActivityChrome module={safeModule} activity={safeActivity} compact={compact}>
       {safeActivity.tipo === 'concepto' ? (
         <ConceptActivity activity={safeActivity} startedAtRef={startedAtRef} onComplete={onComplete} />
       ) : null}

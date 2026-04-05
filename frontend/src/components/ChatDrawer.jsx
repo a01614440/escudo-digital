@@ -33,6 +33,7 @@ function formatChatMessage(text) {
 }
 
 export default function ChatDrawer({
+  viewport = 'desktop',
   open,
   messages,
   input,
@@ -44,7 +45,7 @@ export default function ChatDrawer({
   return (
     <>
       <div className={`chat-backdrop ${open ? '' : 'hidden'}`} onClick={onClose} />
-      <aside className={`chat-drawer ${open ? '' : 'hidden'}`}>
+      <aside className={`chat-drawer chat-drawer-${viewport} ${open ? '' : 'hidden'}`}>
         <div className="chat-header">
           <div>
             <p className="eyebrow">Asistente</p>
@@ -67,8 +68,8 @@ export default function ChatDrawer({
           ) : (
             <div className="chat-bubble bot">
               <p>
-                Preguntame sobre phishing, WhatsApp, SMS sospechosos, llamadas fraudulentas o
-                paginas falsas.
+                Pregúntame sobre phishing, WhatsApp, SMS sospechosos, llamadas fraudulentas o
+                páginas falsas.
               </p>
             </div>
           )}

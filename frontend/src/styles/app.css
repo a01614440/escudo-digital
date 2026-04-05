@@ -5504,3 +5504,311 @@ body[data-input-mode='touch'] .chat-drawer {
     border-radius: 22px;
   }
 }
+
+/* Device-specific layout orchestration */
+.app-shell {
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  display: grid;
+  gap: clamp(18px, 2vw, 28px);
+}
+
+.compact-only {
+  display: none;
+}
+
+.dashboard-disclosure,
+.activity-guide-disclosure,
+.info-disclosure {
+  border: 1px solid rgba(47, 107, 255, 0.12);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 248, 255, 0.92));
+  overflow: hidden;
+}
+
+.dashboard-disclosure summary,
+.activity-guide-disclosure summary,
+.info-disclosure summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dashboard-disclosure summary::-webkit-details-marker,
+.activity-guide-disclosure summary::-webkit-details-marker,
+.info-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.dashboard-disclosure > div,
+.activity-guide-disclosure > div,
+.info-disclosure > div,
+.info-disclosure > section,
+.info-disclosure > .survey-info-grid {
+  padding: 0 16px 16px;
+}
+
+.session-current-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(47, 107, 255, 0.12);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.session-main-actions,
+.session-utility-row,
+.session-nav-pills,
+.auth-mini-highlights,
+.hero-mini-band {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-mini-highlights,
+.hero-mini-band {
+  margin-top: 8px;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+}
+
+.course-dashboard-desktop .dashboard-shell-panel,
+.course-dashboard-laptop .dashboard-shell-panel {
+  gap: 24px;
+}
+
+.course-dashboard-tablet .dashboard-grid,
+.course-dashboard-tablet .course-hero-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.course-dashboard-tablet .dashboard-panel-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.course-dashboard-tablet-compact .course-hero-grid,
+.course-dashboard-phone .course-hero-grid,
+.course-dashboard-phone-small .course-hero-grid,
+.course-dashboard-tablet-compact .dashboard-panel-grid,
+.course-dashboard-phone .dashboard-panel-grid,
+.course-dashboard-phone-small .dashboard-panel-grid {
+  grid-template-columns: 1fr;
+}
+
+.course-dashboard-tablet-compact .dashboard-shell-panel,
+.course-dashboard-phone .dashboard-shell-panel,
+.course-dashboard-phone-small .dashboard-shell-panel {
+  padding: 18px 16px;
+  gap: 16px;
+}
+
+.compact-device-card {
+  padding: 18px 16px;
+}
+
+.spotlight-pill-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, max-content));
+}
+
+.activity-guide-disclosure.compact-guide {
+  margin-top: 8px;
+}
+
+.activity-guide-disclosure.compact-guide summary {
+  padding: 12px 14px;
+  background: rgba(47, 107, 255, 0.05);
+}
+
+.admin-page-phone .admin-grid,
+.admin-page-phone-small .admin-grid,
+.admin-page-tablet-compact .admin-grid,
+.admin-page-phone .analytics-grid,
+.admin-page-phone-small .analytics-grid,
+.admin-page-tablet-compact .analytics-grid {
+  grid-template-columns: 1fr;
+}
+
+.chat-drawer-phone-small,
+.chat-drawer-phone {
+  gap: 14px;
+}
+
+body[data-viewport='phone-small'] .compact-only,
+body[data-viewport='phone'] .compact-only,
+body[data-viewport='tablet-compact'] .compact-only {
+  display: block;
+}
+
+body[data-viewport='phone-small'] .shield-highlight-bar-desktop,
+body[data-viewport='phone'] .shield-highlight-bar-desktop,
+body[data-viewport='tablet-compact'] .shield-highlight-bar-desktop {
+  display: none;
+}
+
+body[data-viewport='phone-small'] .app-shell,
+body[data-viewport='phone'] .app-shell {
+  gap: 14px;
+}
+
+body[data-viewport='phone-small'] .session-main,
+body[data-viewport='phone'] .session-main,
+body[data-viewport='tablet-compact'] .session-main {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+body[data-viewport='phone-small'] .session-main-actions,
+body[data-viewport='phone'] .session-main-actions,
+body[data-viewport='tablet-compact'] .session-main-actions {
+  gap: 12px;
+}
+
+body[data-viewport='phone-small'] .session-utility-row,
+body[data-viewport='phone'] .session-utility-row {
+  grid-template-columns: 1fr;
+}
+
+body[data-viewport='tablet-compact'] .session-utility-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-viewport='phone-small'] .session-nav-pills,
+body[data-viewport='phone'] .session-nav-pills {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-viewport='phone-small'] .session-nav-pills .btn:last-child:nth-child(odd),
+body[data-viewport='phone'] .session-nav-pills .btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+body[data-viewport='phone-small'] .auth-shell,
+body[data-viewport='phone'] .auth-shell,
+body[data-viewport='tablet-compact'] .auth-shell,
+body[data-viewport='phone-small'] .survey-layout,
+body[data-viewport='phone'] .survey-layout,
+body[data-viewport='tablet-compact'] .survey-layout {
+  display: grid;
+  gap: 14px;
+}
+
+body[data-viewport='phone-small'] .auth-shell .auth-hero,
+body[data-viewport='phone'] .auth-shell .auth-hero,
+body[data-viewport='tablet-compact'] .auth-shell .auth-hero,
+body[data-viewport='phone-small'] .survey-hero,
+body[data-viewport='phone'] .survey-hero,
+body[data-viewport='tablet-compact'] .survey-hero {
+  padding: 20px 18px;
+}
+
+body[data-viewport='phone-small'] .auth-mini-highlights,
+body[data-viewport='phone-small'] .hero-mini-band {
+  grid-template-columns: 1fr;
+}
+
+body[data-viewport='phone-small'] .question-card,
+body[data-viewport='phone'] .question-card,
+body[data-viewport='tablet-compact'] .question-card {
+  gap: 14px;
+}
+
+body[data-viewport='phone-small'] .question-card .actions,
+body[data-viewport='phone'] .question-card .actions,
+body[data-viewport='tablet-compact'] .question-card .actions {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+body[data-viewport='phone-small'] .course-dashboard .dashboard-title-row,
+body[data-viewport='phone'] .course-dashboard .dashboard-title-row,
+body[data-viewport='tablet-compact'] .course-dashboard .dashboard-title-row {
+  grid-template-columns: 1fr;
+}
+
+body[data-viewport='phone-small'] .spotlight-actions,
+body[data-viewport='phone'] .spotlight-actions,
+body[data-viewport='tablet-compact'] .spotlight-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+body[data-viewport='phone-small'] .route-tab .module-accordion-list,
+body[data-viewport='phone'] .route-tab .module-accordion-list {
+  gap: 12px;
+}
+
+body[data-viewport='phone-small'] .lesson-page,
+body[data-viewport='phone'] .lesson-page,
+body[data-viewport='tablet-compact'] .lesson-page {
+  gap: 14px;
+}
+
+body[data-viewport='phone-small'] .lesson-header,
+body[data-viewport='phone'] .lesson-header,
+body[data-viewport='tablet-compact'] .lesson-header {
+  padding: 18px 16px;
+}
+
+body[data-viewport='phone-small'] .chat-drawer,
+body[data-viewport='phone'] .chat-drawer {
+  max-height: 82vh;
+}
+
+body[data-viewport='tablet'] .app-shell,
+body[data-viewport='laptop'] .app-shell {
+  gap: 22px;
+}
+
+body[data-viewport='tablet'] .session-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-viewport='tablet'] .nav-responsive {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, max-content));
+  align-items: center;
+  gap: 10px;
+}
+
+body[data-viewport='tablet'] .survey-layout,
+body[data-viewport='tablet'] .auth-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+body[data-viewport='tablet'] .dashboard-shell-panel {
+  padding: 22px 20px;
+}
+
+body[data-viewport='desktop'] .shield-summary-strip,
+body[data-viewport='laptop'] .shield-summary-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body[data-theme='dark'] .dashboard-disclosure,
+body[data-theme='dark'] .activity-guide-disclosure,
+body[data-theme='dark'] .info-disclosure {
+  border-color: rgba(129, 171, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(17, 27, 46, 0.94), rgba(12, 21, 38, 0.96));
+}
+
+body[data-theme='dark'] .session-current-chip {
+  background: rgba(129, 171, 255, 0.16);
+  color: #bcd2ff;
+}
+
+body[data-theme='dark'] .shield-highlight-chip,
+body[data-theme='dark'] .compact-device-card,
+body[data-theme='dark'] .question-card,
+body[data-theme='dark'] .summary-item {
+  background: linear-gradient(180deg, rgba(18, 28, 47, 0.92), rgba(13, 21, 37, 0.94));
+}

@@ -18,6 +18,8 @@ const DASHBOARD_TABS = [
 ];
 
 const LEVEL_ORDER = ['basico', 'refuerzo', 'avanzado'];
+const COMPACT_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact']);
+const TOPIC_ORDER = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
 
 const LEVEL_COPY = {
   basico: {
@@ -37,17 +39,14 @@ const LEVEL_COPY = {
   },
 };
 
-const TOPIC_ORDER = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
-
 function cleanText(value, fallback = '') {
   const safe = repairPossibleMojibake(String(value || '')).trim();
   return safe || fallback;
 }
 
-Object.values(LEVEL_COPY).forEach((copy) => {
-  copy.title = cleanText(copy.title, copy.title);
-  copy.description = cleanText(copy.description, copy.description);
-});
+function isCompactViewport(viewport) {
+  return COMPACT_VIEWPORTS.has(viewport);
+}
 
 function displayModuleTitle(module) {
   return normalizeModuleTitleForDisplay(module?.categoria, module?.titulo || module?.title || '');
@@ -163,6 +162,7 @@ function TabSwitcher({ activeTab, onChange }) {
 }
 
 function ShieldCard({
+  viewport = 'desktop',
   scoreTotal,
   completedModules,
   totalModules,
@@ -172,12 +172,11 @@ function ShieldCard({
   prioritySummary,
   adminAccess = false,
 }) {
+  const compact = isCompactViewport(viewport);
   const completionPct = totalModules ? Math.round((completedModules / totalModules) * 100) : 0;
-  const rhythmLabel =
-    completedModules === totalModules ? 'Ruta completa' : completionPct ? `${completionPct}% de avance` : 'Sin avance todavía';
 
   return (
-    <section className="panel dashboard-card shield-card-clean">
+    <section className={`panel dashboard-card shield-card-clean ${compact ? 'compact-device-card' : ''}`}>
       <div className="dashboard-title-stack">
         <div>
           <p className="eyebrow">Blindaje actual</p>
@@ -187,7 +186,6 @@ function ShieldCard({
           </p>
         </div>
       </div>
-
       <div className="shield-card-body">
         <div className="donut-shell shield-card-donut">
           <div className="shield-donut" style={{ '--p': scoreTotal }}>
@@ -204,11 +202,11 @@ function ShieldCard({
                 : 'Tu puntaje sube conforme completas bloques y mejoras tu toma de decisiones.'}
             </p>
           </div>
-            <div className="shield-mini-track" aria-hidden="true">
-              <span style={{ width: `${completionPct}%` }} />
-            </div>
-            <p className="shield-mini-caption">{`${completionPct}% de la ruta activa desbloqueada`}</p>
+          <div className="shield-mini-track" aria-hidden="true">
+            <span style={{ width: `${completionPct}%` }} />
           </div>
+          <p className="shield-mini-caption">{`${completionPct}% de la ruta activa desbloqueada`}</p>
+        </div>
 
         <div className="shield-summary-strip">
           <article className="shield-summary-tile">
@@ -228,7 +226,11 @@ function ShieldCard({
             <strong>
               {weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}
             </strong>
-            <p>{prioritySummary === 'Ruta amplia para cubrir varios frentes con un orden claro.' ? 'Prioridad actual de la ruta.' : prioritySummary}</p>
+            <p>
+              {prioritySummary === 'Ruta amplia para cubrir varios frentes con un orden claro.'
+                ? 'Prioridad actual de la ruta.'
+                : prioritySummary}
+            </p>
           </article>
           <article className="shield-summary-tile">
             <span>Último acceso</span>
@@ -238,7 +240,7 @@ function ShieldCard({
         </div>
       </div>
 
-      <div className="shield-highlight-bar">
+      <div className="shield-highlight-bar shield-highlight-bar-desktop">
         <div className="shield-highlight-chip">
           <span>Mejor desempeño</span>
           <strong>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong>
@@ -258,14 +260,40 @@ function ShieldCard({
           </div>
         ) : null}
       </div>
+
+      <details className="dashboard-disclosure compact-only">
+        <summary>Más contexto de la ruta</summary>
+        <div className="shield-highlight-bar">
+          <div className="shield-highlight-chip">
+            <span>Mejor desempeño</span>
+            <strong>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong>
+          </div>
+          <div className="shield-highlight-chip">
+            <span>Siguiente foco</span>
+            <strong>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}</strong>
+          </div>
+          <div className="shield-highlight-chip">
+            <span>Contexto</span>
+            <strong>{prioritySummary}</strong>
+          </div>
+          {adminAccess ? (
+            <div className="shield-highlight-chip admin-mode-chip">
+              <span>Modo admin</span>
+              <strong>Acceso libre a todos los módulos</strong>
+            </div>
+          ) : null}
+        </div>
+      </details>
     </section>
   );
 }
 
-function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onShowRoute }) {
+function SpotlightCard({ viewport = 'desktop', module, stats, adminAccess = false, onOpenModule, onShowRoute }) {
+  const compact = isCompactViewport(viewport);
+
   if (!module) {
     return (
-      <section className="panel dashboard-card spotlight-card-clean empty-state">
+      <section className={`panel dashboard-card spotlight-card-clean empty-state ${compact ? 'compact-device-card' : ''}`}>
         <p className="eyebrow">Empieza por aquí</p>
         <h2>Tu ruta está lista</h2>
         <p className="lead">Cuando generes un curso, aquí verás el módulo que conviene abrir primero.</p>
@@ -277,14 +305,16 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
   const extraActivities = Math.max((module.actividades?.length || 0) - visibleActivities.length, 0);
 
   return (
-    <section className="panel dashboard-card spotlight-card-clean">
+    <section className={`panel dashboard-card spotlight-card-clean ${compact ? 'compact-device-card' : ''}`}>
       <div className="section-title-row dashboard-title-row">
         <div>
           <p className="eyebrow">Empieza por aquí</p>
           <h2>{displayModuleTitle(module)}</h2>
         </div>
         <div className="hero-chip-row compact">
-          <span className={`status-pill ${stats.status}`}>{stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}</span>
+          <span className={`status-pill ${stats.status}`}>
+            {stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}
+          </span>
           <span className="activity-pill">{CATEGORY_LABELS[module.categoria] || 'Curso'}</span>
           <span className="activity-pill">{LEVEL_LABELS[normalizeModuleLevel(module.nivel)] || 'Módulo'}</span>
           {adminAccess ? <span className="activity-pill soft admin-pill">Admin</span> : null}
@@ -321,7 +351,7 @@ function SpotlightCard({ module, stats, adminAccess = false, onOpenModule, onSho
         </div>
       </div>
 
-      <div className="activity-pill-row compact-row">
+      <div className="activity-pill-row compact-row spotlight-pill-grid">
         {visibleActivities.map((activity) => (
           <span key={activity.id} className="activity-pill">
             {displayActivityTitle(activity)}
@@ -394,7 +424,13 @@ function ModuleAccordionItem({
             <div className="hero-chip-row compact">
               {isRecommended ? <span className="activity-pill soft">Recomendado</span> : null}
               <span className={`status-pill ${isLocked ? 'locked' : stats.status}`}>
-                {isLocked ? 'Bloqueado' : stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}
+                {isLocked
+                  ? 'Bloqueado'
+                  : stats.status === 'active'
+                    ? 'En curso'
+                    : stats.status === 'completed'
+                      ? 'Completado'
+                      : 'Pendiente'}
               </span>
             </div>
           </div>
@@ -486,24 +522,29 @@ function RouteTab({
   adminAccess = false,
   onOpenModule,
 }) {
-  const levelEntries = routeEntries.filter((entry) => normalizeModuleLevel(entry.module.nivel) === activeLevel);
-  const copy = LEVEL_COPY[activeLevel] || LEVEL_COPY.basico;
+  const levelCopy = LEVEL_COPY[activeLevel] || LEVEL_COPY.basico;
+  const levelEntries = routeEntries.filter(
+    (entry) => normalizeModuleLevel(entry.module.nivel) === activeLevel
+  );
 
   return (
-    <section className="panel dashboard-panel">
-      <div className="dashboard-panel-head">
+    <section className="dashboard-panel route-tab">
+      <div className="section-title-row dashboard-title-row">
         <div>
-          <p className="eyebrow">{copy.eyebrow}</p>
-          <h2>{copy.title}</h2>
-          <p className="lead">{copy.description}</p>
-          {adminAccess ? (
-            <p className="hint admin-route-note">
-              Modo admin activo: acceso libre para revisar cualquier nivel y repetir módulos.
-            </p>
-          ) : null}
+          <p className="eyebrow">{levelCopy.eyebrow}</p>
+          <h2>{levelCopy.title}</h2>
+          <p className="lead">{levelCopy.description}</p>
         </div>
-        <LevelPicker levels={availableLevels} activeLevel={activeLevel} onChange={onChangeLevel} />
+        {availableLevels.length > 1 ? (
+          <LevelPicker levels={availableLevels} activeLevel={activeLevel} onChange={onChangeLevel} />
+        ) : null}
       </div>
+
+      {adminAccess ? (
+        <p className="hint admin-preview-copy">
+          Modo admin activo: acceso libre para revisar cualquier nivel y repetir módulos.
+        </p>
+      ) : null}
 
       <div className="module-accordion-list">
         {levelEntries.map((entry) => {
@@ -576,7 +617,6 @@ function ProgressTab({ computed, progress, coursePlan, coursePrefs, answers, ass
           ))}
         </div>
       </article>
-
       <article className="panel dashboard-panel">
         <p className="eyebrow">Evolución</p>
         <h2>Señales recientes</h2>
@@ -705,6 +745,7 @@ function SettingsTab({ coursePrefs, onCoursePrefsChange, onGenerateCourse, gener
 }
 
 export default function CoursesView({
+  viewport = 'desktop',
   answers,
   assessment,
   coursePlan,
@@ -785,12 +826,14 @@ export default function CoursesView({
       </section>
     );
   }
+
   const recommendedStats = recommendedEntry?.stats || null;
 
   return (
-    <div className="dashboard-shell course-dashboard">
+    <div className={`dashboard-shell course-dashboard course-dashboard-${viewport}`}>
       <div className="dashboard-grid course-hero-grid">
         <ShieldCard
+          viewport={viewport}
           scoreTotal={computed.score_total}
           completedModules={completedModules}
           totalModules={route.length}
@@ -802,6 +845,7 @@ export default function CoursesView({
         />
 
         <SpotlightCard
+          viewport={viewport}
           module={recommendedModule}
           stats={recommendedStats}
           adminAccess={adminAccess}

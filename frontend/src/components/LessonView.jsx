@@ -1,11 +1,12 @@
 import { ACTIVITY_LABELS, CATEGORY_LABELS, LEVEL_LABELS, getModuleAndActivity } from '../lib/course.js';
 import ActivityRenderer from './activities/ActivityRenderer.jsx';
 
-function LessonMeta({ module, activity, moduleIndex, activityIndex, totalActivities }) {
+function LessonMeta({ viewport = 'desktop', module, activity, moduleIndex, activityIndex, totalActivities }) {
   const pct = Math.round(((activityIndex + 1) / Math.max(totalActivities, 1)) * 100);
+  const isCompact = ['phone-small', 'phone', 'tablet-compact'].includes(viewport);
 
   return (
-    <header className="panel lesson-header">
+    <header className={`panel lesson-header ${isCompact ? 'lesson-header-compact' : ''}`}>
       <div className="lesson-copy">
         <p className="eyebrow">{`Módulo ${moduleIndex + 1}`}</p>
         <h1 className="lesson-title">{module.titulo || `Módulo ${moduleIndex + 1}`}</h1>
@@ -14,9 +15,7 @@ function LessonMeta({ module, activity, moduleIndex, activityIndex, totalActivit
 
       <div className="lesson-meta">
         <span className="badge">{CATEGORY_LABELS[module.categoria] || module.categoria}</span>
-        <span className={`badge level ${module.nivel}`}>
-          {LEVEL_LABELS[module.nivel] || module.nivel}
-        </span>
+        <span className={`badge level ${module.nivel}`}>{LEVEL_LABELS[module.nivel] || module.nivel}</span>
         <span className="badge subtle">
           {ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}
         </span>
@@ -54,6 +53,7 @@ function ModuleComplete({ module, onBack, onRetry }) {
 }
 
 export default function LessonView({
+  viewport = 'desktop',
   coursePlan,
   currentLesson,
   answers,
@@ -95,8 +95,9 @@ export default function LessonView({
   }
 
   return (
-    <section id="lessonView" className="page">
+    <section id="lessonView" className={`page lesson-page lesson-page-${viewport}`}>
       <LessonMeta
+        viewport={viewport}
         module={module}
         activity={info.activity}
         moduleIndex={currentLesson.moduleIndex}
@@ -113,6 +114,7 @@ export default function LessonView({
 
         <ActivityRenderer
           key={`${module.id}-${info.activity.id}`}
+          viewport={viewport}
           module={module}
           activity={info.activity}
           answers={answers}
