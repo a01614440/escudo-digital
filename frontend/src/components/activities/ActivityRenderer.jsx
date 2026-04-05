@@ -2652,6 +2652,7 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
   const [flowChoices, setFlowChoices] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [pendingNext, setPendingNext] = useState(null);
+  const [answeredSteps, setAnsweredSteps] = useState([]);
   const currentStep = steps[stepIndex] || null;
   const finished = !currentStep && steps.length > 0;
   const finalScore = scores.length
@@ -2660,10 +2661,56 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
   const safeChoices = scores.filter((value) => value >= 0.8).length;
   const latestChoice = flowChoices[flowChoices.length - 1] || null;
 
+  useEffect(() => {
+    setStepIndex(0);
+    setScores([]);
+    setFlowChoices([]);
+    setFeedback(null);
+    setPendingNext(null);
+    setAnsweredSteps([]);
+  }, [activity?.id]);
+
+  const resolveNextStepIndex = (requestedNext, answeredIndexes) => {
+    if (!steps.length) return 0;
+
+    const answeredSet = new Set(answeredIndexes);
+    const currentIndex = stepIndex;
+    const numericNext = Number(requestedNext);
+    const candidateIndexes = [];
+
+    if (Number.isFinite(numericNext)) {
+      candidateIndexes.push(numericNext);
+      if (numericNext > 0) candidateIndexes.push(numericNext - 1);
+    }
+
+    const validForwardCandidate = candidateIndexes.find(
+      (candidate) =>
+        Number.isInteger(candidate) &&
+        candidate > currentIndex &&
+        candidate < steps.length &&
+        !answeredSet.has(candidate)
+    );
+    if (validForwardCandidate != null) return validForwardCandidate;
+
+    for (let index = currentIndex + 1; index < steps.length; index += 1) {
+      if (!answeredSet.has(index)) return index;
+    }
+
+    for (let index = 0; index < steps.length; index += 1) {
+      if (!answeredSet.has(index)) return index;
+    }
+
+    return steps.length;
+  };
+
   const chooseOption = (step, option) => {
     const score = Math.max(0, Math.min(1, Number(option.puntaje) || 0.6));
     setScores((current) => [...current, score]);
     setFlowChoices((current) => [...current, { step: step.texto, choice: option.texto, score }]);
+    const nextAnsweredSteps = answeredSteps.includes(stepIndex)
+      ? answeredSteps
+      : [...answeredSteps, stepIndex];
+    setAnsweredSteps(nextAnsweredSteps);
     setFeedback(
       buildFeedback({
         title: feedbackRatingLabel(score),
@@ -2672,8 +2719,7 @@ function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
         action: option.feedback || 'Verifica por un canal oficial antes de actuar.',
       })
     );
-    const nextIndex =
-      Number.isFinite(Number(option.siguiente)) ? Number(option.siguiente) : stepIndex + 1;
+    const nextIndex = resolveNextStepIndex(option.siguiente, nextAnsweredSteps);
     setPendingNext(() => () => {
       setFeedback(null);
       setPendingNext(null);
