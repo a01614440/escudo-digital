@@ -1132,6 +1132,44 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
     kind === 'sms'
       ? 'Revisa cada mensaje como si estuvieras en tu teléfono. Marca solo lo que de verdad te haría frenar.'
       : 'Abre, revisa y clasifica cada correo como si estuvieras en una bandeja real. Busca señales concretas, no solo apariencia.';
+  const isSms = kind === 'sms';
+  const reviewedCount = Object.keys(selections).length;
+  const selectedDisplayName = repairPossibleMojibake(
+    selectedMessage?.displayName || selectedMessage?.from || 'Mensaje'
+  );
+  const selectedSubject = repairPossibleMojibake(
+    selectedMessage?.subject || selectedMessage?.displayName || 'Mensaje'
+  );
+  const selectedLines = (
+    selectedMessage?.body?.length ? selectedMessage.body : [selectedMessage?.text]
+  )
+    .filter(Boolean)
+    .map((line) => repairPossibleMojibake(line));
+
+  const getStatusLabel = (picked, resultClass) => {
+    if (resultClass === 'correct') return 'Acierto';
+    if (resultClass === 'wrong') return 'Error';
+    if (picked === 'estafa') return 'Sospechoso';
+    if (picked === 'seguro') return 'Seguro';
+    return 'Sin clasificar';
+  };
+
+  const getStatusTone = (picked, resultClass) => {
+    if (resultClass) return resultClass;
+    if (picked === 'estafa') return 'flagged';
+    if (picked === 'seguro') return 'safe';
+    return 'idle';
+  };
+
+  const getAvatarLabel = (message) => {
+    const source = repairPossibleMojibake(message.displayName || message.from || 'SMS');
+    const parts = source
+      .split(/[\s._-]+/)
+      .filter(Boolean)
+      .slice(0, 2);
+    const initials = parts.map((part) => part[0]).join('').toUpperCase();
+    return initials || source.slice(0, 2).toUpperCase();
+  };
 
   return (
     <>
@@ -1146,88 +1184,132 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
           <span className="activity-kicker-pill subtle">{messages.length} mensajes</span>
         </div>
       </section>
-      <ActivitySummaryBar
-        items={[
-          {
-            label: 'Mensajes',
-            value: messages.length,
-            caption: kind === 'sms' ? 'Clasifica cada SMS' : 'Clasifica cada correo',
-          },
-          {
-            label: 'Clasificados',
-            value: `${Object.keys(selections).length}/${messages.length}`,
-            caption: 'Puedes revisar antes de evaluar',
-          },
-          {
-            label: 'Meta',
-            value: 'Precisión',
-            caption: 'No te guíes solo por la apariencia',
-          },
-        ]}
-      />
+      <div className={isSms ? 'sms-summary-shell' : ''}>
+        <ActivitySummaryBar
+          items={[
+            {
+              label: 'Mensajes',
+              value: messages.length,
+              caption: kind === 'sms' ? 'Clasifica cada SMS' : 'Clasifica cada correo',
+            },
+            {
+              label: 'Clasificados',
+              value: `${reviewedCount}/${messages.length}`,
+              caption: 'Puedes revisar antes de evaluar',
+            },
+            {
+              label: 'Meta',
+              value: 'Precisión',
+              caption: 'No te guíes solo por la apariencia',
+            },
+          ]}
+        />
+      </div>
       <div className={`email-sim ${kind === 'sms' ? 'is-sms inbox-sim-sms' : 'inbox-sim-mail'}`}>
+        {isSms ? (
+          <>
+            <div className="sms-app-topbar">
+              <span>9:41</span>
+              <span className="sms-app-signal">SMS • 4G • 87%</span>
+            </div>
+            <div className="sms-app-header">
+              <div>
+                <p className="eyebrow">Bandeja simulada</p>
+                <strong>Mensajes</strong>
+                <span>{messages.length} conversaciones listas para revisar</span>
+              </div>
+              <div className="sms-app-header-pills">
+                <span className="sms-app-pill active">{reviewedCount} revisados</span>
+                <span className="sms-app-pill">{messages.length - reviewedCount} pendientes</span>
+              </div>
+            </div>
+          </>
+        ) : null}
         <div className="email-sidebar">
-          <div className="email-sidebar-head">
-            <strong>{kind === 'sms' ? 'Conversaciones' : 'Inbox principal'}</strong>
-            <span>{Object.keys(selections).length} revisados</span>
+          <div className={`email-sidebar-head ${isSms ? 'sms-sidebar-head' : ''}`.trim()}>
+            <div>
+              <strong>{kind === 'sms' ? 'Conversaciones' : 'Inbox principal'}</strong>
+              <span>{reviewedCount} revisados</span>
+            </div>
+            {isSms ? <span className="sms-sidebar-chip">Bandeja móvil</span> : null}
           </div>
           {messages.map((message) => {
             const picked = selections[message.id];
             const reviewItem = result?.review?.find((item) => item.id === message.id);
             const resultClass = reviewItem ? reviewItem.status : '';
+            const statusLabel = getStatusLabel(picked, resultClass);
+            const toneClass = getStatusTone(picked, resultClass);
+            const displayName = repairPossibleMojibake(message.displayName || message.from || 'Mensaje');
+            const preview = repairPossibleMojibake(message.preview || message.text);
+            const subject = repairPossibleMojibake(message.subject || message.text);
             return (
               <button
                 key={message.id}
                 type="button"
-                className={`email-list-item ${selectedId === message.id ? 'active' : ''} ${resultClass}`.trim()}
+                className={`email-list-item ${selectedId === message.id ? 'active' : ''} ${resultClass} ${
+                  isSms ? 'sms-list-item' : ''
+                }`.trim()}
                 onClick={() => {
                   setSelectedId(message.id);
                   setShowDetails(false);
                 }}
               >
-                <div className="email-list-top">
-                  <span className="email-list-name">
-                    {repairPossibleMojibake(message.displayName || message.from || 'Mensaje')}
-                  </span>
-                  <span className="email-list-date">{message.dateLabel || ''}</span>
+                <div className={isSms ? 'sms-thread-layout' : ''}>
+                  {isSms ? (
+                    <span className={`sms-thread-avatar ${toneClass}`.trim()}>{getAvatarLabel(message)}</span>
+                  ) : null}
+                  <div className={isSms ? 'sms-thread-main' : ''}>
+                    <div className="email-list-top">
+                      <span className="email-list-name">{displayName}</span>
+                      <span className="email-list-date">{message.dateLabel || ''}</span>
+                    </div>
+                    <p className="email-list-subject">{subject}</p>
+                    <p className="email-list-preview">{preview}</p>
+                    <div className={isSms ? 'sms-thread-footer' : ''}>
+                      {isSms ? (
+                        <span className={`sms-thread-chip ${message.linkPreview ? 'has-link' : 'neutral'}`.trim()}>
+                          {message.linkPreview ? 'Incluye enlace' : 'Texto directo'}
+                        </span>
+                      ) : null}
+                      <span className={`email-list-status ${picked || 'empty'} ${resultClass} ${toneClass}`.trim()}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="email-list-subject">
-                  {repairPossibleMojibake(message.subject || message.text)}
-                </p>
-                <p className="email-list-preview">
-                  {repairPossibleMojibake(message.preview || message.text)}
-                </p>
-                <span className={`email-list-status ${picked || 'empty'} ${resultClass}`.trim()}>
-                  {resultClass === 'correct'
-                    ? 'Acierto'
-                    : resultClass === 'wrong'
-                      ? 'Error'
-                      : picked === 'estafa'
-                        ? 'Sospechoso'
-                        : picked === 'seguro'
-                          ? 'Seguro'
-                          : 'Sin clasificar'}
-                </span>
               </button>
             );
           })}
         </div>
 
         {selectedMessage ? (
-          <div className="email-reader">
-            <div className="email-reader-head">
+          <div className={`email-reader ${isSms ? 'sms-reader' : ''}`.trim()}>
+            {isSms ? (
+              <div className="sms-reader-topbar">
+                <div className="sms-reader-contact">
+                  <span className={`sms-thread-avatar large ${getStatusTone(selections[selectedMessage.id], selectedReview?.status)}`}>
+                    {getAvatarLabel(selectedMessage)}
+                  </span>
+                  <div>
+                    <strong>{selectedDisplayName}</strong>
+                    <span>{selectedMessage.dateLabel || 'Hoy'} · Bandeja SMS</span>
+                  </div>
+                </div>
+                <div className="sms-reader-status">
+                  <span className="sms-reader-dot" />
+                  <span>{selectedMessage.linkPreview ? 'Mensaje con enlace' : 'Mensaje simple'}</span>
+                </div>
+              </div>
+            ) : null}
+            <div className={`email-reader-head ${isSms ? 'sms-reader-head' : ''}`.trim()}>
               <div className="email-open-top">
                 <div>
-                  <h4 className="email-open-subject">
-                    {repairPossibleMojibake(selectedMessage.subject || selectedMessage.displayName || 'Mensaje')}
-                  </h4>
+                  <h4 className="email-open-subject">{selectedSubject}</h4>
                   <p className="email-open-meta">
-                    {`${repairPossibleMojibake(selectedMessage.displayName || selectedMessage.from || 'Mensaje')} · ${
-                      selectedMessage.dateLabel || ''
-                    }`.trim()}
+                    {`${selectedDisplayName} · ${selectedMessage.dateLabel || ''}`.trim()}
                   </p>
                 </div>
-                <div className="email-open-actions">
+                <div className={`email-open-actions ${isSms ? 'sms-open-actions' : ''}`.trim()}>
                   <button className="btn ghost compact" type="button" onClick={() => setShowDetails((current) => !current)}>
                     {showDetails ? 'Ocultar detalles' : 'Ver detalles'}
                   </button>
@@ -1243,12 +1325,14 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
               </div>
             </div>
 
-            <div className="email-reader-body">
+            <div className={`email-reader-body ${isSms ? 'sms-reader-body' : ''}`.trim()}>
               {selectedMessage.warning ? (
-                <div className="email-warning">{repairPossibleMojibake(selectedMessage.warning)}</div>
+                <div className={`email-warning ${isSms ? 'sms-warning-card' : ''}`.trim()}>
+                  {repairPossibleMojibake(selectedMessage.warning)}
+                </div>
               ) : null}
               {showDetails ? (
-                <div className="email-details">
+                <div className={`email-details ${isSms ? 'sms-details-card' : ''}`.trim()}>
                   <p>
                     <strong>From:</strong>{' '}
                     {repairPossibleMojibake(selectedMessage.details?.from || selectedMessage.from || 'Sin dato')}
@@ -1266,15 +1350,19 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                 </div>
               ) : null}
 
-              <div className="email-body-card">
+              <div className={`email-body-card ${isSms ? 'sms-body-card' : ''}`.trim()}>
                 <p className="email-body-from">
-                  {`${repairPossibleMojibake(selectedMessage.displayName || 'Mensaje')} <${repairPossibleMojibake(selectedMessage.from || '')}>`}
+                  {isSms
+                    ? `SMS de ${selectedDisplayName}`
+                    : `${repairPossibleMojibake(selectedMessage.displayName || 'Mensaje')} <${repairPossibleMojibake(selectedMessage.from || '')}>`}
                 </p>
-                {(selectedMessage.body?.length ? selectedMessage.body : [selectedMessage.text]).map((line) => (
-                  <p className="email-body-line" key={`${selectedMessage.id}-${line}`}>
-                    {repairPossibleMojibake(line)}
-                  </p>
-                ))}
+                <div className={isSms ? 'sms-message-stack' : ''}>
+                  {selectedLines.map((line) => (
+                    <p className={`email-body-line ${isSms ? 'sms-message-bubble' : ''}`.trim()} key={`${selectedMessage.id}-${line}`}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
                 {selectedMessage.attachments?.length ? (
                   <div className="email-attachments">
                     {selectedMessage.attachments.map((item) => (
@@ -1285,16 +1373,19 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                   </div>
                 ) : null}
                 {selectedMessage.linkPreview ? (
-                  <div className="email-link-preview">{repairPossibleMojibake(selectedMessage.linkPreview)}</div>
+                  <div className={`email-link-preview ${isSms ? 'sms-link-preview' : ''}`.trim()}>
+                    <span className="sms-link-label">Enlace detectado</span>
+                    <strong>{repairPossibleMojibake(selectedMessage.linkPreview)}</strong>
+                  </div>
                 ) : null}
               </div>
             </div>
 
-            <div className="email-reader-footer">
+            <div className={`email-reader-footer ${isSms ? 'sms-reader-footer' : ''}`.trim()}>
               <p className="email-classify-title">
                 {kind === 'correo' ? '¿Cómo clasificarías este correo?' : '¿Cómo clasificarías este mensaje?'}
               </p>
-              <div className="email-classify-actions">
+              <div className={`email-classify-actions ${isSms ? 'sms-classify-actions' : ''}`.trim()}>
                 {['seguro', 'estafa'].map((choice) => (
                   <button
                     key={choice}
@@ -1310,7 +1401,7 @@ function InboxActivity({ activity, startedAtRef, onComplete }) {
                 ))}
               </div>
               {selectedReview ? (
-                <div className={`message-review-card ${selectedReview.status}`.trim()}>
+                <div className={`message-review-card ${selectedReview.status} ${isSms ? 'sms-review-card' : ''}`.trim()}>
                   <div className="message-review-top">
                     <strong>
                       {selectedReview.status === 'correct'

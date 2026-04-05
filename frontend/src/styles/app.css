@@ -2046,24 +2046,149 @@ body[data-theme='dark'] .app-crash-detail {
   color: rgba(17, 24, 39, 0.48);
 }
 
-.email-sim.inbox-sim-sms {
+.inbox-stage-banner.is-sms {
   background:
-    radial-gradient(circle at top right, rgba(79, 70, 229, 0.1), transparent 34%),
-    linear-gradient(180deg, rgba(248, 249, 255, 0.99), rgba(243, 245, 255, 0.98));
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.18), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(179, 110, 255, 0.08), transparent 24%),
+    linear-gradient(135deg, rgba(252, 253, 255, 0.98), rgba(242, 245, 255, 0.98));
+  border: 1px solid rgba(111, 126, 255, 0.16);
+  box-shadow: 0 20px 40px rgba(96, 109, 182, 0.1);
+}
+
+.sms-summary-shell .activity-summary-stat {
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 255, 0.98));
+  border-color: rgba(111, 126, 255, 0.12);
+  box-shadow: 0 18px 30px rgba(101, 111, 176, 0.08);
+}
+
+.email-sim.inbox-sim-sms {
+  position: relative;
+  grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+  gap: 18px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 24%),
+    linear-gradient(180deg, #f8f8ff, #eff2ff);
+  box-shadow: 0 28px 56px rgba(88, 96, 177, 0.14);
+}
+
+.sms-app-topbar,
+.sms-app-header {
+  grid-column: 1 / -1;
+}
+
+.sms-app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 6px 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(46, 58, 106, 0.78);
+}
+
+.sms-app-signal {
+  color: rgba(67, 80, 136, 0.66);
+}
+
+.sms-app-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+  border-radius: 26px;
+  border: 1px solid rgba(111, 126, 255, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(241, 244, 255, 0.98));
+  box-shadow: 0 20px 34px rgba(104, 113, 176, 0.12);
+}
+
+.sms-app-header strong {
+  display: block;
+  font-size: 1.18rem;
+  line-height: 1.15;
+  color: #18233f;
+}
+
+.sms-app-header span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(31, 41, 55, 0.68);
+}
+
+.sms-app-header-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sms-app-pill,
+.sms-sidebar-chip,
+.sms-thread-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(111, 126, 255, 0.14);
+  padding: 8px 12px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(111, 126, 255, 0.08);
+  color: #4a58b2;
+}
+
+.sms-app-pill.active {
+  background: linear-gradient(135deg, #5a6fff, #7f62ff);
+  border-color: rgba(90, 111, 255, 0.36);
+  color: #f9fbff;
+  box-shadow: 0 12px 24px rgba(90, 111, 255, 0.22);
 }
 
 .email-sim.inbox-sim-sms .email-sidebar {
-  background: linear-gradient(180deg, rgba(238, 242, 255, 0.94), rgba(247, 248, 255, 0.96));
+  background:
+    radial-gradient(circle at top left, rgba(121, 108, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(243, 245, 255, 0.98), rgba(248, 249, 255, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  padding: 12px;
 }
 
 .email-sim.inbox-sim-sms .email-list-item {
-  border-radius: 20px;
+  border-radius: 22px;
+  border: 1px solid transparent;
+  padding: 15px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 255, 0.96));
+  box-shadow: 0 14px 26px rgba(107, 118, 179, 0.08);
+}
+
+.email-sim.inbox-sim-sms .email-list-item:hover {
+  border-color: rgba(111, 126, 255, 0.24);
+  box-shadow: 0 18px 32px rgba(98, 108, 184, 0.12);
+}
+
+.email-sim.inbox-sim-sms .email-list-item.active {
+  border-color: rgba(89, 104, 255, 0.34);
+  background:
+    radial-gradient(circle at top right, rgba(122, 136, 255, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(242, 245, 255, 0.99), rgba(236, 241, 255, 0.98));
+  box-shadow: 0 22px 38px rgba(83, 97, 187, 0.16);
 }
 
 .email-sim.inbox-sim-sms .email-reader {
   background:
-    radial-gradient(circle at top right, rgba(79, 70, 229, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 249, 255, 0.98));
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.14), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(192, 132, 252, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 248, 255, 0.98));
+  border-color: rgba(111, 126, 255, 0.16);
+  box-shadow: 0 22px 42px rgba(90, 100, 169, 0.12);
 }
 
 .email-sim.inbox-sim-mail .email-sidebar {
@@ -2074,6 +2199,342 @@ body[data-theme='dark'] .app-crash-detail {
   padding: 14px 16px;
   border-radius: 20px;
   margin: 12px 12px 0;
+}
+
+.sms-sidebar-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 16px 16px 14px;
+}
+
+.sms-thread-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.sms-thread-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sms-thread-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(122, 136, 255, 0.16), rgba(179, 142, 255, 0.18));
+  border: 1px solid rgba(111, 126, 255, 0.18);
+  color: #4857b8;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
+}
+
+.sms-thread-avatar.large {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  font-size: 1rem;
+}
+
+.sms-thread-avatar.safe,
+.email-list-status.safe {
+  background: rgba(47, 179, 123, 0.12);
+  border-color: rgba(47, 179, 123, 0.22);
+  color: #1d8f5d;
+}
+
+.sms-thread-avatar.flagged,
+.email-list-status.flagged {
+  background: rgba(255, 173, 74, 0.16);
+  border-color: rgba(255, 173, 74, 0.3);
+  color: #b16606;
+}
+
+.sms-thread-avatar.correct {
+  background: rgba(47, 179, 123, 0.16);
+  border-color: rgba(47, 179, 123, 0.26);
+  color: #13754a;
+}
+
+.sms-thread-avatar.wrong,
+.sms-thread-avatar.missed {
+  background: rgba(242, 87, 87, 0.16);
+  border-color: rgba(242, 87, 87, 0.26);
+  color: #ad2626;
+}
+
+.sms-thread-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sms-thread-chip.neutral {
+  background: rgba(99, 102, 241, 0.08);
+  color: rgba(67, 76, 132, 0.82);
+}
+
+.sms-thread-chip.has-link {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.16);
+  color: #7f35c3;
+}
+
+.email-sim.inbox-sim-sms .email-list-name {
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.email-sim.inbox-sim-sms .email-list-subject {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.38;
+  color: #16223f;
+}
+
+.email-sim.inbox-sim-sms .email-list-preview {
+  font-size: 0.9rem;
+  color: rgba(32, 43, 70, 0.72);
+}
+
+.email-sim.inbox-sim-sms .email-list-date {
+  color: rgba(58, 72, 125, 0.74);
+}
+
+.email-sim.inbox-sim-sms .email-list-status {
+  padding: 7px 11px;
+  background: rgba(226, 232, 255, 0.92);
+  color: rgba(70, 81, 132, 0.92);
+  border: 1px solid rgba(111, 126, 255, 0.14);
+}
+
+.email-sim.inbox-sim-sms .email-list-status.correct {
+  background: rgba(47, 179, 123, 0.14);
+}
+
+.email-sim.inbox-sim-sms .email-list-status.wrong,
+.email-sim.inbox-sim-sms .email-list-status.missed {
+  background: rgba(242, 87, 87, 0.14);
+}
+
+.sms-reader-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px 0;
+}
+
+.sms-reader-contact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.sms-reader-contact strong {
+  display: block;
+  color: #18233f;
+  line-height: 1.1;
+}
+
+.sms-reader-contact span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(42, 52, 82, 0.68);
+  font-size: 0.88rem;
+}
+
+.sms-reader-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(111, 126, 255, 0.08);
+  border: 1px solid rgba(111, 126, 255, 0.14);
+  color: #4653a8;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sms-reader-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c6cff, #b16cff);
+  box-shadow: 0 0 0 4px rgba(124, 108, 255, 0.12);
+}
+
+.sms-reader-head {
+  border-bottom-color: rgba(111, 126, 255, 0.12);
+}
+
+.sms-open-actions .btn {
+  border-color: rgba(111, 126, 255, 0.16);
+}
+
+.sms-reader-body {
+  gap: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(244, 247, 255, 0.98), rgba(239, 243, 255, 0.98));
+}
+
+.sms-warning-card {
+  border-radius: 18px;
+  box-shadow: 0 14px 28px rgba(255, 173, 74, 0.12);
+}
+
+.sms-details-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 247, 255, 0.96));
+  box-shadow: 0 14px 24px rgba(94, 105, 170, 0.06);
+}
+
+.sms-body-card {
+  gap: 14px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 255, 0.98));
+}
+
+.sms-message-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.sms-message-bubble {
+  max-width: min(580px, 100%);
+  padding: 16px 18px;
+  border: 1px solid rgba(111, 126, 255, 0.12);
+  border-radius: 22px 22px 22px 10px;
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(245, 247, 255, 0.98), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 14px 24px rgba(102, 114, 183, 0.08);
+}
+
+.sms-link-preview {
+  display: grid;
+  gap: 6px;
+  border-style: solid;
+  border-color: rgba(111, 126, 255, 0.14);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(243, 244, 255, 0.98), rgba(236, 240, 255, 0.98));
+}
+
+.sms-link-label {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b4cc5;
+}
+
+.sms-link-preview strong {
+  color: #24304f;
+  line-height: 1.45;
+}
+
+.sms-reader-footer {
+  gap: 12px;
+  background:
+    radial-gradient(circle at top left, rgba(111, 126, 255, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 255, 0.98));
+}
+
+.sms-classify-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sms-classify-actions .btn {
+  justify-content: center;
+  min-height: 48px;
+}
+
+.sms-review-card {
+  border-radius: 22px;
+  box-shadow: 0 16px 28px rgba(91, 100, 164, 0.08);
+}
+
+@media (max-width: 1024px) {
+  .email-sim.inbox-sim-sms {
+    grid-template-columns: 1fr;
+  }
+
+  .sms-app-header {
+    grid-template-columns: 1fr;
+  }
+
+  .sms-app-header-pills {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .email-sim.inbox-sim-sms {
+    padding: 14px;
+    gap: 14px;
+    border-radius: 24px;
+  }
+
+  .sms-app-topbar,
+  .sms-app-header,
+  .sms-reader-topbar,
+  .sms-reader-body,
+  .sms-reader-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .sms-app-header,
+  .sms-sidebar-head {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .sms-sidebar-head,
+  .sms-reader-topbar,
+  .sms-thread-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .sms-thread-layout {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sms-thread-footer,
+  .sms-open-actions,
+  .sms-reader-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sms-reader-status {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sms-classify-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .call-phone-pro .call-screen {
@@ -3696,6 +4157,11 @@ body[data-theme='dark'] .wa-contact-chip,
 body[data-theme='dark'] .wa-side-card,
 body[data-theme='dark'] .wa-device-bar,
 body[data-theme='dark'] .call-status-bar,
+body[data-theme='dark'] .sms-app-header,
+body[data-theme='dark'] .sms-app-pill,
+body[data-theme='dark'] .sms-sidebar-chip,
+body[data-theme='dark'] .sms-thread-chip,
+body[data-theme='dark'] .sms-reader-status,
 body[data-theme='dark'] .email-sim.inbox-sim-sms .email-sidebar,
 body[data-theme='dark'] .email-sim.inbox-sim-mail .email-sidebar {
   background: rgba(var(--activity-accent-rgb), 0.14);
@@ -3710,6 +4176,117 @@ body[data-theme='dark'] .activity-kicker-pill.subtle {
 
 body[data-theme='dark'] .wa-header {
   background: linear-gradient(180deg, rgba(var(--activity-accent-rgb), 0.16), rgba(13, 18, 28, 0.92));
+}
+
+body[data-theme='dark'] .email-sim.inbox-sim-sms {
+  background:
+    radial-gradient(circle at top left, rgba(109, 118, 255, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(179, 110, 255, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(11, 16, 29, 0.99), rgba(8, 12, 24, 0.99));
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.34);
+}
+
+body[data-theme='dark'] .inbox-stage-banner.is-sms,
+body[data-theme='dark'] .sms-summary-shell .activity-summary-stat {
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(13, 18, 32, 0.98), rgba(9, 13, 25, 0.99));
+  border-color: rgba(121, 134, 255, 0.2);
+}
+
+body[data-theme='dark'] .sms-app-topbar,
+body[data-theme='dark'] .sms-app-header span,
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-list-date,
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-list-preview,
+body[data-theme='dark'] .sms-reader-contact span {
+  color: rgba(226, 232, 240, 0.74);
+}
+
+body[data-theme='dark'] .sms-app-header strong,
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-list-subject,
+body[data-theme='dark'] .sms-reader-contact strong,
+body[data-theme='dark'] .sms-link-preview strong {
+  color: #f8fbff;
+}
+
+body[data-theme='dark'] .sms-app-pill.active {
+  background: linear-gradient(135deg, #6f7fff, #9a6dff);
+  color: #f8fbff;
+}
+
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-list-item {
+  background:
+    linear-gradient(180deg, rgba(18, 24, 38, 0.98), rgba(12, 17, 29, 0.98));
+  border-color: rgba(121, 134, 255, 0.08);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.18);
+}
+
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-list-item:hover,
+body[data-theme='dark'] .email-sim.inbox-sim-sms .email-list-item.active {
+  border-color: rgba(121, 134, 255, 0.26);
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(20, 27, 45, 0.99), rgba(13, 19, 34, 0.99));
+}
+
+body[data-theme='dark'] .sms-thread-avatar {
+  background: linear-gradient(135deg, rgba(111, 126, 255, 0.22), rgba(179, 110, 255, 0.2));
+  border-color: rgba(121, 134, 255, 0.24);
+  color: #dfe6ff;
+}
+
+body[data-theme='dark'] .sms-thread-avatar.safe,
+body[data-theme='dark'] .email-list-status.safe,
+body[data-theme='dark'] .email-list-status.correct {
+  background: rgba(47, 179, 123, 0.2);
+  color: #bdf5d8;
+}
+
+body[data-theme='dark'] .sms-thread-avatar.flagged,
+body[data-theme='dark'] .email-list-status.flagged {
+  background: rgba(255, 173, 74, 0.18);
+  color: #ffe0a3;
+}
+
+body[data-theme='dark'] .sms-thread-avatar.wrong,
+body[data-theme='dark'] .sms-thread-avatar.missed,
+body[data-theme='dark'] .email-list-status.wrong,
+body[data-theme='dark'] .email-list-status.missed {
+  background: rgba(242, 87, 87, 0.18);
+  color: #ffc3c3;
+}
+
+body[data-theme='dark'] .sms-thread-chip.neutral {
+  background: rgba(111, 126, 255, 0.12);
+  color: rgba(226, 232, 240, 0.82);
+}
+
+body[data-theme='dark'] .sms-thread-chip.has-link {
+  background: rgba(179, 110, 255, 0.16);
+  border-color: rgba(179, 110, 255, 0.22);
+  color: #edd6ff;
+}
+
+body[data-theme='dark'] .sms-reader,
+body[data-theme='dark'] .sms-body-card,
+body[data-theme='dark'] .sms-details-card,
+body[data-theme='dark'] .sms-message-bubble,
+body[data-theme='dark'] .sms-link-preview {
+  background:
+    radial-gradient(circle at top right, rgba(111, 126, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(14, 19, 34, 0.99), rgba(10, 14, 27, 0.99));
+  border-color: rgba(121, 134, 255, 0.18);
+  color: #eef2ff;
+}
+
+body[data-theme='dark'] .sms-link-label {
+  color: #d9c6ff;
+}
+
+body[data-theme='dark'] .sms-reader-status,
+body[data-theme='dark'] .sms-app-header,
+body[data-theme='dark'] .sms-sidebar-head {
+  box-shadow: none;
 }
 
 body[data-theme='dark'] .call-avatar {
