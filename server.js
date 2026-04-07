@@ -38,10 +38,83 @@ const ADMIN_EMAILS = new Set(
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 45;
 const MIN_PASSWORD_LENGTH = 6;
 const scryptAsync = promisify(crypto.scrypt);
+const DB_INIT_RETRY_BASE_MS = 3000;
+const DB_INIT_RETRY_MAX_MS = 30000;
+
+let dbReady = false;
+let dbInitAttempts = 0;
+let dbInitInFlight = null;
+let dbRetryTimer = null;
+let dbLastError = null;
 
 if (!OPENAI_API_KEY) {
   console.warn('Falta OPENAI_API_KEY en el entorno.');
 }
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getDbStatusPayload = () => ({
+  ready: dbReady,
+  initializing: Boolean(dbInitInFlight),
+  attempts: dbInitAttempts,
+  lastError: dbLastError?.message || null,
+});
+
+const initializeDatabase = async () => {
+  if (dbReady) return true;
+  if (dbInitInFlight) return dbInitInFlight;
+
+  dbInitAttempts += 1;
+  dbInitInFlight = (async () => {
+    try {
+      await initDb();
+      dbReady = true;
+      dbLastError = null;
+      console.log('Base de datos lista.');
+      return true;
+    } catch (error) {
+      dbReady = false;
+      dbLastError = error;
+      throw error;
+    } finally {
+      dbInitInFlight = null;
+    }
+  })();
+
+  return dbInitInFlight;
+};
+
+const scheduleDbRetry = () => {
+  if (dbReady || dbInitInFlight || dbRetryTimer) return;
+  const delayMs = Math.min(
+    DB_INIT_RETRY_MAX_MS,
+    DB_INIT_RETRY_BASE_MS * Math.max(1, dbInitAttempts || 1)
+  );
+  dbRetryTimer = setTimeout(async () => {
+    dbRetryTimer = null;
+    try {
+      await initializeDatabase();
+    } catch (error) {
+      console.error('Reintento de base de datos falló:', error?.message || error);
+      scheduleDbRetry();
+    }
+  }, delayMs);
+};
+
+const requireDb = async (_req, res, next) => {
+  if (dbReady) return next();
+  try {
+    await initializeDatabase();
+    return next();
+  } catch (_error) {
+    scheduleDbRetry();
+    return res.status(503).json({
+      error: 'La base de datos todavía se está inicializando. Intenta de nuevo en unos segundos.',
+      status: 503,
+      db: getDbStatusPayload(),
+    });
+  }
+};
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -68,6 +141,14 @@ app.get(/^\/dist$/, (_req, res) => {
 app.get('/dist/', (_req, res) => {
   res.setHeader('Cache-Control', htmlNoStoreHeader);
   return res.sendFile(DIST_INDEX_PATH);
+});
+
+app.get('/api/health', (_req, res) => {
+  const payload = {
+    ok: dbReady,
+    db: getDbStatusPayload(),
+  };
+  return res.status(dbReady ? 200 : 503).json(payload);
 });
 
 app.use(
@@ -222,16 +303,24 @@ const requireAuth = async (req, res, next) => {
 };
 
 const resolveOptionalAuth = async (req) => {
+  if (!dbReady) return null;
   const token = getBearerToken(req);
   if (!token) return null;
-  await deleteExpiredSessions();
-  const auth = await getSessionWithUser(token);
-  if (!auth) return null;
-  return sanitizeCoursePayload({
-    token,
-    session: auth.session,
-    user: auth.user,
-  });
+  try {
+    await deleteExpiredSessions();
+    const auth = await getSessionWithUser(token);
+    if (!auth) return null;
+    return sanitizeCoursePayload({
+      token,
+      session: auth.session,
+      user: auth.user,
+    });
+  } catch (error) {
+    dbReady = false;
+    dbLastError = error;
+    scheduleDbRetry();
+    return null;
+  }
 };
 
 const requireAdmin = async (req, res, next) => {
@@ -6404,7 +6493,7 @@ const aggregateAnalytics = (users) => {
   };
 };
 
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', requireDb, async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || '');
@@ -6451,7 +6540,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', requireDb, async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || '');
@@ -6479,7 +6568,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/session', requireAuth, async (req, res) => {
+app.get('/api/auth/session', requireDb, requireAuth, async (req, res) => {
   const state = await buildUserState(req.auth.user.id);
   return res.json({
     user: sanitizeUserForClient(req.auth.user),
@@ -6487,7 +6576,7 @@ app.get('/api/auth/session', requireAuth, async (req, res) => {
   });
 });
 
-app.post('/api/auth/logout', requireAuth, async (req, res) => {
+app.post('/api/auth/logout', requireDb, requireAuth, async (req, res) => {
   try {
     const { token } = req.auth;
     await deleteDbSession(token);
@@ -6498,7 +6587,7 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/user/state', requireAuth, async (req, res) => {
+app.get('/api/user/state', requireDb, requireAuth, async (req, res) => {
   const state = await buildUserState(req.auth.user.id);
   return res.json({
     user: sanitizeUserForClient(req.auth.user),
@@ -6506,7 +6595,7 @@ app.get('/api/user/state', requireAuth, async (req, res) => {
   });
 });
 
-app.post('/api/user/state', requireAuth, async (req, res) => {
+app.post('/api/user/state', requireDb, requireAuth, async (req, res) => {
   try {
     const { user } = req.auth;
     const currentState = await buildUserState(user.id);
@@ -6526,7 +6615,7 @@ app.post('/api/user/state', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
+app.get('/api/admin/analytics', requireDb, requireAdmin, async (req, res) => {
   try {
     await deleteExpiredSessions();
     const users = await listUsers();
@@ -6809,8 +6898,17 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-await initDb();
-
 app.listen(PORT, () => {
   console.log(`Servidor listo en http://localhost:${PORT}`);
 });
+
+try {
+  await initializeDatabase();
+} catch (error) {
+  console.error(
+    'La base de datos no quedó lista al arranque; el servidor seguirá vivo y reintentará en segundo plano:',
+    error?.message || error
+  );
+  await wait(50);
+  scheduleDbRetry();
+}
