@@ -1,4 +1,4 @@
-import { feedbackRatingLabel } from '../../../lib/course.js';
+import { getDecisionRatingLabel, scoreSelectionAccuracy } from '../../../lib/activityScoring.js';
 import { buildActivityFeedbackPayload } from '../../../lib/activityFeedback.js';
 import { cleanText } from './shared.js';
 
@@ -32,7 +32,7 @@ export function normalizeInboxMessages(activity) {
   }));
 }
 
-export function classifyInbox(messages, selections, kind) {
+export function classifyInbox(messages, selections, kind, module) {
   const total = Math.max(messages.length, 1);
   const review = messages.map((message) => {
     const picked = selections[message.id] || null;
@@ -48,14 +48,15 @@ export function classifyInbox(messages, selections, kind) {
   });
 
   const correct = review.filter((item) => item.status === 'correct').length;
-  const score = correct / total;
-  const missed = review.filter((item) => item.status === 'missed').map((item) => item.label);
-  const wrong = review
-    .filter((item) => item.status === 'wrong')
-    .map(
-      (item) =>
-        `${item.label} -> marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}`
-    );
+  const wrong = review.filter((item) => item.status === 'wrong');
+  const missed = review.filter((item) => item.status === 'missed');
+  const score = scoreSelectionAccuracy({
+    correctCount: correct,
+    falsePositives: wrong.length,
+    falseNegatives: missed.length,
+    module,
+    minimumFloor: 0.32,
+  });
 
   return {
     score,
@@ -63,25 +64,29 @@ export function classifyInbox(messages, selections, kind) {
     correct,
     review,
     feedback: buildActivityFeedbackPayload({
-      title: feedbackRatingLabel(score),
+      title: getDecisionRatingLabel(score),
       score,
-      signal: `Clasificaste correctamente ${correct} de ${total} mensajes.`,
+      signal: `Clasificaste correctamente ${correct} de ${total} mensajes y mantuviste el foco en la señal general.`,
       risk:
         kind === 'sms'
-          ? 'Los SMS fraudulentos usan urgencia, premios o enlaces cortos.'
-          : 'Los correos fraudulentos intentan verse legítimos usando remitentes o asuntos creíbles.',
+          ? 'En SMS lo más peligroso suele ser la mezcla de urgencia, premio o enlace directo.'
+          : 'En correo lo más delicado suele estar en remitente, cuerpo y enlace, no solo en el diseño.',
       action:
-        'Si dudas, no respondas ni abras el enlace desde el mismo canal. Verifica por una ruta oficial.',
+        'En la vida real, si dudas, no respondas ni abras el enlace desde el mismo canal. Verifica por una ruta oficial.',
       detected: review.filter((item) => item.status === 'correct').map((item) => item.label),
-      missed,
-      extra: wrong.length ? `Revisa estas decisiones: ${wrong.join(' | ')}` : '',
+      missed: missed.map((item) => item.label),
+      extra: wrong.length
+        ? `Te faltó ajustar estas decisiones: ${wrong
+            .map((item) => `${item.label} → marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}`)
+            .join(' | ')}`
+        : 'Buen balance entre precisión y criterio.',
     }),
   };
 }
 
 export function getInboxStatus(selected, reviewItem) {
   if (reviewItem?.status === 'correct') return { label: 'Acierto', tone: 'correct' };
-  if (reviewItem?.status === 'wrong') return { label: 'Error', tone: 'wrong' };
+  if (reviewItem?.status === 'wrong') return { label: 'Revisar', tone: 'wrong' };
   if (selected === 'estafa') return { label: 'Sospechoso', tone: 'flagged' };
   if (selected === 'seguro') return { label: 'Seguro', tone: 'safe' };
   return { label: 'Sin clasificar', tone: 'idle' };

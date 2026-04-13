@@ -1,63 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { feedbackRatingLabel, repairPossibleMojibake } from '../../lib/course.js';
+import { feedbackToText } from '../../lib/course.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
+import FeedbackPanel from '../FeedbackPanel.jsx';
+import { completeActivity } from './sharedActivityUi.jsx';
+import {
+  DEFAULT_CALL_STARTER_CHOICES,
+  VOICE_HINTS,
+  buildCallEndSummary,
+  buildCallScenarioContext,
+  cleanCallText,
+  clampCallScore,
+  formatCallDuration,
+  formatCallScore,
+  normalizeCallChoices,
+} from './callSimulationUtils.js';
 
 const getSpeechRecognition = () =>
   window.SpeechRecognition || window.webkitSpeechRecognition || null;
-
-const clampScore = (value) => {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 0;
-  return Math.max(0, Math.min(1, numeric));
-};
-
-const formatDuration = (seconds) => {
-  const safe = Math.max(0, Number(seconds) || 0);
-  const minutes = String(Math.floor(safe / 60)).padStart(2, '0');
-  const remainder = String(safe % 60).padStart(2, '0');
-  return `${minutes}:${remainder}`;
-};
-
-const cleanText = (value, fallback = '') => repairPossibleMojibake(String(value || fallback || '')).trim();
-
-const normalizeChoices = (choices, fallbackChoices = []) => {
-  const source = Array.isArray(choices) && choices.length ? choices : fallbackChoices;
-  return source
-    .map((choice) => cleanText(choice))
-    .filter(Boolean)
-    .slice(0, 3);
-};
-
-const normalizeHistory = (entries) =>
-  (Array.isArray(entries) ? entries : [])
-    .map((entry) => ({
-      speaker: entry?.speaker === 'user' ? 'user' : 'caller',
-      text: cleanText(entry?.text),
-    }))
-    .filter((entry) => entry.text);
-
-const buildScenarioContext = (activity) =>
-  [
-    `Escenario: ${cleanText(activity?.scenarioPrompt || activity?.intro || activity?.titulo || 'Llamada fraudulenta')}`,
-    `Tipo de fraude: ${cleanText(activity?.fraudType || 'vishing')}`,
-    `Nivel: ${cleanText(activity?.difficultyTone || 'refuerzo')}`,
-    `Apertura del estafador: ${cleanText(activity?.opening || '')}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-const scoreLabel = (score) => `${Math.round(clampScore(score) * 100)}%`;
-
-const DEFAULT_STARTER_CHOICES = [
-  'No voy a dar datos por llamada.',
-  '¿De que institucion hablas exactamente?',
-  'Voy a colgar y verificar por mi cuenta.',
-];
-
-const VOICE_HINTS = {
-  female: /(female|mujer|paulina|helena|sofia|samantha|monica|maria|lucia|carmen|paola|google español)/i,
-  male: /(male|man|jorge|diego|carlos|raul|mario|daniel|alejandro|google español de estados unidos)/i,
-};
 
 const pickSpeechVoice = (voices, preferredProfile = 'female') => {
   const available = Array.isArray(voices) ? voices : [];
@@ -79,43 +38,6 @@ const pickSpeechVoice = (voices, preferredProfile = 'female') => {
   );
 };
 
-const buildEndSummary = ({ analyses, finalReason, transcript }) => {
-  const safeAnalyses = Array.isArray(analyses) ? analyses : [];
-  const safeTranscript = Array.isArray(transcript) ? transcript : [];
-  const avgScore = safeAnalyses.length
-    ? safeAnalyses.reduce((total, item) => total + clampScore(item?.score), 0) / safeAnalyses.length
-    : finalReason === 'hung_up'
-      ? 1
-      : 0.72;
-
-  const last = safeAnalyses[safeAnalyses.length - 1] || {};
-  const firstRisk = safeAnalyses.find((item) => cleanText(item?.signal_detected)) || {};
-  const safeTurns = safeAnalyses.filter((item) => clampScore(item?.score) >= 0.75).length;
-
-  return {
-    avgScore,
-    scoreText: feedbackRatingLabel(avgScore),
-    signal: cleanText(firstRisk.signal_detected, 'Autoridad falsa y presión por resolver durante la llamada.'),
-    risk: cleanText(
-      last.risk,
-      'La llamada intenta mantenerte dentro del canal del atacante para que decidas con prisa.'
-    ),
-    action: cleanText(
-      last.safe_action,
-      'Cuelga, entra tú mismo a la app o llama al número oficial desde un canal que tú controles.'
-    ),
-    coach: cleanText(
-      last.coach_feedback,
-      finalReason === 'hung_up'
-        ? 'Cortar una llamada inesperada y verificar por tu cuenta es una respuesta segura.'
-        : 'La decisión segura es salir del canal, recuperar el control y verificar solo por vías oficiales.'
-    ),
-    safeTurns,
-    turnCount: safeAnalyses.length,
-    transcriptLength: safeTranscript.length,
-  };
-};
-
 export default function CallSimulationActivity({
   activity,
   answers,
@@ -127,7 +49,9 @@ export default function CallSimulationActivity({
   const [mode, setMode] = useState('');
   const [callSeconds, setCallSeconds] = useState(0);
   const [transcript, setTranscript] = useState([]);
-  const [choices, setChoices] = useState(() => normalizeChoices(activity?.starterChoices));
+  const [choices, setChoices] = useState(() =>
+    normalizeCallChoices(activity?.starterChoices, DEFAULT_CALL_STARTER_CHOICES)
+  );
   const [chatInput, setChatInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -151,22 +75,22 @@ export default function CallSimulationActivity({
   const micEnabledRef = useRef(true);
   const speakerEnabledRef = useRef(true);
 
-  const callerName = cleanText(activity?.callerName, 'Llamada entrante');
-  const callerNumber = cleanText(activity?.callerNumber, 'Número privado');
-  const fraudType = cleanText(activity?.fraudType, 'suplantación telefónica');
-  const difficulty = cleanText(activity?.difficultyTone, 'refuerzo');
-  const intro = cleanText(
+  const callerName = cleanCallText(activity?.callerName, 'Llamada entrante');
+  const callerNumber = cleanCallText(activity?.callerNumber, 'Número privado');
+  const fraudType = cleanCallText(activity?.fraudType, 'suplantación telefónica');
+  const difficulty = cleanCallText(activity?.difficultyTone, 'refuerzo');
+  const intro = cleanCallText(
     activity?.intro,
     'Actúa como si fuera una llamada real. Tu prioridad es cortar el canal y verificar por tu cuenta.'
   );
-  const opening = cleanText(
+  const opening = cleanCallText(
     activity?.opening,
     'Le llamo del área de seguridad. Necesito validar una operación en este momento.'
   );
-  const scenarioContext = useMemo(() => buildScenarioContext(activity), [activity]);
+  const scenarioContext = useMemo(() => buildCallScenarioContext(activity), [activity]);
   const maxTurns = Math.max(3, Number(activity?.turnos_max) || 4);
   const starterChoices = useMemo(
-    () => normalizeChoices(activity?.starterChoices, DEFAULT_STARTER_CHOICES),
+    () => normalizeCallChoices(activity?.starterChoices, DEFAULT_CALL_STARTER_CHOICES),
     [activity?.starterChoices]
   );
 
@@ -178,6 +102,15 @@ export default function CallSimulationActivity({
     }
     return pickSpeechVoice(voices, activity?.voiceProfile || 'female');
   }, [activity?.voiceProfile, selectedVoiceUri, voices]);
+
+  const modeLabel =
+    mode === 'voice' ? 'Voz activa' : mode === 'choices' ? 'Respuestas rápidas' : 'Modo texto';
+  const modeHelpText =
+    mode === 'voice'
+      ? 'Habla breve y directo. Si piden códigos, dinero o urgencia, corta la llamada.'
+      : mode === 'choices'
+        ? 'Usa respuestas cortas para poner límites. No necesitas justificarte.'
+        : 'Escribe solo lo necesario para salir del canal y verificar por fuera.';
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -261,7 +194,7 @@ export default function CallSimulationActivity({
   };
 
   const speakReply = (text, { autoListen = false } = {}) => {
-    const spokenText = cleanText(text);
+    const spokenText = cleanCallText(text);
     if (!spokenText) return;
 
     const synth = window.speechSynthesis;
@@ -297,17 +230,18 @@ export default function CallSimulationActivity({
   const finalizeCall = (reason = 'done') => {
     stopListening();
     stopSpeaking();
-    const endSummary = buildEndSummary({
-      analyses: analysesRef.current,
-      finalReason: reason,
-      transcript: transcriptRef.current,
-    });
-    setSummary(endSummary);
+    setSummary(
+      buildCallEndSummary({
+        analyses: analysesRef.current,
+        finalReason: reason,
+        transcript: transcriptRef.current,
+      })
+    );
     setPhase('ended');
   };
 
   const sendTurn = async (message, interactionMode) => {
-    const safeMessage = cleanText(message);
+    const safeMessage = cleanCallText(message);
     if (!safeMessage || busy || phaseRef.current !== 'active') return;
 
     const nextHistory = appendTranscript({ speaker: 'user', text: safeMessage });
@@ -332,27 +266,28 @@ export default function CallSimulationActivity({
 
       turnRef.current += 1;
 
-      const reply = cleanText(response?.reply, 'Voy a insistir: necesito resolver esto ahora.');
+      const reply = cleanCallText(response?.reply, 'Voy a insistir: necesito resolver esto ahora.');
       const replyHistory = appendTranscript({ speaker: 'caller', text: reply });
       const analysis = {
-        score: clampScore(response?.score),
-        rating: cleanText(response?.rating, 'Regular'),
-        signal_detected: cleanText(response?.signal_detected),
-        risk: cleanText(response?.risk),
-        safe_action: cleanText(response?.safe_action),
-        coach_feedback: cleanText(response?.coach_feedback),
+        score: clampCallScore(response?.score),
+        rating: cleanCallText(response?.rating, 'Regular'),
+        signal_detected: cleanCallText(response?.signal_detected),
+        risk: cleanCallText(response?.risk),
+        safe_action: cleanCallText(response?.safe_action),
+        coach_feedback: cleanCallText(response?.coach_feedback),
       };
       analysesRef.current = [...analysesRef.current, analysis].slice(-8);
-      setChoices(normalizeChoices(response?.choices, starterChoices));
+      setChoices(normalizeCallChoices(response?.choices, starterChoices));
 
       const shouldEnd = Boolean(response?.done) || turnRef.current >= maxTurns;
       if (shouldEnd) {
-        const endSummary = buildEndSummary({
-          analyses: [...analysesRef.current],
-          finalReason: 'completed',
-          transcript: replyHistory,
-        });
-        setSummary(endSummary);
+        setSummary(
+          buildCallEndSummary({
+            analyses: analysesRef.current,
+            finalReason: 'completed',
+            transcript: replyHistory,
+          })
+        );
         setPhase('ended');
         speakReply(reply, { autoListen: false });
         return;
@@ -361,7 +296,12 @@ export default function CallSimulationActivity({
       speakReply(reply, { autoListen: interactionMode === 'call_voice' });
     } catch (err) {
       console.error('Error en simulación de llamada:', err);
-      setError(cleanText(err?.message, 'No pude continuar la llamada. Puedes cambiar a botones o escribir.'));
+      setError(
+        cleanCallText(
+          err?.message,
+          'No pude continuar la llamada. Puedes intentar otra vez o cambiar a botones o texto.'
+        )
+      );
     } finally {
       setBusy(false);
     }
@@ -386,14 +326,11 @@ export default function CallSimulationActivity({
       recognition.onerror = (event) => {
         setIsListening(false);
         if (event?.error && event.error !== 'no-speech') {
-          setError('No pude escuchar bien tu respuesta. Puedes intentarlo otra vez o cambiar a botones.');
+          setError('No pude escuchar bien tu respuesta. Puedes intentarlo otra vez o cambiar de modo.');
         }
       };
       recognition.onresult = (event) => {
-        const transcriptText = cleanText(
-          event?.results?.[0]?.[0]?.transcript,
-          ''
-        );
+        const transcriptText = cleanCallText(event?.results?.[0]?.[0]?.transcript, '');
         if (!transcriptText) {
           setError('No se entendió la respuesta. Intenta hablar de nuevo o usa botones.');
           return;
@@ -406,7 +343,7 @@ export default function CallSimulationActivity({
     try {
       recognitionRef.current.start();
     } catch {
-      // Ignora errores de start duplicado del navegador.
+      // Ignora errores del navegador cuando start se duplica.
     }
   };
 
@@ -423,10 +360,11 @@ export default function CallSimulationActivity({
   const requestVoiceMode = async () => {
     const canStartFresh = !callStartedRef.current;
     if (!getSpeechRecognition()) {
-      setError('Tu navegador no permite responder por voz aqui. La llamada seguira con respuestas rapidas.');
+      setError('Tu navegador no permite responder por voz aquí. La llamada seguirá con respuestas rápidas.');
       if (canStartFresh) startConversation('choices');
       return;
     }
+
     if (callStartedRef.current && navigator.mediaDevices?.getUserMedia && activity?.allowVoice) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -436,9 +374,10 @@ export default function CallSimulationActivity({
         window.setTimeout(() => startListening(), 250);
         return;
       } catch (err) {
-        console.warn('Permiso de microfono denegado o no disponible:', err);
+        console.warn('Permiso de micrófono denegado o no disponible:', err);
       }
     }
+
     if (!navigator.mediaDevices?.getUserMedia || !activity?.allowVoice) {
       setError('El micrófono no está disponible aquí. Puedes seguir con botones o texto.');
       startConversation('choices');
@@ -458,20 +397,20 @@ export default function CallSimulationActivity({
   };
 
   const submitChat = async () => {
-    const message = cleanText(chatInput);
+    const message = cleanCallText(chatInput);
     if (!message || busy) return;
     setChatInput('');
     await sendTurn(message, 'call_chat');
   };
 
-  const turnAverage = summary?.avgScore
-    ? scoreLabel(summary.avgScore)
+  const turnAverage = summary?.scoreText
+    ? summary.scoreText
     : analysesRef.current.length
-      ? scoreLabel(
-          analysesRef.current.reduce((total, item) => total + clampScore(item.score), 0) /
+      ? formatCallScore(
+          analysesRef.current.reduce((total, item) => total + clampCallScore(item.score), 0) /
             analysesRef.current.length
         )
-      : '—';
+      : 'Sin dato';
 
   return (
     <div className={`call-immersive-shell difficulty-${difficulty}`}>
@@ -484,7 +423,7 @@ export default function CallSimulationActivity({
           <div className="call-immersive-identity">
             <div className="call-immersive-avatar">{callerName.slice(0, 2).toUpperCase()}</div>
             <div>
-              <p className="call-immersive-kicker">{cleanText(activity?.fraudType, 'Llamada sospechosa')}</p>
+              <p className="call-immersive-kicker">{cleanCallText(activity?.fraudType, 'Llamada sospechosa')}</p>
               <h3>{callerName}</h3>
               <p>{callerNumber}</p>
             </div>
@@ -496,6 +435,23 @@ export default function CallSimulationActivity({
             <span />
           </div>
           <p className="call-immersive-intro">{intro}</p>
+          <div className="call-dashboard-row">
+            <article className="call-info-card">
+              <span>Qué debes hacer</span>
+              <strong>Poner un límite</strong>
+              <p>No verifiques nada dentro de la misma llamada.</p>
+            </article>
+            <article className="call-info-card">
+              <span>Qué buscar</span>
+              <strong>Urgencia o autoridad falsa</strong>
+              <p>Es una alerta si piden resolver de inmediato, códigos o dinero.</p>
+            </article>
+            <article className="call-info-card">
+              <span>Salida segura</span>
+              <strong>Colgar y verificar</strong>
+              <p>Usa un canal oficial que tú controles.</p>
+            </article>
+          </div>
           <div className="call-immersive-actions">
             <button className="call-control-btn danger" type="button" onClick={() => finalizeCall('hung_up')}>
               Colgar
@@ -511,9 +467,10 @@ export default function CallSimulationActivity({
         <section className="call-immersive-phone call-immersive-permissions">
           <div className="call-immersive-panel-head">
             <p className="eyebrow">Elige cómo responder</p>
-            <h3>La estética se mantiene como llamada real en todos los modos</h3>
+            <h3>Mantén el control sin salir de la simulación</h3>
             <p>
-              Si activas voz, la llamada usará micrófono, reconocimiento de voz y respuesta hablada de la IA.
+              Puedes hablar, usar respuestas rápidas o escribir. En los tres modos la meta es la misma:
+              cortar la presión y verificar por otro canal.
             </p>
           </div>
           <div className="call-mode-grid">
@@ -523,12 +480,29 @@ export default function CallSimulationActivity({
             </button>
             <button className="call-mode-card" type="button" onClick={() => startConversation('choices')}>
               <strong>Respuestas rápidas</strong>
-              <span>Eliges botones sin perder la interfaz de llamada.</span>
+              <span>Eliges botones cortos y seguros sin perder la interfaz de llamada.</span>
             </button>
             <button className="call-mode-card" type="button" onClick={() => startConversation('chat')}>
               <strong>Modo texto</strong>
-              <span>Fallback si no quieres usar voz o el navegador falla.</span>
+              <span>Escribes si no quieres usar voz o tu navegador falla.</span>
             </button>
+          </div>
+          <div className="call-dashboard-row">
+            <article className="call-info-card">
+              <span>Recomendación</span>
+              <strong>Respuesta breve</strong>
+              <p>No necesitas convencer al atacante. Solo salir del canal.</p>
+            </article>
+            <article className="call-info-card">
+              <span>Señal crítica</span>
+              <strong>Códigos, dinero o presión</strong>
+              <p>Si aparecen, cortar es mejor que seguir validando.</p>
+            </article>
+            <article className="call-info-card">
+              <span>Qué sigue</span>
+              <strong>Verificación externa</strong>
+              <p>App oficial, número público o contacto real que tú busques.</p>
+            </article>
           </div>
           {voices.length ? (
             <label className="call-voice-select">
@@ -554,7 +528,7 @@ export default function CallSimulationActivity({
             <div>
               <p className="call-immersive-kicker">Llamada en curso</p>
               <h3>{callerName}</h3>
-              <p>{`${callerNumber} • ${formatDuration(callSeconds)}`}</p>
+              <p>{`${callerNumber} • ${formatCallDuration(callSeconds)}`}</p>
             </div>
             <div className={`call-live-indicator ${isSpeaking ? 'speaking' : isListening ? 'listening' : ''}`}>
               <span />
@@ -565,7 +539,7 @@ export default function CallSimulationActivity({
 
           <div className="call-immersive-meta">
             <span className="call-badge">{difficulty.toUpperCase()}</span>
-            <span className="call-badge subtle">{mode === 'voice' ? 'Voz activa' : mode === 'choices' ? 'Botones' : 'Texto'}</span>
+            <span className="call-badge subtle">{modeLabel}</span>
             <span className="call-badge subtle">{fraudType}</span>
           </div>
 
@@ -578,35 +552,42 @@ export default function CallSimulationActivity({
             ))}
             {!transcript.length ? (
               <article className="call-transcript-empty">
-                <p>La llamada iniciará en cuanto elijas cómo contestar.</p>
+                <p>La llamada iniciará en cuanto elijas cómo responder.</p>
               </article>
             ) : null}
           </div>
 
           <div className="call-dashboard-row">
             <article className="call-info-card">
-              <span>Turnos</span>
-              <strong>{`${turnRef.current}/${maxTurns}`}</strong>
-              <p>Entre menos sigas la llamada, más control conservas.</p>
+              <span>Qué hacer ahora</span>
+              <strong>{mode === 'voice' ? 'Habla poco' : mode === 'chat' ? 'Escribe corto' : 'Marca un límite'}</strong>
+              <p>{modeHelpText}</p>
             </article>
             <article className="call-info-card">
-              <span>Promedio seguro</span>
+              <span>Promedio actual</span>
               <strong>{turnAverage}</strong>
-              <p>Se recalcula en cada respuesta.</p>
+              <p>Se recalcula con cada decisión.</p>
             </article>
             <article className="call-info-card">
               <span>Indicador</span>
               <strong>{isSpeaking ? 'Hablando' : isListening ? 'Escuchando' : busy ? 'Procesando' : 'En pausa'}</strong>
-              <p>{cleanText(error, 'Puedes cortar la llamada en cualquier momento.')}</p>
+              <p>{busy ? 'La IA está generando la siguiente respuesta.' : 'Puedes colgar en cualquier momento.'}</p>
             </article>
           </div>
 
+          {error ? <p className="call-inline-error">{error}</p> : null}
+
           {mode === 'voice' ? (
             <div className="call-voice-panel">
-              <button className="call-control-btn primary" type="button" onClick={startListening} disabled={busy || isListening || !micEnabled}>
+              <button
+                className="call-control-btn primary"
+                type="button"
+                onClick={startListening}
+                disabled={busy || isListening || !micEnabled}
+              >
                 {isListening ? 'Escuchando...' : 'Responder por voz'}
               </button>
-              <p>Habla breve y directo. Si detectas presión o petición de códigos, corta la llamada.</p>
+              <p>{modeHelpText}</p>
             </div>
           ) : null}
 
@@ -631,26 +612,39 @@ export default function CallSimulationActivity({
               <textarea
                 value={chatInput}
                 onChange={(event) => setChatInput(event.target.value)}
-                placeholder="Escribe qué responderías en esta llamada."
+                placeholder="Escribe cómo responderías en esta llamada."
                 rows={3}
               />
-              <button className="call-control-btn primary" type="button" onClick={() => void submitChat()} disabled={busy || !cleanText(chatInput)}>
+              <button
+                className="call-control-btn primary"
+                type="button"
+                onClick={() => void submitChat()}
+                disabled={busy || !cleanCallText(chatInput)}
+              >
                 Enviar respuesta
               </button>
             </div>
           ) : null}
 
           <div className="call-controls-bar">
-            <button className={`call-control-btn ${speakerEnabled ? '' : 'muted'}`} type="button" onClick={() => {
-              if (speakerEnabled) stopSpeaking();
-              setSpeakerEnabled((current) => !current);
-            }}>
+            <button
+              className={`call-control-btn ${speakerEnabled ? '' : 'muted'}`}
+              type="button"
+              onClick={() => {
+                if (speakerEnabled) stopSpeaking();
+                setSpeakerEnabled((current) => !current);
+              }}
+            >
               {speakerEnabled ? 'Silenciar audio' : 'Activar audio'}
             </button>
-            <button className={`call-control-btn ${micEnabled ? '' : 'muted'}`} type="button" onClick={() => {
-              if (micEnabled) stopListening();
-              setMicEnabled((current) => !current);
-            }}>
+            <button
+              className={`call-control-btn ${micEnabled ? '' : 'muted'}`}
+              type="button"
+              onClick={() => {
+                if (micEnabled) stopListening();
+                setMicEnabled((current) => !current);
+              }}
+            >
               {micEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
             </button>
             {mode !== 'voice' && activity?.allowVoice ? (
@@ -659,18 +653,26 @@ export default function CallSimulationActivity({
               </button>
             ) : null}
             {mode !== 'choices' ? (
-              <button className="call-control-btn" type="button" onClick={() => {
-                stopListening();
-                setMode('choices');
-              }}>
+              <button
+                className="call-control-btn"
+                type="button"
+                onClick={() => {
+                  stopListening();
+                  setMode('choices');
+                }}
+              >
                 Pasar a botones
               </button>
             ) : null}
             {mode !== 'chat' ? (
-              <button className="call-control-btn" type="button" onClick={() => {
-                stopListening();
-                setMode('chat');
-              }}>
+              <button
+                className="call-control-btn"
+                type="button"
+                onClick={() => {
+                  stopListening();
+                  setMode('chat');
+                }}
+              >
                 Pasar a texto
               </button>
             ) : null}
@@ -685,42 +687,67 @@ export default function CallSimulationActivity({
         <section className="call-immersive-phone call-ended-screen">
           <div className="call-ended-head">
             <p className="eyebrow">Llamada finalizada</p>
-            <h3>{summary.scoreText}</h3>
-            <p>{summary.coach}</p>
+            <h3>{summary.headline}</h3>
+            <p>{summary.statusNote}</p>
           </div>
           <div className="call-ended-grid">
             <article className="call-info-card">
-              <span>Puntaje</span>
-              <strong>{scoreLabel(summary.avgScore)}</strong>
+              <span>Resultado</span>
+              <strong>{summary.scoreText}</strong>
               <p>{`${summary.safeTurns}/${summary.turnCount || 1} respuestas seguras`}</p>
             </article>
             <article className="call-info-card">
-              <span>Señal dominante</span>
-              <strong>{summary.signal || 'Presión indebida'}</strong>
-              <p>{summary.risk}</p>
+              <span>Cierre</span>
+              <strong>{summary.nextStepLabel}</strong>
+              <p>{summary.feedback.action}</p>
             </article>
             <article className="call-info-card">
-              <span>Acción correcta</span>
-              <strong>Recupera el control</strong>
-              <p>{summary.action}</p>
+              <span>Lo importante</span>
+              <strong>{summary.feedback.title}</strong>
+              <p>{summary.feedback.extra}</p>
             </article>
           </div>
+
+          <FeedbackPanel feedback={summary.feedback} />
+
+          {summary.transcriptPreview.length ? (
+            <section className="result-card">
+              <div className="feedback-head">
+                <div>
+                  <p className="eyebrow">Últimos momentos de la llamada</p>
+                  <h3>Revisa dónde mantuviste el control y dónde se abrió el riesgo</h3>
+                </div>
+                <div className="feedback-pill">Repaso rápido</div>
+              </div>
+              <div className="summary-list">
+                {summary.transcriptPreview.map((entry, index) => (
+                  <div className="summary-item" key={`${entry.speaker}-${index}`}>
+                    <p>
+                      <strong>{entry.speaker === 'caller' ? callerName : 'Tú'}:</strong> {entry.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <button
             className="call-control-btn primary wide"
             type="button"
             onClick={() =>
-              onComplete({
-                score: summary.avgScore,
-                feedback: `${summary.coach} Acción segura: ${summary.action}`,
-                details: {
+              completeActivity(
+                startedAtRef,
+                onComplete,
+                summary.avgScore,
+                feedbackToText(summary.feedback),
+                {
                   mode,
                   transcript: transcriptRef.current,
                   analyses: analysesRef.current,
                   callerName,
                   fraudType,
-                },
-                durationMs: Math.max(0, Date.now() - startedAtRef.current),
-              })
+                }
+              )
             }
           >
             Continuar

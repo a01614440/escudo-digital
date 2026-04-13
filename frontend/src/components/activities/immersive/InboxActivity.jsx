@@ -3,20 +3,12 @@ import { feedbackToText } from '../../../lib/course.js';
 import { cn } from '../../../lib/ui.js';
 import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
-import {
-  ActivitySummaryBar,
-  completeActivity,
-} from '../sharedActivityUi.jsx';
+import { ActivitySummaryBar, completeActivity } from '../sharedActivityUi.jsx';
 import { ImmersivePanel } from './immersivePrimitives.jsx';
-import {
-  classifyInbox,
-  getAvatarLabel,
-  getInboxStatus,
-  normalizeInboxMessages,
-} from './inboxActivityUtils.js';
+import { classifyInbox, getAvatarLabel, getInboxStatus, normalizeInboxMessages } from './inboxActivityUtils.js';
 import { cleanText } from './shared.js';
 
-export default function InboxActivity({ activity, startedAtRef, onComplete }) {
+export default function InboxActivity({ module, activity, startedAtRef, onComplete }) {
   const kind = activity?.kind === 'sms' ? 'sms' : 'correo';
   const messages = useMemo(() => normalizeInboxMessages(activity), [activity]);
   const [selectedId, setSelectedId] = useState(messages[0]?.id || '');
@@ -33,10 +25,8 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
     setResult(null);
   }, [activity?.id, messages]);
 
-  const selectedMessage =
-    messages.find((message) => message.id === selectedId) || messages[0] || null;
-  const selectedReview =
-    result?.review?.find((item) => item.id === selectedMessage?.id) || null;
+  const selectedMessage = messages.find((message) => message.id === selectedId) || messages[0] || null;
+  const selectedReview = result?.review?.find((item) => item.id === selectedMessage?.id) || null;
   const reviewedCount = Object.keys(selections).length;
 
   const classify = (messageId, value) => {
@@ -45,7 +35,7 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
   };
 
   const evaluate = () => {
-    const next = classifyInbox(messages, selections, kind);
+    const next = classifyInbox(messages, selections, kind, module);
     setResult(next);
     setFeedback(next.feedback);
     const focus = next.review.find((item) => item.status !== 'correct');
@@ -98,6 +88,7 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
             {messages.map((message) => {
               const reviewItem = result?.review?.find((item) => item.id === message.id);
               const status = getInboxStatus(selections[message.id], reviewItem);
+
               return (
                 <button
                   key={message.id}
@@ -122,23 +113,17 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
                     <span
                       className={cn(
                         'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase tracking-[0.12em]',
-                        kind === 'sms'
-                          ? 'bg-sd-accent-soft text-sd-accent'
-                          : 'bg-slate-100 text-slate-700'
+                        kind === 'sms' ? 'bg-sd-accent-soft text-sd-accent' : 'bg-slate-100 text-slate-700'
                       )}
                     >
                       {getAvatarLabel(message)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <strong className="truncate text-sm text-sd-text">
-                          {message.displayName}
-                        </strong>
+                        <strong className="truncate text-sm text-sd-text">{message.displayName}</strong>
                         <span className="text-xs text-sd-muted">{message.dateLabel}</span>
                       </div>
-                      <p className="mt-1 truncate text-sm font-medium text-sd-text">
-                        {message.subject}
-                      </p>
+                      <p className="mt-1 truncate text-sm font-medium text-sd-text">{message.subject}</p>
                       <p className="mt-1 line-clamp-2 text-xs leading-5 text-sd-muted">
                         {message.preview || message.body[0] || 'Sin vista previa'}
                       </p>
@@ -175,27 +160,16 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
           <ImmersivePanel>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="eyebrow">
-                  {kind === 'sms' ? 'Lectura del mensaje' : 'Lectura del correo'}
-                </p>
-                <h3 className="font-display text-xl tracking-[-0.03em] text-sd-text">
-                  {selectedMessage.subject}
-                </h3>
+                <p className="eyebrow">{kind === 'sms' ? 'Lectura del mensaje' : 'Lectura del correo'}</p>
+                <h3 className="font-display text-xl tracking-[-0.03em] text-sd-text">{selectedMessage.subject}</h3>
                 <p className="mt-2 text-sm text-sd-muted">
                   {kind === 'sms'
                     ? `SMS de ${selectedMessage.displayName}`
-                    : `${selectedMessage.displayName}${
-                        selectedMessage.from ? ` <${selectedMessage.from}>` : ''
-                      }`}
+                    : `${selectedMessage.displayName}${selectedMessage.from ? ` <${selectedMessage.from}>` : ''}`}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="ghost"
-                  size="compact"
-                  type="button"
-                  onClick={() => setShowDetails((value) => !value)}
-                >
+                <Button variant="ghost" size="compact" type="button" onClick={() => setShowDetails((value) => !value)}>
                   {showDetails ? 'Ocultar detalles' : 'Ver detalles'}
                 </Button>
                 <Button
@@ -243,9 +217,7 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
                   <p
                     className={cn(
                       'rounded-[18px] px-4 py-3 text-sm leading-6',
-                      kind === 'sms'
-                        ? 'ml-auto max-w-[92%] bg-sd-accent-soft text-sd-text'
-                        : 'bg-slate-50 text-sd-text'
+                      kind === 'sms' ? 'ml-auto max-w-[92%] bg-sd-accent-soft text-sd-text' : 'bg-slate-50 text-sd-text'
                     )}
                     key={`${selectedMessage.id}-${line}`}
                   >
@@ -257,10 +229,7 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
               {selectedMessage.attachments.length ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {selectedMessage.attachments.map((item) => (
-                    <span
-                      className="rounded-full border border-sd-border bg-white px-3 py-1 text-xs font-medium text-sd-muted"
-                      key={item}
-                    >
+                    <span className="rounded-full border border-sd-border bg-white px-3 py-1 text-xs font-medium text-sd-muted" key={item}>
                       {item}
                     </span>
                   ))}
@@ -269,21 +238,15 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
 
               {selectedMessage.linkPreview ? (
                 <div className="mt-4 rounded-[18px] border border-sky-200 bg-sky-50/90 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">
-                    Enlace detectado
-                  </p>
-                  <strong className="mt-1 block text-sm text-sd-text">
-                    {selectedMessage.linkPreview}
-                  </strong>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">Enlace detectado</p>
+                  <strong className="mt-1 block text-sm text-sd-text">{selectedMessage.linkPreview}</strong>
                 </div>
               ) : null}
             </div>
 
             <div className="mt-4 rounded-[22px] border border-sd-border bg-white/60 p-4">
               <p className="text-sm font-semibold text-sd-text">
-                {kind === 'sms'
-                  ? '¿Cómo clasificarías este mensaje?'
-                  : '¿Cómo clasificarías este correo?'}
+                {kind === 'sms' ? '¿Cómo clasificarías este mensaje?' : '¿Cómo clasificarías este correo?'}
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 {['seguro', 'estafa'].map((choice) => (
@@ -320,9 +283,7 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
                   </strong>
                   <p className="mt-2">
                     {selectedReview.picked
-                      ? `Tú elegiste ${
-                          selectedReview.picked === 'estafa' ? 'Sospechoso' : 'Seguro'
-                        }.`
+                      ? `Tú elegiste ${selectedReview.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}.`
                       : 'No lo clasificaste antes de evaluar.'}
                   </p>
                   <p className="mt-2">{selectedReview.reason}</p>
@@ -341,22 +302,12 @@ export default function InboxActivity({ activity, startedAtRef, onComplete }) {
             <article className={`review-card ${item.status}`.trim()} key={item.id}>
               <div className="review-card-head">
                 <strong>{item.label}</strong>
-                <span>
-                  {item.status === 'correct'
-                    ? 'Correcto'
-                    : item.status === 'wrong'
-                      ? 'Revisar'
-                      : 'Pendiente'}
-                </span>
+                <span>{item.status === 'correct' ? 'Correcto' : item.status === 'wrong' ? 'Revisar' : 'Pendiente'}</span>
               </div>
               <p>{item.reason}</p>
               <p className="review-card-meta">
-                {item.picked
-                  ? `Marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}`
-                  : 'Sin clasificar'}{' '}
-                · {`Respuesta esperada: ${
-                  item.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'
-                }`}
+                {item.picked ? `Marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}` : 'Sin clasificar'} ·{' '}
+                {`Respuesta esperada: ${item.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'}`}
               </p>
             </article>
           ))}

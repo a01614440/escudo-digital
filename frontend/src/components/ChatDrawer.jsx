@@ -26,7 +26,7 @@ function EmptyConversation({ onSuggestionClick }) {
           Pregunta antes de actuar
         </h3>
         <p className="mt-3 text-sm leading-7 text-sd-muted">
-          Te ayudo a frenar mensajes urgentes, enlaces dudosos, llamadas fraudulentas y paginas
+          Te ayudo a frenar mensajes urgentes, enlaces dudosos, llamadas fraudulentas y páginas
           clonadas sin salirte de la experiencia.
         </p>
       </div>
@@ -182,7 +182,19 @@ export default function ChatDrawer({
 
               <div className="flex flex-wrap gap-2">
                 <Badge tone="accent">{messageCount ? `${messageCount} mensajes` : 'Listo para ayudarte'}</Badge>
-                <Badge tone="soft">{compact ? 'Modo movil guiado' : 'Panel lateral persistente'}</Badge>
+                <Badge tone="soft">{compact ? 'Modo móvil guiado' : 'Panel lateral persistente'}</Badge>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-white/82 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-muted">
+                  Pausa
+                </span>
+                <span className="rounded-full bg-white/82 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-muted">
+                  Verifica
+                </span>
+                <span className="rounded-full bg-white/82 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-muted">
+                  Decide
+                </span>
               </div>
             </div>
           </header>
@@ -210,14 +222,14 @@ export default function ChatDrawer({
                   className="sd-input min-h-[112px] resize-none rounded-[24px]"
                   value={input}
                   onChange={(event) => onInputChange(event.target.value)}
-                  placeholder="Escribe tu duda sobre mensajes, enlaces, llamadas o paginas sospechosas..."
+                  placeholder="Escribe tu duda sobre mensajes, enlaces, llamadas o páginas sospechosas..."
                   rows={compact ? 4 : 5}
                 />
               </label>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs leading-5 text-sd-muted">
-                  No compartas contrasenas ni codigos. Usa este espacio para pensar la decision
+                  No compartas contraseñas ni códigos. Usa este espacio para pensar la decisión
                   segura antes de responder.
                 </p>
                 <Button

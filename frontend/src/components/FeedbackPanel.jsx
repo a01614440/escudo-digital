@@ -4,20 +4,14 @@ function getFeedbackTone(feedback) {
   const score = Number(feedback?.score);
   if (Number.isFinite(score)) {
     if (score >= 0.85) return 'good';
-    if (score >= 0.6) return 'warn';
+    if (score >= 0.55) return 'warn';
     return 'risk';
   }
 
   const title = repairPossibleMojibake(String(feedback?.title || '').toLowerCase());
-  if (title.includes('buena') || title.includes('correcto') || title.includes('complet')) {
-    return 'good';
-  }
-  if (title.includes('regular') || title.includes('sin evaluacion') || title.includes('sin evaluación')) {
-    return 'warn';
-  }
-  if (title.includes('riesg') || title.includes('falta')) {
-    return 'risk';
-  }
+  if (title.includes('buena') || title.includes('correcto') || title.includes('complet')) return 'good';
+  if (title.includes('riesg') || title.includes('parcial')) return 'warn';
+  if (title.includes('incorrect') || title.includes('falta')) return 'risk';
   return 'neutral';
 }
 
@@ -66,7 +60,7 @@ export default function FeedbackPanel({ feedback }) {
           {scoreLabel ? (
             <div className="feedback-score">
               <strong>{scoreLabel}</strong>
-              <span>desempeño</span>
+              <span>resultado</span>
             </div>
           ) : null}
         </div>
@@ -74,35 +68,35 @@ export default function FeedbackPanel({ feedback }) {
 
       {signal ? (
         <div>
-          <span className="feedback-label">Señal detectada</span>
+          <span className="feedback-label">Qué hiciste bien</span>
           <p>{signal}</p>
         </div>
       ) : null}
 
       {risk ? (
         <div>
-          <span className="feedback-label">Riesgo</span>
+          <span className="feedback-label">Qué faltó notar</span>
           <p>{risk}</p>
         </div>
       ) : null}
 
       {action ? (
         <div>
-          <span className="feedback-label">Acción segura</span>
+          <span className="feedback-label">Qué harías en la vida real</span>
           <p>{action}</p>
         </div>
       ) : null}
 
       {extra ? (
         <div>
-          <span className="feedback-label">Qué hacer ahora</span>
+          <span className="feedback-label">Qué sigue</span>
           <p>{extra}</p>
         </div>
       ) : null}
 
       {detected.length ? (
         <div>
-          <span className="feedback-label">Señales detectadas</span>
+          <span className="feedback-label">Señales que sí detectaste</span>
           <ul>
             {detected.map((item) => (
               <li key={item}>{item}</li>

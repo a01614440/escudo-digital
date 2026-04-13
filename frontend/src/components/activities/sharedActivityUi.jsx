@@ -10,6 +10,7 @@ import {
   completeActivityPayload,
   formatActivityPercent,
 } from '../../lib/activityFeedback.js';
+import { getActivityInstructionMeta } from '../../lib/journeyGuidance.js';
 import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.js';
 
 export function Paragraphs({ text, className = 'activity-copy' }) {
@@ -68,34 +69,44 @@ export function SimulationGuide({ activity, compact = false }) {
 
 export function ActivityChrome({ module, activity, compact = false, children }) {
   const theme = moduleThemeMeta(module);
+  const instructionMeta = getActivityInstructionMeta(activity?.tipo, module);
 
   return (
-    <div
-      className={`activity-shell activity-shell-${theme.category} activity-shell-${theme.level}`.trim()}
-    >
-      <div className="activity-head activity-head-rich">
+    <div className={`activity-shell activity-shell-${theme.category} activity-shell-${theme.level}`.trim()}>
+      <div className={`activity-head activity-head-rich bg-gradient-to-br ${theme.heroClass}`}>
         <div className="activity-head-copy">
           <p className="eyebrow">{theme.eyebrow}</p>
           <p className="activity-title">{repairPossibleMojibake(activity.titulo || 'Actividad')}</p>
           <p className="activity-head-blurb">
-            {repairPossibleMojibake(
-              activity.intro || activity.escenario || activity.prompt || theme.blurb
-            )}
+            {repairPossibleMojibake(activity.intro || activity.escenario || activity.prompt || theme.blurb)}
           </p>
         </div>
         <div className="activity-head-badges">
-          <span className="activity-type">
-            {ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}
-          </span>
-          <span className="activity-kicker-pill">
-            {CATEGORY_LABELS[theme.category] || theme.badge}
-          </span>
-          <span className="activity-kicker-pill subtle">
-            {LEVEL_LABELS[theme.level] || theme.label}
-          </span>
+          <span className="activity-type">{ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}</span>
+          <span className={`activity-kicker-pill ${theme.accentClass}`}>{CATEGORY_LABELS[theme.category] || theme.badge}</span>
+          <span className="activity-kicker-pill subtle">{LEVEL_LABELS[theme.level] || theme.label}</span>
           <span className="activity-kicker-pill subtle">{theme.brief}</span>
         </div>
       </div>
+
+      <div className="activity-summary-bar">
+        <article className="activity-summary-stat">
+          <span>Objetivo</span>
+          <strong>{instructionMeta.objective}</strong>
+          <p>{instructionMeta.quickTip}</p>
+        </article>
+        <article className="activity-summary-stat">
+          <span>Qué hacer</span>
+          <strong>{instructionMeta.whatToDo}</strong>
+          <p>Concéntrate en la señal que sí cambia la decisión.</p>
+        </article>
+        <article className="activity-summary-stat">
+          <span>Cómo se califica</span>
+          <strong>{instructionMeta.scoring}</strong>
+          <p>La meta es aprender mejor, no castigarte por detalles mínimos.</p>
+        </article>
+      </div>
+
       <SimulationGuide activity={activity} compact={compact} />
       {children}
     </div>
@@ -106,16 +117,7 @@ export function completeActivity(startedAtRef, onComplete, score, feedback, deta
   onComplete(completeActivityPayload(startedAtRef, score, feedback, details));
 }
 
-export function buildActivityFeedback({
-  title,
-  score,
-  signal,
-  risk,
-  action,
-  extra,
-  detected,
-  missed,
-}) {
+export function buildActivityFeedback({ title, score, signal, risk, action, extra, detected, missed }) {
   return buildActivityFeedbackPayload({
     title,
     score,
@@ -133,9 +135,7 @@ export function formatPercent(score) {
 }
 
 export function ActivitySummaryBar({ items = [] }) {
-  const visibleItems = items.filter(
-    (item) => item && item.label && item.value !== undefined && item.value !== null
-  );
+  const visibleItems = items.filter((item) => item && item.label && item.value !== undefined && item.value !== null);
   if (!visibleItems.length) return null;
 
   return (

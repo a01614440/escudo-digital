@@ -85,6 +85,8 @@ export function useCourseProgress({
 
     const normalizedPrefs = normalizeCoursePrefs(coursePrefs, answers);
     const seedProgress = reset ? null : courseProgress;
+    const previousPlan = coursePlan;
+    const previousProgress = courseProgress;
     setGeneratingCourse(true);
     setCourseError('');
 
@@ -112,9 +114,15 @@ export function useCourseProgress({
 
       return { safePlan, safeProgress };
     } catch (error) {
-      setCoursePlan(null);
-      setCourseProgress(null);
-      setCourseError(error.message || 'No se pudo generar la ruta.');
+      setCoursePlan(previousPlan || null);
+      setCourseProgress(previousProgress || null);
+      if (previousPlan && previousProgress) {
+        setCurrentView('courses');
+      }
+      setCourseError(
+        error.message ||
+          'No pudimos armar tu ruta en este momento. Puedes reintentar con "Generar mi ruta" sin perder tu avance actual.'
+      );
       return null;
     } finally {
       setGeneratingCourse(false);

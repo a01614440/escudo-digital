@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { feedbackRatingLabel, feedbackToText } from '../../../lib/course.js';
+import { feedbackToText } from '../../../lib/course.js';
+import { getDecisionRatingLabel } from '../../../lib/activityScoring.js';
 import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
 import {
@@ -8,15 +9,9 @@ import {
   completeActivity,
   formatPercent,
 } from '../sharedActivityUi.jsx';
-import {
-  ImmersiveAsidePanel,
-  ImmersivePanel,
-} from './immersivePrimitives.jsx';
+import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';
 import { cleanText } from './shared.js';
-import {
-  countSafeChoices,
-  resolveScenarioNextStepIndex,
-} from './scenarioFlowUtils.js';
+import { countSafeChoices, resolveScenarioNextStepIndex } from './scenarioFlowUtils.js';
 
 export default function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
   const steps = Array.isArray(activity?.pasos) ? activity.pasos : [];
@@ -28,9 +23,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
   const [answeredSteps, setAnsweredSteps] = useState([]);
   const currentStep = steps[stepIndex] || null;
   const finished = !currentStep && steps.length > 0;
-  const finalScore = scores.length
-    ? scores.reduce((total, value) => total + value, 0) / scores.length
-    : 1;
+  const finalScore = scores.length ? scores.reduce((total, value) => total + value, 0) / scores.length : 1;
   const safeChoices = countSafeChoices(scores);
   const latestChoice = flowChoices[flowChoices.length - 1] || null;
 
@@ -45,9 +38,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
 
   const chooseOption = (step, option) => {
     const score = Math.max(0, Math.min(1, Number(option?.puntaje) || 0.6));
-    const nextAnsweredSteps = answeredSteps.includes(stepIndex)
-      ? answeredSteps
-      : [...answeredSteps, stepIndex];
+    const nextAnsweredSteps = answeredSteps.includes(stepIndex) ? answeredSteps : [...answeredSteps, stepIndex];
 
     setScores((current) => [...current, score]);
     setFlowChoices((current) => [
@@ -61,11 +52,15 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
     setAnsweredSteps(nextAnsweredSteps);
     setFeedback(
       buildActivityFeedback({
-        title: feedbackRatingLabel(score),
+        title: getDecisionRatingLabel(score),
         score,
-        signal: cleanText(step?.texto || 'Tomaste una decisión dentro del escenario.'),
-        risk: 'La prisa, la confianza o el contexto pueden hacerte bajar la guardia.',
-        action: cleanText(option?.feedback || 'Verifica por un canal oficial antes de actuar.'),
+        signal:
+          score >= 0.75
+            ? 'Mantuviste la rutina segura y no respondiste por impulso.'
+            : 'Viste parte del riesgo, pero la decisión todavía te dejaba margen de exposición.',
+        risk: 'La prisa, la confianza o el contexto cotidiano pueden hacerte bajar la guardia sin darte cuenta.',
+        action: cleanText(option?.feedback || 'En la vida real, pausa y verifica por un canal oficial antes de seguir.'),
+        extra: cleanText(step?.texto || 'Cada decisión cambia el escenario siguiente.'),
       })
     );
 
@@ -89,9 +84,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
         items={[
           {
             label: 'Paso',
-            value: finished
-              ? 'Finalizado'
-              : `${Math.min(stepIndex + 1, steps.length)}/${steps.length || 1}`,
+            value: finished ? 'Finalizado' : `${Math.min(stepIndex + 1, steps.length)}/${steps.length || 1}`,
             caption: 'Cada decisión cambia el escenario siguiente.',
           },
           {
@@ -116,10 +109,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
                 Convierte criterio en una rutina repetible
               </h3>
               <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-muted">
-                {cleanText(
-                  activity?.intro ||
-                    'Cada situación cambia, pero tu secuencia segura debe mantenerse estable.'
-                )}
+                {cleanText(activity?.intro || 'Cada situación cambia, pero tu secuencia segura debe mantenerse estable.')}
               </p>
             </div>
             <span className="sd-badge sd-badge-soft">{`${safeChoices}/${scores.length || 0} decisiones firmes`}</span>
@@ -163,10 +153,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
             <div className="space-y-3">
               {flowChoices.length ? (
                 flowChoices.map((entry, index) => (
-                  <article
-                    className="rounded-[18px] border border-sd-border bg-white/80 px-4 py-3"
-                    key={`${entry.step}-${index}`}
-                  >
+                  <article className="rounded-[18px] border border-sd-border bg-white/80 px-4 py-3" key={`${entry.step}-${index}`}>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-muted">
                       Paso {index + 1}
                     </span>
@@ -175,9 +162,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
                   </article>
                 ))
               ) : (
-                <p className="text-sm leading-6 text-sd-muted">
-                  Aún no has tomado decisiones dentro del flujo.
-                </p>
+                <p className="text-sm leading-6 text-sd-muted">Aún no has tomado decisiones dentro del flujo.</p>
               )}
             </div>
           </ImmersiveAsidePanel>
@@ -201,18 +186,14 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
               <strong>Promedio de criterio</strong>
               <span>{formatPercent(finalScore)}</span>
             </div>
-            <p>
-              Tu mejor defensa fue mantener la rutina incluso cuando el escenario parecía cotidiano o creíble.
-            </p>
+            <p>Tu mejor defensa fue mantener la rutina incluso cuando el escenario parecía cotidiano o creíble.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
               <strong>Decisiones seguras</strong>
               <span>{`${safeChoices}/${scores.length || 0}`}</span>
             </div>
-            <p>
-              Las decisiones firmes son las que cortan la prisa y te sacan del canal sospechoso.
-            </p>
+            <p>Las decisiones firmes son las que cortan la prisa y te sacan del canal sospechoso.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
@@ -241,12 +222,11 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
                 finalScore,
                 feedbackToText(
                   buildActivityFeedback({
-                    title: feedbackRatingLabel(finalScore),
+                    title: getDecisionRatingLabel(finalScore),
                     score: finalScore,
                     signal: 'Aplicaste tu rutina de verificación en una situación cotidiana.',
-                    risk:
-                      'Cuando la rutina se rompe, la urgencia o la confianza pueden tomar el control.',
-                    action: 'Mantén la secuencia: pausa, verifica y confirma por canal oficial.',
+                    risk: 'Cuando la rutina se rompe, la urgencia o la confianza pueden tomar el control.',
+                    action: 'Mantén la secuencia: pausa, verifica y confirma por un canal oficial.',
                   })
                 ),
                 { flowChoices }

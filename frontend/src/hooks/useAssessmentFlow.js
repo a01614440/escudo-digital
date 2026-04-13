@@ -83,7 +83,10 @@ export function useAssessmentFlow({
       onAssessmentReady?.(response, answers);
     } catch (error) {
       setSurveyStage('survey');
-      setFlowError(error.message || 'No se pudo generar el diagnóstico.');
+      setFlowError(
+        error.message ||
+          'No pudimos generar tu diagnóstico por ahora. Puedes volver a intentarlo con "Finalizar" en unos segundos.'
+      );
     }
   };
 

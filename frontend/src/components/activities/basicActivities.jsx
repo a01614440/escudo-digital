@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { feedbackRatingLabel, feedbackToText, repairPossibleMojibake } from '../../lib/course.js';
+import { getDecisionRatingLabel, scoreChoiceDecision } from '../../lib/activityScoring.js';
 import { clampScore } from '../../lib/feedbackRules.js';
 import { gradeOpenAnswer } from '../../services/courseService.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
@@ -28,10 +29,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
       : supportBlocks.length
         ? supportBlocks
             .slice(0, 3)
-            .map(
-              (block) =>
-                `${repairPossibleMojibake(block.titulo)}: ${repairPossibleMojibake(block.texto)}`
-            )
+            .map((block) => `${repairPossibleMojibake(block.titulo)}: ${repairPossibleMojibake(block.texto)}`)
         : narrative.slice(0, 3)
   ).filter(Boolean);
 
@@ -42,7 +40,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
           {
             label: 'Meta',
             value: 'Entender antes de actuar',
-            caption: 'Primero internaliza la idea; luego la aplicas en la práctica.',
+            caption: 'Primero internaliza la idea; luego la aplicas en una situación real.',
           },
           {
             label: 'Ideas clave',
@@ -56,14 +54,11 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
           },
         ]}
       />
+
       <section className="concept-stage">
         <article className="concept-hero-card">
           <span className="concept-kicker">Idea central</span>
-          <h3>
-            {repairPossibleMojibake(
-              leadBlock?.titulo || activity.titulo || 'Qué debes recordar'
-            )}
-          </h3>
+          <h3>{repairPossibleMojibake(leadBlock?.titulo || activity.titulo || 'Qué debes recordar')}</h3>
           <p>
             {repairPossibleMojibake(
               leadBlock?.texto ||
@@ -81,6 +76,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
             </p>
           </div>
         </article>
+
         {supportBlocks.length ? (
           <div className="concept-grid enhanced">
             {supportBlocks.map((block) => (
@@ -93,6 +89,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
           </div>
         ) : null}
       </section>
+
       {narrative.length ? (
         <section className="info-panel concept-detail-panel">
           <p className="eyebrow">Qué debes aplicar al salir de aquí</p>
@@ -103,6 +100,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
           </div>
         </section>
       ) : null}
+
       {takeawayItems.length ? (
         <section className="result-card concept-takeaways">
           <div className="feedback-head">
@@ -121,6 +119,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
           </div>
         </section>
       ) : null}
+
       <div className="activity-actions">
         <p className="activity-inline-note">
           Cuando esta idea ya te quede clara, pasa a la práctica para convertirla en hábito.
@@ -141,7 +140,7 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
   );
 }
 
-export function QuizActivity({ activity, startedAtRef, onComplete }) {
+export function QuizActivity({ module, activity, startedAtRef, onComplete }) {
   const [selection, setSelection] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const options = Array.isArray(activity.opciones) ? activity.opciones : [];
@@ -151,28 +150,34 @@ export function QuizActivity({ activity, startedAtRef, onComplete }) {
   const handleSelect = (index) => {
     if (isAnswered) return;
     setSelection(index);
+
     const isCorrect = index === correctIndex;
-    const score = isCorrect ? 1 : 0.45;
+    const score = scoreChoiceDecision({
+      isCorrect,
+      module,
+      selectedText: options[index] || '',
+    });
+
     setFeedback(
       buildActivityFeedback({
-        title: feedbackRatingLabel(score),
+        title: getDecisionRatingLabel(score),
         score,
-        signal:
-          activity.senal ||
-          (isCorrect
-            ? 'Detectaste la señal principal del escenario.'
-            : 'La señal clave estaba en la urgencia, el canal o la petición.'),
+        signal: isCorrect
+          ? 'Detectaste bien la señal principal del escenario.'
+          : 'Rescataste parte del contexto, pero la decisión todavía te dejaba expuesto.',
         risk:
           activity.riesgo ||
-          'Responder sin verificar puede exponerte a robo de datos, dinero o acceso.',
+          'Aquí faltó notar qué parte del mensaje te metía prisa, te sacaba del canal seguro o te pedía actuar sin verificar.',
         action:
           activity.accion ||
           (options[correctIndex]
-            ? `La acción segura era: ${options[correctIndex]}`
-            : 'Verifica por un canal oficial antes de actuar.'),
+            ? `En la vida real, lo más seguro sería: ${options[correctIndex]}.`
+            : 'En la vida real, detente y verifica por un canal oficial antes de actuar.'),
         extra:
           activity.explicacion ||
-          (isCorrect ? 'Buena decisión.' : 'Valía la pena frenar y revisar mejor la situación.'),
+          (isCorrect
+            ? 'Buena decisión: viste la señal y no seguiste el impulso del momento.'
+            : 'No se trataba de responder rápido, sino de salir del canal y verificar por tu cuenta.'),
       })
     );
   };
@@ -185,7 +190,7 @@ export function QuizActivity({ activity, startedAtRef, onComplete }) {
           {
             label: 'Opciones',
             value: options.length || 0,
-            caption: 'Revisa todas antes de elegir.',
+            caption: 'Revísalas todas antes de elegir.',
           },
           {
             label: 'Meta',
@@ -194,16 +199,11 @@ export function QuizActivity({ activity, startedAtRef, onComplete }) {
           },
         ]}
       />
+
       <div className="option-grid">
         {options.map((option, index) => {
           const status =
-            selection === null
-              ? ''
-              : index === correctIndex
-                ? 'correct'
-                : selection === index
-                  ? 'wrong'
-                  : '';
+            selection === null ? '' : index === correctIndex ? 'correct' : selection === index ? 'wrong' : '';
           return (
             <button
               key={`${option}-${index}`}
@@ -217,7 +217,9 @@ export function QuizActivity({ activity, startedAtRef, onComplete }) {
           );
         })}
       </div>
+
       <FeedbackPanel feedback={feedback} />
+
       <div className="activity-actions">
         {feedback ? (
           <>
@@ -228,7 +230,7 @@ export function QuizActivity({ activity, startedAtRef, onComplete }) {
                 completeActivity(
                   startedAtRef,
                   onComplete,
-                  selection === correctIndex ? 1 : 0.6,
+                  Number(feedback.score) || 0.6,
                   feedbackToText(feedback),
                   {
                     selectedIndex: selection,
@@ -262,9 +264,7 @@ export function QuizActivity({ activity, startedAtRef, onComplete }) {
 
 export function ChecklistActivity({ activity, startedAtRef, onComplete }) {
   const items = Array.isArray(activity.items) ? activity.items : [];
-  const [checked, setChecked] = useState(
-    () => Object.fromEntries(items.map((item) => [item, false]))
-  );
+  const [checked, setChecked] = useState(() => Object.fromEntries(items.map((item) => [item, false])));
   const [feedback, setFeedback] = useState(null);
   const selectedCount = items.filter((item) => checked[item]).length;
   const remainingItems = items.filter((item) => !checked[item]);
@@ -278,13 +278,13 @@ export function ChecklistActivity({ activity, startedAtRef, onComplete }) {
     if (!allChecked) {
       setFeedback(
         buildActivityFeedback({
-          title: 'Falta completar el checklist',
-          score: selectedCount / Math.max(items.length, 1),
-          signal: `Marcaste ${selectedCount} de ${items.length} pasos.`,
-          risk: 'Si omites un paso de verificación, tu rutina se debilita justo cuando necesitas claridad.',
-          action: 'Completa los pasos restantes antes de avanzar.',
+          title: 'Riesgosa',
+          score: Math.max(0.45, selectedCount / Math.max(items.length, 1)),
+          signal: `Ya marcaste ${selectedCount} de ${items.length} pasos y la rutina va encaminada.`,
+          risk: 'Todavía falta completar la secuencia. Si omites un paso de verificación, tu criterio se debilita justo cuando necesitas claridad.',
+          action: 'En la vida real, termina la lista completa antes de responder, pagar o abrir un enlace.',
           missed: remainingItems.slice(0, 4),
-          extra: 'La idea es fijar un hábito completo, no marcar solo lo más fácil.',
+          extra: 'La idea es fijar un hábito completo, no marcar solo lo más obvio.',
         })
       );
       return;
@@ -297,11 +297,10 @@ export function ChecklistActivity({ activity, startedAtRef, onComplete }) {
       feedbackToText(
         buildActivityFeedback({
           title: 'Buena',
+          score: 1,
           signal: 'Repasaste los pasos clave sin saltarte ninguno.',
-          risk:
-            'Si omites un paso de verificación, aumenta la probabilidad de actuar con prisa.',
-          action:
-            'Usa este checklist como rutina rápida cuando un mensaje o llamada te meta presión.',
+          risk: 'Lo importante ahora es no romper esta rutina cuando el mensaje venga con más presión.',
+          action: 'Úsala como chequeo rápido cada vez que algo te pida actuar con urgencia.',
         })
       ),
       { checkedItems: items, totalItems: items.length }
@@ -333,11 +332,7 @@ export function ChecklistActivity({ activity, startedAtRef, onComplete }) {
       <div className="question-body">
         {items.map((item) => (
           <label className="option" key={item}>
-            <input
-              type="checkbox"
-              checked={Boolean(checked[item])}
-              onChange={() => toggleItem(item)}
-            />
+            <input type="checkbox" checked={Boolean(checked[item])} onChange={() => toggleItem(item)} />
             <span>{item}</span>
           </label>
         ))}
@@ -387,22 +382,21 @@ export function OpenAnswerActivity({
         buildActivityFeedback({
           title: feedbackRatingLabel(score),
           score,
-          signal: 'Tu respuesta mostró cómo identificar o frenar el riesgo.',
-          risk: 'La idea es no resolver desde el canal sospechoso ni compartir datos.',
-          action:
-            'Quédate con una frase corta, clara y orientada a verificar por canales oficiales.',
+          signal: 'Tu respuesta sí muestra una intención de pausar, detectar el riesgo o sacarte del canal sospechoso.',
+          risk: 'Aún conviene reforzar la parte donde verificas por fuera o marcas un límite más claro.',
+          action: 'En la vida real, usa una frase corta y concreta: pausa, verifica y no compartas datos.',
           extra: text,
         })
       );
     } catch (error) {
-      setGradedScore(0.4);
+      setGradedScore(0.55);
       setFeedback(
         buildActivityFeedback({
-          title: 'Sin evaluación',
-          score: 0.4,
-          signal: 'No se pudo revisar esta respuesta con IA.',
-          action:
-            'Puedes reintentar y mantener la misma regla: no compartas datos y verifica por canales oficiales.',
+          title: 'Riesgosa',
+          score: 0.55,
+          signal: 'La idea general de tu respuesta iba encaminada, pero no pudimos revisarla con IA en este momento.',
+          risk: 'Sin una verificación clara, el riesgo sigue abierto aunque la intuición fuera buena.',
+          action: 'Reintenta y deja explícito cómo pausarías, verificarías y cortarías el canal sospechoso.',
           extra: error.message || '',
         })
       );

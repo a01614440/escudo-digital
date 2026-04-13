@@ -59,7 +59,7 @@ describe('immersive activity utilities', () => {
 
     assert.equal(result.correct, 1);
     assert.equal(result.total, 2);
-    assert.equal(result.score, 0.5);
+    assert.equal(Number(result.score.toFixed(2)), 0.33);
     assert.equal(result.review[1].status, 'missed');
     assert.match(result.feedback.signal, /1 de 2/);
   });
@@ -77,7 +77,7 @@ describe('immersive activity utilities', () => {
       correctDecision: 1,
     });
 
-    assert.ok(score > 0.5 && score < 1);
+    assert.ok(score >= 0.4 && score < 0.7);
   });
 
   test('resolves next scenario step without looping answered nodes', () => {

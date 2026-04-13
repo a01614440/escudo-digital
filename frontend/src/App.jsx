@@ -179,6 +179,16 @@ export default function App() {
   }, [auth.currentUser?.role, course.currentView]);
 
   useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [course.currentView, assessment.surveyStage, course.currentLesson.moduleIndex]);
+
+  useEffect(() => {
     if (!assessment.assessment || !auth.currentUser || course.generatingCourse) return;
 
     const currentScope = course.coursePlan?.planScope === 'admin_full' ? 'admin_full' : 'standard';
@@ -244,11 +254,13 @@ export default function App() {
         {course.currentView === 'survey' ? (
           <SurveyView
             viewport={responsive.viewport}
+            currentView={course.currentView}
             answers={assessment.answers}
             visibleQuestions={assessment.visibleQuestions}
             surveyIndex={assessment.surveyIndex}
             surveyStage={assessment.surveyStage}
             assessment={assessment.assessment}
+            courseError={course.courseError}
             resultLead={
               assessment.assessment?.resumen ||
               'Te mostraremos un resumen claro de tu riesgo y de la ruta que mejor encaja contigo.'
@@ -273,6 +285,7 @@ export default function App() {
         {course.currentView === 'courses' ? (
           <CoursesView
             viewport={responsive.viewport}
+            currentView={course.currentView}
             answers={assessment.answers}
             assessment={assessment.assessment}
             coursePlan={course.coursePlan}
@@ -299,6 +312,7 @@ export default function App() {
           <LessonView
             viewport={responsive.viewport}
             coursePlan={course.coursePlan}
+            courseProgress={course.courseProgress}
             currentLesson={course.currentLesson}
             answers={assessment.answers}
             assessment={assessment.assessment}

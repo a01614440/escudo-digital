@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { feedbackRatingLabel, feedbackToText, repairPossibleMojibake } from '../../lib/course.js';
+import { feedbackToText, repairPossibleMojibake } from '../../lib/course.js';
+import {
+  getDecisionRatingLabel,
+  scoreChoiceDecision,
+  scoreSelectionAccuracy,
+} from '../../lib/activityScoring.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
 import {
@@ -30,12 +35,10 @@ export function WhatsAppSimulation({
   const userTurns = history.filter((message) => message.role === 'user').length;
   const contactName = repairPossibleMojibake(activity.contactName || 'Contacto desconocido');
   const contactStatus = repairPossibleMojibake(activity.contactStatus || 'en línea');
-  const avatarLabel = repairPossibleMojibake(
-    activity.avatarLabel || contactName.slice(0, 2).toUpperCase() || 'WA'
-  );
+  const avatarLabel = repairPossibleMojibake(activity.avatarLabel || contactName.slice(0, 2).toUpperCase() || 'WA');
   const threatNote =
     userTurns > 0
-      ? 'El estafador ya consiguió mantenerte dentro del chat. Tu meta ahora es cerrar el canal sin justificarte de más.'
+      ? 'El atacante ya logró mantenerte en el chat. Tu meta ahora es cerrar el canal sin justificarte de más.'
       : 'La presión empieza desde el primer mensaje. Responde como si fuera un chat real, pero sin darle control a la conversación.';
 
   const chatTimestamp = (index) => {
@@ -47,17 +50,15 @@ export function WhatsAppSimulation({
   };
 
   const finishSimulation = () => {
-    const score = bestScore || (userTurns ? 0.72 : 0.45);
+    const score = bestScore || (userTurns ? 0.76 : 0.52);
     if (!feedback) {
       setFeedback(
         buildActivityFeedback({
-          title: feedbackRatingLabel(score),
+          title: getDecisionRatingLabel(score),
           score,
-          signal: 'Cerraste la conversación sin seguir el ritmo del estafador.',
-          risk:
-            'El mayor riesgo en este tipo de chat es quedarte resolviendo dentro del mismo canal.',
-          action:
-            'Corta la conversación y verifica por una llamada o canal oficial que tú controles.',
+          signal: 'Cerraste la conversación sin seguirle el ritmo al estafador.',
+          risk: 'El mayor riesgo aquí era quedarte resolviendo dentro del mismo chat y darle más contexto al atacante.',
+          action: 'En la vida real, corta la conversación y verifica por una llamada o canal oficial que tú controles.',
           extra: 'Usa un cierre corto, firme y sin justificarte demasiado.',
         })
       );
@@ -93,14 +94,14 @@ export function WhatsAppSimulation({
       setHistory(responseHistory);
       setFeedback(
         buildActivityFeedback({
-          title: response?.rating || feedbackRatingLabel(score),
+          title: getDecisionRatingLabel(score),
           score,
           signal:
             response?.signal_detected ||
-            'La conversación mete presión para que resuelvas dentro del mismo chat.',
+            'Notaste parte de la presión y no dejaste que el chat definiera toda la decisión.',
           risk:
             response?.risk ||
-            'Si sigues en el mismo canal, el estafador controla el contexto y tu decisión.',
+            'Aquí sigue faltando sacar la conversación del canal donde el atacante controla el ritmo.',
           action:
             response?.safe_action ||
             'Detén la conversación y verifica por un canal oficial que tú controles.',
@@ -111,10 +112,11 @@ export function WhatsAppSimulation({
     } catch (error) {
       setFeedback(
         buildActivityFeedback({
-          title: 'Sin respuesta',
-          signal: 'No pudimos continuar la simulación en este momento.',
-          action:
-            'Reintenta o continua aplicando la regla: pausa y verifica por un canal oficial.',
+          title: 'Riesgosa',
+          score: 0.55,
+          signal: 'La simulación se interrumpió, pero la regla segura no cambia.',
+          risk: 'Si sigues respondiendo dentro del mismo chat, el atacante mantiene el control del contexto.',
+          action: 'Reintenta o continúa aplicando la misma regla: pausa y verifica por un canal oficial.',
           extra: error.message || '',
         })
       );
@@ -145,6 +147,7 @@ export function WhatsAppSimulation({
           },
         ]}
       />
+
       <div className="wa-experience">
         <aside className="wa-side-panel">
           <p className="eyebrow">Qué estás entrenando</p>
@@ -165,6 +168,7 @@ export function WhatsAppSimulation({
             </article>
           </div>
         </aside>
+
         <div className="wa-phone wa-phone-pro">
           <div className="wa-device-bar">
             <span>9:41</span>
@@ -191,10 +195,7 @@ export function WhatsAppSimulation({
           </div>
           <div className="wa-screen">
             {history.map((message, index) => (
-              <div
-                className={`wa-row ${message.role === 'user' ? 'user' : 'bot'}`}
-                key={`${message.role}-${index}`}
-              >
+              <div className={`wa-row ${message.role === 'user' ? 'user' : 'bot'}`} key={`${message.role}-${index}`}>
                 <div className={`wa-bubble ${message.role === 'user' ? 'user' : 'bot'}`}>
                   <p>{repairPossibleMojibake(message.content)}</p>
                   <span className="wa-bubble-time">{chatTimestamp(index)}</span>
@@ -223,17 +224,13 @@ export function WhatsAppSimulation({
               placeholder="Escribe una respuesta breve, firme y segura"
               disabled={busy || done}
             />
-            <button
-              className="btn primary"
-              type="button"
-              disabled={busy || done}
-              onClick={() => sendMessage()}
-            >
+            <button className="btn primary" type="button" disabled={busy || done} onClick={() => sendMessage()}>
               {busy ? 'Enviando...' : 'Enviar'}
             </button>
           </div>
         </div>
       </div>
+
       <FeedbackPanel feedback={feedback} />
       <div className="activity-actions">
         {!done && userTurns > 0 ? (
@@ -249,7 +246,7 @@ export function WhatsAppSimulation({
               completeActivity(
                 startedAtRef,
                 onComplete,
-                bestScore || 0.6,
+                bestScore || 0.68,
                 feedbackToText(feedback || 'Simulación completada.'),
                 { history, turns }
               )
@@ -263,7 +260,7 @@ export function WhatsAppSimulation({
   );
 }
 
-export function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
+export function CompareDomainsActivity({ module, activity, startedAtRef, onComplete }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const domains = Array.isArray(activity.dominios) ? activity.dominios : [];
@@ -271,19 +268,23 @@ export function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
 
   const handleSelect = (index) => {
     if (selectedIndex !== null) return;
-    const isCorrect = index === correctIndex;
-    const score = isCorrect ? 1 : 0.45;
+    const score = scoreChoiceDecision({
+      isCorrect: index === correctIndex,
+      module,
+      selectedText: domains[index] || '',
+    });
+
     setSelectedIndex(index);
     setFeedback(
       buildActivityFeedback({
-        title: feedbackRatingLabel(score),
+        title: getDecisionRatingLabel(score),
         score,
-        signal: isCorrect
-          ? 'Elegiste el dominio más consistente para verificar por tu cuenta.'
-          : 'El dominio seguro suele ser el más simple y coherente con la marca real.',
+        signal:
+          index === correctIndex
+            ? 'Elegiste el dominio más consistente para verificar por tu cuenta.'
+            : 'Notaste parte del patrón, pero el dominio seguro suele ser el más simple y coherente con la marca real.',
         risk: 'Un cambio pequeño en letras o extensiones puede llevarte a una web clonada.',
-        action:
-          'Si dudas, no abras el enlace desde el mensaje. Escribe tú el dominio en el navegador.',
+        action: 'En la vida real, no abras el enlace desde el mensaje. Escribe tú mismo el dominio en el navegador.',
         extra: `${activity.explicacion || ''}${activity.tip ? ` Tip: ${activity.tip}` : ''}`.trim(),
       })
     );
@@ -306,16 +307,12 @@ export function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
           },
         ]}
       />
+
       <div className="option-grid">
         {domains.map((domain, index) => {
           const status =
-            selectedIndex === null
-              ? ''
-              : index === correctIndex
-                ? 'correct'
-                : selectedIndex === index
-                  ? 'wrong'
-                  : '';
+            selectedIndex === null ? '' : index === correctIndex ? 'correct' : selectedIndex === index ? 'wrong' : '';
+
           return (
             <button
               key={domain}
@@ -329,7 +326,9 @@ export function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
           );
         })}
       </div>
+
       <FeedbackPanel feedback={feedback} />
+
       <div className="activity-actions">
         {feedback ? (
           <>
@@ -340,7 +339,7 @@ export function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
                 completeActivity(
                   startedAtRef,
                   onComplete,
-                  selectedIndex === correctIndex ? 1 : 0.6,
+                  Number(feedback.score) || 0.6,
                   feedbackToText(feedback),
                   {
                     selectedDomain: domains[selectedIndex] || '',
@@ -370,7 +369,7 @@ export function CompareDomainsActivity({ activity, startedAtRef, onComplete }) {
   );
 }
 
-export function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
+export function SignalHuntActivity({ module, activity, startedAtRef, onComplete }) {
   const signals = Array.isArray(activity.senales) ? activity.senales : [];
   const [selected, setSelected] = useState(() => new Set());
   const [feedback, setFeedback] = useState(null);
@@ -387,46 +386,37 @@ export function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
   };
 
   const evaluate = () => {
-    const correctIds = new Set(
-      signals.filter((signal) => signal.correcta).map((signal) => signal.id)
-    );
-    let tp = 0;
-    let fp = 0;
-    let fn = 0;
-
-    selected.forEach((signalId) => {
-      if (correctIds.has(signalId)) tp += 1;
-      else fp += 1;
-    });
-    correctIds.forEach((signalId) => {
-      if (!selected.has(signalId)) fn += 1;
+    const correctSignals = signals.filter((signal) => signal.correcta);
+    const falsePositives = signals.filter((signal) => selected.has(signal.id) && !signal.correcta).length;
+    const falseNegatives = correctSignals.filter((signal) => !selected.has(signal.id)).length;
+    const foundCorrect = correctSignals.filter((signal) => selected.has(signal.id)).length;
+    const score = scoreSelectionAccuracy({
+      correctCount: foundCorrect,
+      falsePositives,
+      falseNegatives,
+      module,
+      minimumFloor: 0.3,
     });
 
-    const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
-    const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
-    const score =
-      precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
     const payload = buildActivityFeedback({
-      title: feedbackRatingLabel(score),
+      title: getDecisionRatingLabel(score),
       score,
-      signal: `Encontraste ${tp} de ${correctIds.size || 1} señales relevantes.`,
-      risk:
-        'Cuando una señal pasa desapercibida, es más fácil que el mensaje te arrastre al siguiente paso.',
+      signal: `Detectaste ${foundCorrect} de ${correctSignals.length || 1} señales realmente relevantes.`,
+      risk: 'Aquí importa más no dejar pasar las señales críticas que marcar todo por duda.',
       action:
         activity.accion ||
-        'Detén la conversación y verifica por el canal oficial antes de abrir links, pagar o responder.',
-      detected: signals
-        .filter((signal) => selected.has(signal.id) && signal.correcta)
-        .map((signal) => signal.label),
-      missed: signals
-        .filter((signal) => signal.correcta && !selected.has(signal.id))
-        .map((signal) => signal.label),
+        'En la vida real, detén la conversación y verifica por un canal oficial antes de abrir enlaces, pagar o responder.',
+      detected: signals.filter((signal) => selected.has(signal.id) && signal.correcta).map((signal) => signal.label),
+      missed: signals.filter((signal) => signal.correcta && !selected.has(signal.id)).map((signal) => signal.label),
+      extra:
+        falsePositives > 0
+          ? 'Marcaste alguna señal extra, pero el foco sigue siendo detectar las que sí cambian la decisión.'
+          : 'Buena precisión: te concentraste en las señales con más impacto.',
     });
+
     setResult({
       score,
-      selectedSignals: signals
-        .filter((signal) => selected.has(signal.id))
-        .map((signal) => signal.label),
+      selectedSignals: signals.filter((signal) => selected.has(signal.id)).map((signal) => signal.label),
     });
     setFeedback(payload);
   };
@@ -444,9 +434,7 @@ export function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
           {
             label: 'Marcadas',
             value: selected.size,
-            caption: result
-              ? `Resultado ${formatPercent(result.score)}`
-              : 'Puedes tocar una señal otra vez para quitarla.',
+            caption: result ? `Resultado ${formatPercent(result.score)}` : 'Puedes tocar una señal otra vez para quitarla.',
           },
         ]}
       />
@@ -462,6 +450,7 @@ export function SignalHuntActivity({ activity, startedAtRef, onComplete }) {
                   ? 'missed'
                   : ''
             : '';
+
           return (
             <label className={`signal-row ${stateClass}`.trim()} key={signal.id}>
               <input

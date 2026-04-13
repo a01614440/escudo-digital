@@ -1,24 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { feedbackRatingLabel, feedbackToText } from '../../../lib/course.js';
+import { feedbackToText } from '../../../lib/course.js';
+import { getDecisionRatingLabel } from '../../../lib/activityScoring.js';
 import { cn } from '../../../lib/ui.js';
 import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
-import {
-  ActivitySummaryBar,
-  buildActivityFeedback,
-  completeActivity,
-  formatPercent,
-} from '../sharedActivityUi.jsx';
-import {
-  ImmersiveAsidePanel,
-  ImmersivePanel,
-} from './immersivePrimitives.jsx';
+import { ActivitySummaryBar, buildActivityFeedback, completeActivity } from '../sharedActivityUi.jsx';
+import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';
 import { cleanText, TARGET_LABELS } from './shared.js';
-import {
-  buildWebLabHotspots,
-  buildWebLabPage,
-  scoreHotspots,
-} from './webLabActivityUtils.js';
+import { buildWebLabHotspots, buildWebLabPage, scoreHotspots } from './webLabActivityUtils.js';
 
 function formatCountdown(seconds) {
   return `${String(Math.floor(Math.max(0, seconds) / 60)).padStart(2, '0')}:${String(
@@ -26,12 +15,25 @@ function formatCountdown(seconds) {
   ).padStart(2, '0')}`;
 }
 
-export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
+function getSelectionTone(target, flagged, neutralTargets, hotspotMap) {
+  if (flagged.has(target)) {
+    const hotspot = hotspotMap.get(target);
+    return hotspot?.severity === 'critical' ? 'critical' : 'suspicious';
+  }
+  if (neutralTargets.has(target)) return 'neutral';
+  return 'idle';
+}
+
+export default function WebLabActivity({ module, activity, startedAtRef, onComplete }) {
   const page = useMemo(() => buildWebLabPage(activity), [activity]);
   const hotspots = useMemo(() => buildWebLabHotspots(activity), [activity]);
-  const hotspotMap = useMemo(
-    () => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])),
-    [hotspots]
+  const hotspotMap = useMemo(() => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])), [hotspots]);
+  const decisionOptions = useMemo(
+    () =>
+      Array.isArray(activity?.decisionOptions)
+        ? activity.decisionOptions.map((item) => cleanText(item)).filter(Boolean)
+        : [],
+    [activity]
   );
   const targetLabels = useMemo(() => {
     const next = { ...TARGET_LABELS };
@@ -40,13 +42,6 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
     });
     return next;
   }, [page.productos]);
-  const decisionOptions = useMemo(
-    () =>
-      Array.isArray(activity?.decisionOptions)
-        ? activity.decisionOptions.map((item) => cleanText(item)).filter(Boolean)
-        : [],
-    [activity]
-  );
 
   const [stage, setStage] = useState('product');
   const [flagged, setFlagged] = useState(() => new Set());
@@ -56,10 +51,17 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
   const [result, setResult] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [countdown, setCountdown] = useState(754);
-  const [selectedTarget, setSelectedTarget] = useState('');
+  const [selectedTarget, setSelectedTarget] = useState('domain');
   const timerRef = useRef(null);
+
   const correctHotspots = hotspots.filter((hotspot) => hotspot.correcta);
   const goalCount = Math.max(1, correctHotspots.length);
+  const foundLabels = Array.from(flagged).map((target) => hotspotMap.get(target)?.label || targetLabels[target] || target);
+  const selectedHotspot = hotspotMap.get(selectedTarget) || null;
+  const selectedNote =
+    selectedHotspot?.explicacion || 'Selecciona una parte del sitio para ver por qué sería o no una señal real.';
+  const cartPreview = cartItems.length ? cartItems : page.productos.slice(0, 1);
+  const exampleHotspot = correctHotspots[0] || null;
 
   useEffect(() => {
     timerRef.current = window.setInterval(() => {
@@ -78,10 +80,10 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
     setFeedback(null);
     setResult(null);
     setCartItems([]);
-    setSelectedTarget('');
+    setSelectedTarget('domain');
   }, [activity?.id]);
 
-  const registerTarget = (target, fallbackText) => {
+  const registerTarget = (target, fallbackText = '') => {
     if (result) return;
     const hotspot = hotspotMap.get(target);
     setSelectedTarget(target);
@@ -107,48 +109,45 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
       else next.add(target);
       return next;
     });
+
     if (fallbackText && !hotspotMap.has(target)) {
       hotspotMap.set(target, {
         target,
         label: targetLabels[target] || target,
         explicacion: fallbackText,
         correcta: false,
+        severity: 'informational',
       });
     }
   };
 
   const evaluate = () => {
     const matched = correctHotspots.filter((hotspot) => flagged.has(hotspot.target));
-    const missed = correctHotspots
-      .filter((hotspot) => !flagged.has(hotspot.target))
-      .map((hotspot) => hotspot.label);
-    const wrong = Array.from(neutralTargets).map(
-      (target) => targetLabels[target] || hotspotMap.get(target)?.label || target
-    );
+    const missed = correctHotspots.filter((hotspot) => !flagged.has(hotspot.target)).map((hotspot) => hotspot.label);
+    const wrong = Array.from(neutralTargets).map((target) => targetLabels[target] || hotspotMap.get(target)?.label || target);
     const score = scoreHotspots({
       hotspots,
       flagged,
       neutralTargets,
+      module,
       decision,
       decisionOptions,
       correctDecision: activity?.correctDecision,
     });
-    const decisionLabel =
-      decision !== null && decisionOptions[decision]
-        ? decisionOptions[decision]
-        : 'Sin decisión final';
+    const decisionLabel = decision !== null && decisionOptions[decision] ? decisionOptions[decision] : 'Sin decisión final';
+
     const nextFeedback = buildActivityFeedback({
-      title: feedbackRatingLabel(score),
+      title: getDecisionRatingLabel(score),
       score,
-      signal: `Detectaste ${matched.length} de ${correctHotspots.length} señales relevantes dentro del sitio.`,
+      signal: `Detectaste ${matched.length} de ${correctHotspots.length} señales realmente relevantes dentro del sitio.`,
       risk:
-        'El riesgo aparece cuando un sitio mezcla urgencia, pagos inseguros, contacto ambiguo y políticas poco claras.',
+        'Aquí importaba priorizar dominio, pagos, políticas y presión al momento de pagar. Los detalles visuales por sí solos pesan menos.',
       action:
-        'Antes de pagar, valida dominio, empresa, políticas y método de pago por fuera del propio sitio.',
+        'En la vida real, antes de pagar, valida dominio, empresa, políticas y método de pago por fuera del propio sitio.',
       detected: matched.map((hotspot) => hotspot.label),
       missed: missed.slice(0, 5),
       extra: wrong.length
-        ? `También marcaste elementos que no eran señal clara: ${wrong.join(' | ')}. Decisión final: ${decisionLabel}.`
+        ? `Marcaste algunos elementos dudosos de más: ${wrong.join(' | ')}. Decisión final: ${decisionLabel}.`
         : `Decisión final: ${decisionLabel}.`,
     });
 
@@ -157,19 +156,36 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
       matched,
       missed,
       wrong,
-      expectedCount: correctHotspots.length,
       decisionLabel,
     });
     setFeedback(nextFeedback);
   };
 
-  const selectedNote =
-    hotspotMap.get(selectedTarget)?.explicacion ||
-    'Selecciona una parte del sitio para ver la pista.';
-  const foundLabels = Array.from(flagged).map(
-    (target) => hotspotMap.get(target)?.label || targetLabels[target] || target
-  );
-  const cartPreview = cartItems.length ? cartItems : page.productos.slice(0, 1);
+  const renderSelectableCard = (target, title, body, className = '') => {
+    const tone = getSelectionTone(target, flagged, neutralTargets, hotspotMap);
+
+    return (
+      <button
+        className={cn(
+          'rounded-[22px] border px-4 py-4 text-left transition',
+          tone === 'critical'
+            ? 'border-rose-300 bg-rose-50/90'
+            : tone === 'suspicious'
+              ? 'border-amber-300 bg-amber-50/90'
+              : tone === 'neutral'
+                ? 'border-slate-300 bg-slate-50/90'
+                : 'border-sd-border bg-white/78 hover:-translate-y-0.5 hover:bg-white',
+          className
+        )}
+        type="button"
+        onClick={() => registerTarget(target, body)}
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">{title}</span>
+        <strong className="mt-2 block text-base text-sd-text">{targetLabels[target] || title}</strong>
+        <p className="mt-2 text-sm leading-6 text-sd-muted">{body}</p>
+      </button>
+    );
+  };
 
   return (
     <>
@@ -183,42 +199,60 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
           {
             label: 'Hallazgos',
             value: `${flagged.size}/${goalCount}`,
-            caption: 'Busca precisión: no hace falta marcar todo.',
+            caption: 'Marca solo las señales más peligrosas.',
           },
           {
             label: 'Decisión',
-            value:
-              decision !== null && decisionOptions[decision]
-                ? decisionOptions[decision]
-                : 'Pendiente',
+            value: decision !== null && decisionOptions[decision] ? decisionOptions[decision] : 'Pendiente',
             caption: 'Tu decisión final también cuenta.',
           },
         ]}
       />
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+        <ImmersivePanel className="bg-gradient-to-br from-white via-slate-50 to-rose-50/75">
+          <p className="eyebrow">Antes de empezar</p>
+          <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Marca solo las señales más peligrosas</h3>
+          <p className="mt-3 max-w-[64ch] text-sm leading-6 text-sd-muted">
+            No hace falta tocar todo. Aquí importa distinguir entre una señal sospechosa y una crítica:
+            dominio, pagos, políticas y presión al momento de pagar pesan más que un detalle visual aislado.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full bg-rose-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-700">Señal crítica</span>
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">Señal sospechosa</span>
+          </div>
+        </ImmersivePanel>
+
+        <ImmersiveAsidePanel
+          eyebrow="Ejemplo resuelto"
+          title={exampleHotspot?.label || 'Dominio visible'}
+          body={exampleHotspot?.explicacion || 'Si el dominio no coincide con la marca o con una ruta oficial, esa sola señal ya merece detenerte.'}
+        >
+          <div className="rounded-[18px] border border-emerald-200 bg-emerald-50/85 px-4 py-3 text-sm text-emerald-900">
+            Primero detecta lo que sí cambiaría tu decisión real. Después revisa detalles secundarios.
+          </div>
+        </ImmersiveAsidePanel>
+      </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,0.9fr)]">
         <ImmersivePanel>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="eyebrow">Laboratorio web</p>
-              <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">
-                Explora una tienda antes de confiar
-              </h3>
+              <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Explora una tienda antes de confiar</h3>
               <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-muted">{page.heroBody}</p>
             </div>
             <div className="grid gap-2 sm:text-right">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                {page.browserTitle}
-              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">{page.browserTitle}</span>
               <button
-                className="rounded-full border border-sd-border bg-white/85 px-4 py-2 text-sm font-medium text-sd-text"
+                className={cn(
+                  'rounded-full border px-4 py-2 text-sm font-medium',
+                  getSelectionTone('domain', flagged, neutralTargets, hotspotMap) === 'critical'
+                    ? 'border-rose-300 bg-rose-50 text-rose-800'
+                    : 'border-sd-border bg-white/85 text-sd-text'
+                )}
                 type="button"
-                onClick={() =>
-                  registerTarget(
-                    'domain',
-                    'El dominio visible es uno de los primeros puntos que conviene revisar.'
-                  )
-                }
+                onClick={() => registerTarget('domain', 'El dominio visible es uno de los primeros puntos que conviene revisar.')}
               >
                 {page.dominio}
               </button>
@@ -231,13 +265,7 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
               ['cart', 'Carrito'],
               ['checkout', 'Checkout'],
             ].map(([value, label]) => (
-              <Button
-                key={value}
-                variant={stage === value ? 'primary' : 'ghost'}
-                size="compact"
-                type="button"
-                onClick={() => setStage(value)}
-              >
+              <Button key={value} variant={stage === value ? 'primary' : 'ghost'} size="compact" type="button" onClick={() => setStage(value)}>
                 {label}
               </Button>
             ))}
@@ -249,90 +277,32 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 <div className="rounded-[26px] border border-sd-border bg-gradient-to-br from-sky-50 via-white to-sd-accent-soft p-5">
                   <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-accent">
-                        {page.sealLabel}
-                      </p>
-                      <h4 className="mt-2 font-display text-2xl tracking-[-0.04em] text-sd-text">
-                        {page.heroTitle}
-                      </h4>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-accent">{page.sealLabel}</p>
+                      <h4 className="mt-2 font-display text-2xl tracking-[-0.04em] text-sd-text">{page.heroTitle}</h4>
                     </div>
-                    <button
-                      className="rounded-[22px] border border-sd-border bg-white/80 px-4 py-4 text-left"
-                      type="button"
-                      onClick={() =>
-                        registerTarget(
-                          'banner',
-                          'La cuenta regresiva por sí sola no basta. Mira si también te presiona a actuar hoy.'
-                        )
-                      }
-                    >
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                        Termina en
-                      </span>
-                      <strong className="mt-2 block text-2xl text-sd-text">
-                        {formatCountdown(countdown)}
-                      </strong>
-                    </button>
+                    {renderSelectableCard('banner', 'Termina en', formatCountdown(countdown), 'bg-white/80')}
                   </div>
                 </div>
                 <div className="grid gap-3">
-                  <button
-                    className="rounded-[22px] border border-sd-border bg-white/75 px-4 py-4 text-left"
-                    type="button"
-                    onClick={() =>
-                      registerTarget(
-                        'contacto',
-                        'Revisa si aparece empresa, soporte verificable y un canal claro.'
-                      )
-                    }
-                  >
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                      Atención
-                    </span>
-                    <strong className="mt-2 block text-base text-sd-text">{page.contacto}</strong>
-                  </button>
-                  <button
-                    className="rounded-[22px] border border-sd-border bg-white/75 px-4 py-4 text-left"
-                    type="button"
-                    onClick={() =>
-                      registerTarget(
-                        'shipping',
-                        'Un cargo de protección puede ser ambiguo si no explica qué cubre.'
-                      )
-                    }
-                  >
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                      Envío
-                    </span>
-                    <strong className="mt-2 block text-base text-sd-text">{page.shipping}</strong>
-                  </button>
+                  {renderSelectableCard('contacto', 'Atención', page.contacto)}
+                  {renderSelectableCard('shipping', 'Envío', page.shipping)}
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {page.productos.map((product, index) => (
-                  <article
-                    className="rounded-[24px] border border-sd-border bg-white/80 p-4"
-                    key={`${product.nombre}-${index}`}
-                  >
+                  <article className="rounded-[24px] border border-sd-border bg-white/80 p-4" key={`${product.nombre}-${index}`}>
                     <button
                       className="flex h-36 w-full items-center justify-center rounded-[20px] border border-sd-border bg-slate-50 text-4xl font-display text-sd-text"
                       type="button"
-                      onClick={() =>
-                        registerTarget(
-                          `product_${index}`,
-                          'El producto por sí solo no confirma fraude. Lo importante es revisar pagos, dominio, urgencia y políticas.'
-                        )
-                      }
+                      onClick={() => registerTarget(`product_${index}`, 'El producto por sí solo no confirma fraude. Revisa dominio, pagos, urgencia y políticas.')}
                     >
                       {(product.nombre || 'P').slice(0, 1)}
                     </button>
                     <div className="mt-4">
                       <div className="flex items-start justify-between gap-3">
                         <strong className="text-base text-sd-text">{product.nombre}</strong>
-                        <span className="rounded-full bg-sd-accent-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-accent">
-                          {product.badge}
-                        </span>
+                        <span className="rounded-full bg-sd-accent-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-accent">{product.badge}</span>
                       </div>
                       <p className="mt-2 flex items-center gap-2 text-sm text-sd-muted">
                         {product.antes ? <span className="line-through">{product.antes}</span> : null}
@@ -340,12 +310,7 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
                       </p>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Button
-                        variant="ghost"
-                        size="compact"
-                        type="button"
-                        onClick={() => registerTarget(`product_${index}`)}
-                      >
+                      <Button variant="ghost" size="compact" type="button" onClick={() => registerTarget(`product_${index}`)}>
                         Revisar producto
                       </Button>
                       <Button
@@ -353,11 +318,7 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
                         size="compact"
                         type="button"
                         onClick={() => {
-                          setCartItems((current) =>
-                            current.some((item) => item.cartId === `product-${index}`)
-                              ? current
-                              : [...current, { ...product, cartId: `product-${index}` }]
-                          );
+                          setCartItems((current) => current.some((item) => item.cartId === `product-${index}`) ? current : [...current, { ...product, cartId: `product-${index}` }]);
                           setStage('cart');
                         }}
                       >
@@ -376,13 +337,8 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 <p className="eyebrow">Carrito reservado</p>
                 <div className="mt-4 space-y-3">
                   {cartPreview.map((item, index) => (
-                    <article
-                      className="flex items-center gap-4 rounded-[22px] border border-sd-border bg-white/70 px-4 py-4"
-                      key={item.cartId || `${item.nombre}-${index}`}
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-slate-100 text-lg font-display text-sd-text">
-                        {(item.nombre || 'P').slice(0, 1)}
-                      </div>
+                    <article className="flex items-center gap-4 rounded-[22px] border border-sd-border bg-white/70 px-4 py-4" key={item.cartId || `${item.nombre}-${index}`}>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-slate-100 text-lg font-display text-sd-text">{(item.nombre || 'P').slice(0, 1)}</div>
                       <div className="min-w-0 flex-1">
                         <strong className="block truncate text-sd-text">{item.nombre}</strong>
                         <span className="text-sm text-sd-muted">{item.precio}</span>
@@ -392,38 +348,8 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
                 </div>
               </section>
               <aside className="grid gap-4">
-                <button
-                  className="rounded-[22px] border border-sd-border bg-white/75 px-4 py-4 text-left"
-                  type="button"
-                  onClick={() =>
-                    registerTarget(
-                      'shipping',
-                      'Aquí el costo extra y el discurso de protección están integrados para presionarte.'
-                    )
-                  }
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                    Cargo extra
-                  </span>
-                  <strong className="mt-2 block text-base text-sd-text">{page.shipping}</strong>
-                </button>
-                <button
-                  className="rounded-[22px] border border-sd-border bg-white/75 px-4 py-4 text-left"
-                  type="button"
-                  onClick={() =>
-                    registerTarget(
-                      'order_summary',
-                      'El resumen por sí solo no es una señal clara; la alerta está en pagos, urgencia y políticas.'
-                    )
-                  }
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                    Resumen
-                  </span>
-                  <strong className="mt-2 block text-base text-sd-text">
-                    {cartPreview[0]?.precio || '$0'}
-                  </strong>
-                </button>
+                {renderSelectableCard('shipping', 'Cargo extra', page.shipping)}
+                {renderSelectableCard('order_summary', 'Resumen', cartPreview[0]?.precio || '$0')}
               </aside>
             </div>
           ) : null}
@@ -438,141 +364,77 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
                       className="rounded-[20px] border border-sd-border bg-white/70 px-4 py-4 text-left text-sm text-sd-text"
                       key={field}
                       type="button"
-                      onClick={() =>
-                        registerTarget(
-                          'address_form',
-                          'Pedir datos de envío es normal. La alerta principal suele estar en pagos, urgencia y políticas.'
-                        )
-                      }
+                      onClick={() => registerTarget('address_form', 'Pedir datos de envío es normal. La alerta principal suele estar en pagos, urgencia y políticas.')}
                     >
                       {field}
                     </button>
                   ))}
                 </div>
-                <button
-                  className="mt-4 w-full rounded-[22px] border border-amber-300/70 bg-amber-50/90 px-4 py-4 text-left"
-                  type="button"
-                  onClick={() =>
-                    registerTarget(
-                      'banner',
-                      'Aquí la urgencia está integrada en el momento final para empujarte a pagar.'
-                    )
-                  }
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">
-                    Presión final
-                  </span>
-                  <strong className="mt-2 block text-base text-sd-text">{page.checkoutPrompt}</strong>
-                </button>
+                {renderSelectableCard('banner', 'Presión final', page.checkoutPrompt, 'mt-4 w-full')}
               </section>
               <aside className="grid gap-4">
-                <button
-                  className="rounded-[22px] border border-sd-border bg-white/75 px-4 py-4 text-left"
-                  type="button"
-                  onClick={() =>
-                    registerTarget(
-                      'pago',
-                      'Revisa si el método de pago te quita protección o te saca a una ruta externa.'
-                    )
-                  }
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                    Pago
-                  </span>
-                  <strong className="mt-2 block text-base text-sd-text">
-                    {page.pagos.join(' · ')}
-                  </strong>
-                </button>
-                <button
-                  className="rounded-[22px] border border-sd-border bg-white/75 px-4 py-4 text-left"
-                  type="button"
-                  onClick={() =>
-                    registerTarget(
-                      'policy',
-                      'Una política ambigua te deja sin respaldo si algo sale mal.'
-                    )
-                  }
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                    Políticas
-                  </span>
-                  <strong className="mt-2 block text-base text-sd-text">{page.policy}</strong>
-                </button>
+                {renderSelectableCard('pago', 'Pago', page.pagos.join(' · '))}
+                {renderSelectableCard('policy', 'Políticas', page.policy)}
               </aside>
             </div>
-          ) : null}
-
-          {decisionOptions.length ? (
-            <section className="mt-5 rounded-[24px] border border-sd-border bg-white/70 p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="eyebrow">Decisión final</p>
-                  <h4 className="text-lg font-semibold text-sd-text">
-                    {cleanText(activity?.decisionPrompt || '¿Qué harías con este sitio?')}
-                  </h4>
-                </div>
-                <span className="text-xs uppercase tracking-[0.14em] text-sd-muted">
-                  Se evalúa junto con tus hallazgos
-                </span>
-              </div>
-              <div className="mt-4 grid gap-3 lg:grid-cols-3">
-                {decisionOptions.map((option, index) => (
-                  <button
-                    className={cn(
-                      'rounded-[20px] border px-4 py-4 text-left text-sm transition',
-                      decision === index
-                        ? 'border-sd-accent bg-sd-accent-soft text-sd-text'
-                        : 'border-sd-border bg-white/75 text-sd-text hover:bg-white'
-                    )}
-                    disabled={Boolean(result)}
-                    key={option}
-                    type="button"
-                    onClick={() => setDecision(index)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </section>
           ) : null}
         </ImmersivePanel>
 
         <aside className="grid gap-4">
-          <ImmersiveAsidePanel eyebrow="Hallazgos detectados">
-            <div className="flex items-center justify-between gap-3">
-              <strong className="text-lg text-sd-text">{`${flagged.size}/${goalCount}`}</strong>
-              <span className="text-xs uppercase tracking-[0.14em] text-sd-muted">
-                Meta sugerida
-              </span>
-            </div>
-            <div className="mt-4 h-2 rounded-full bg-slate-100">
+          <ImmersiveAsidePanel eyebrow="Pista activa" title={targetLabels[selectedTarget] || 'Selecciona una parte del sitio'} body={selectedNote}>
+            {selectedHotspot ? (
               <div
-                className="h-full rounded-full bg-sd-accent transition-all"
-                style={{ width: `${Math.min(100, Math.round((flagged.size / goalCount) * 100))}%` }}
-              />
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-sd-muted">
-              {foundLabels.length ? (
-                foundLabels.map((item) => (
-                  <p key={item} className="rounded-[16px] bg-white/80 px-3 py-2 text-sd-text">
-                    {item}
-                  </p>
-                ))
-              ) : (
-                <p>Aún no has marcado ninguna alerta.</p>
-              )}
-            </div>
+                className={cn(
+                  'rounded-[18px] px-4 py-3 text-sm font-medium',
+                  selectedHotspot.correcta
+                    ? selectedHotspot.severity === 'critical'
+                      ? 'border border-rose-300 bg-rose-50/90 text-rose-900'
+                      : 'border border-amber-300 bg-amber-50/90 text-amber-900'
+                    : 'border border-slate-200 bg-slate-50/90 text-slate-700'
+                )}
+              >
+                {selectedHotspot.correcta
+                  ? selectedHotspot.severity === 'critical'
+                    ? 'La marcaste como señal crítica.'
+                    : 'La marcaste como señal sospechosa.'
+                  : 'Este punto por sí solo no era una señal fuerte.'}
+              </div>
+            ) : null}
           </ImmersiveAsidePanel>
 
-          <ImmersiveAsidePanel
-            eyebrow="Foco actual"
-            title={
-              targetLabels[selectedTarget] ||
-              hotspotMap.get(selectedTarget)?.label ||
-              'Selecciona una parte del sitio'
-            }
-            body={selectedNote}
-          />
+          <ImmersiveAsidePanel eyebrow="Hallazgos" title={`${flagged.size}/${goalCount} señales marcadas`} body="Busca precisión: primero lo crítico, luego lo dudoso.">
+            {foundLabels.length ? (
+              <div className="flex flex-wrap gap-2">
+                {foundLabels.map((label) => (
+                  <span key={label} className="rounded-full bg-sd-accent-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-accent">
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-sd-muted">Aún no has marcado una señal importante.</p>
+            )}
+          </ImmersiveAsidePanel>
+
+          <ImmersiveAsidePanel eyebrow="Decisión final" title="¿Seguirías con esta compra?" body="Tu decisión debe reflejar lo que harías en la vida real después de revisar el sitio.">
+            <div className="grid gap-3">
+              {decisionOptions.map((option, index) => (
+                <Button key={option} variant={decision === index ? 'primary' : 'ghost'} type="button" onClick={() => setDecision(index)} disabled={Boolean(result)}>
+                  {option}
+                </Button>
+              ))}
+            </div>
+            {!result ? (
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button variant="primary" type="button" onClick={evaluate} disabled={decisionOptions.length > 0 && decision === null}>
+                  Evaluar decisión
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => setStage(stage === 'product' ? 'cart' : stage === 'cart' ? 'checkout' : 'product')}>
+                  {stage === 'product' ? 'Ir al carrito' : stage === 'cart' ? 'Ir al checkout' : 'Volver al producto'}
+                </Button>
+              </div>
+            ) : null}
+          </ImmersiveAsidePanel>
         </aside>
       </section>
 
@@ -582,59 +444,39 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
         <div className="review-grid">
           <article className="review-card correct">
             <div className="review-card-head">
-              <strong>Detectaste bien</strong>
-              <span>{`${result.matched.length}/${result.expectedCount}`}</span>
+              <strong>Score final</strong>
+              <span>{`${Math.round(result.score * 100)}%`}</span>
             </div>
-            <p>
-              {result.matched.length
-                ? result.matched.map((item) => item.label).join(' | ')
-                : 'No detectaste las señales clave esperadas en este sitio.'}
-            </p>
+            <p>Se premió más haber detectado las señales críticas que haber marcado todo por duda.</p>
           </article>
-          <article className={`review-card ${result.missed.length ? 'wrong' : 'correct'}`.trim()}>
+          <article className="review-card">
             <div className="review-card-head">
-              <strong>Te faltó revisar</strong>
-              <span>{result.missed.length}</span>
+              <strong>Señales detectadas</strong>
+              <span>{result.matched.length}</span>
             </div>
-            <p>
-              {result.missed.length
-                ? result.missed.join(' | ')
-                : 'Cubriste las señales principales.'}
-            </p>
-          </article>
-          <article className={`review-card ${result.wrong.length ? 'warn' : 'correct'}`.trim()}>
-            <div className="review-card-head">
-              <strong>Marcaste de más</strong>
-              <span>{result.wrong.length}</span>
-            </div>
-            <p>{result.wrong.length ? result.wrong.join(' | ') : 'Tus hallazgos fueron precisos.'}</p>
+            <p>{result.matched.length ? result.matched.map((item) => item.label).join(' · ') : 'No registraste señales claras.'}</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
               <strong>Decisión final</strong>
-              <span>{formatPercent(result.score)}</span>
+              <span>{result.decisionLabel}</span>
             </div>
-            <p>{result.decisionLabel}</p>
+            <p>La decisión final importa, pero no debería borrar un análisis razonable del sitio.</p>
           </article>
         </div>
       ) : null}
 
       <div className="activity-actions">
-        {!result ? (
-          <Button variant="primary" type="button" onClick={evaluate}>
-            Evaluar hallazgos
-          </Button>
-        ) : (
+        {result ? (
           <>
             <Button
               variant="primary"
               type="button"
               onClick={() =>
                 completeActivity(startedAtRef, onComplete, result.score, feedbackToText(feedback), {
-                  flaggedTargets: Array.from(flagged),
+                  flagged: Array.from(flagged),
                   neutralTargets: Array.from(neutralTargets),
                   decision,
-                  stage,
                 })
               }
             >
@@ -644,20 +486,18 @@ export default function WebLabActivity({ activity, startedAtRef, onComplete }) {
               variant="ghost"
               type="button"
               onClick={() => {
-                setStage('product');
                 setFlagged(new Set());
                 setNeutralTargets(new Set());
                 setDecision(null);
                 setFeedback(null);
                 setResult(null);
-                setCartItems([]);
-                setSelectedTarget('');
+                setSelectedTarget('domain');
               }}
             >
-              Reintentar simulación
+              Reintentar
             </Button>
           </>
-        )}
+        ) : null}
       </div>
     </>
   );

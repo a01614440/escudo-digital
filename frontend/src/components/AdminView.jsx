@@ -39,7 +39,7 @@ function AnalyticsBarPanel({
 
   return (
     <SurfaceCard padding="compact">
-      <p className="eyebrow">Analitica</p>
+      <p className="eyebrow">Analítica</p>
       <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-sd-text">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-sd-muted">{intro}</p>
 
@@ -63,7 +63,7 @@ function AnalyticsBarPanel({
           ))
         ) : (
           <div className="rounded-[22px] border border-dashed border-sd-border bg-white/55 px-4 py-5 text-sm text-sd-muted">
-            Todavia no hay suficientes datos para mostrar esta vista.
+            Todavía no hay suficientes datos para mostrar esta vista.
           </div>
         )}
       </div>
@@ -74,13 +74,13 @@ function AnalyticsBarPanel({
 function ResponsiveAnalyticsTable({ title, intro, rows, columns, compact = false }) {
   return (
     <SurfaceCard className="overflow-hidden">
-      <p className="eyebrow">Analitica</p>
+      <p className="eyebrow">Analítica</p>
       <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-sd-text">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-sd-muted">{intro}</p>
 
       {!rows.length ? (
         <div className="mt-5 rounded-[22px] border border-dashed border-sd-border bg-white/55 px-4 py-5 text-sm text-sd-muted">
-          Todavia no hay datos suficientes para esta tabla.
+          Todavía no hay datos suficientes para esta tabla.
         </div>
       ) : compact ? (
         <div className="mt-5 grid gap-3">
@@ -158,7 +158,7 @@ function LoadingState() {
     <SurfaceCard className="mx-auto max-w-4xl">
       <p className="eyebrow">Panel interno</p>
       <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-sd-text">
-        Cargando analitica
+        Cargando analítica
       </h2>
       <p className="mt-4 max-w-[60ch] text-sm leading-7 text-sd-muted sm:text-base">
         Estamos consultando la base real para recuperar indicadores, vulnerabilidades y avance.
@@ -205,16 +205,18 @@ export default function AdminView({
           >
             <div>
               <p className="eyebrow">Panel interno</p>
-              <h1 className="sd-title mt-3">Analitica del proyecto</h1>
+              <h1 className="sd-title mt-3">Analítica del proyecto</h1>
               <p className="mt-4 max-w-[62ch] text-sm leading-7 text-sd-muted sm:text-base">
-                Esta vista resume impacto, aprendizaje y puntos de friccion usando la base real de
-                PostgreSQL. La jerarquia se adapta para revisar rapido en movil y explorar con mas
-                contexto en tablet, laptop o desktop.
+                Esta vista resume impacto, aprendizaje y puntos de fricción usando la base real de
+                PostgreSQL. Empieza por usuarios más vulnerables, módulos con baja finalización y
+                temas donde el score promedio cae más.
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <Badge tone="accent">{loading ? 'Actualizando datos' : 'Datos en vivo'}</Badge>
-                <Badge tone="soft">{compact ? 'Resumen guiado para movil' : 'Vista amplia para analisis'}</Badge>
+                <Badge tone="soft">
+                  {compact ? 'Lectura rápida en móvil' : 'Vista amplia para análisis'}
+                </Badge>
                 {highlights[0] ? <Badge tone="neutral">{highlights[0].value}</Badge> : null}
               </div>
             </div>
@@ -225,8 +227,13 @@ export default function AdminView({
                   Vista administrativa
                 </p>
                 <p className="mt-3 text-sm leading-6 text-sd-text">
-                  Puedes refrescar la fotografia actual y exportar el snapshot sin salir del panel.
+                  Puedes refrescar la fotografía actual y exportar el snapshot sin salir del panel.
                 </p>
+                <div className="mt-4 grid gap-2 text-sm text-sd-muted">
+                  <p>1. Revisa primero dónde hay más usuarios en riesgo.</p>
+                  <p>2. Luego ubica módulos largos o con baja finalización.</p>
+                  <p>3. Cierra priorizando los temas con peor score promedio.</p>
+                </div>
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Button variant="ghost" type="button" onClick={onBack}>
                     Volver
@@ -267,11 +274,12 @@ export default function AdminView({
           <SurfaceCard>
             <p className="eyebrow">Sin datos</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-sd-text">
-              Todavia no hay analitica disponible
+              Todavía no hay analítica disponible
             </h2>
             <p className="mt-4 max-w-[60ch] text-sm leading-7 text-sd-muted sm:text-base">
-              Cuando haya uso suficiente de la plataforma, aqui veras aprendizaje, progreso y
-              vulnerabilidades agrupadas por tema.
+              Cuando haya uso suficiente de la plataforma, aquí verás aprendizaje, progreso y
+              vulnerabilidades agrupadas por tema. Si esperabas datos, intenta actualizar o exporta
+              el último snapshot disponible.
             </p>
           </SurfaceCard>
         ) : null}
@@ -296,26 +304,26 @@ export default function AdminView({
             <div className={cn('grid gap-4', compact ? 'grid-cols-1' : 'xl:grid-cols-2')}>
               <AnalyticsBarPanel
                 title="Usuarios por edad"
-                intro="Te ayuda a ver que segmentos estan usando mas la plataforma."
+                intro="Te ayuda a ver qué segmentos están usando más la plataforma."
                 items={analytics?.ageBuckets || []}
                 valueKey="count"
               />
               <AnalyticsBarPanel
                 title="Vulnerabilidad por tema"
-                intro="Muestra donde hay mas usuarios en riesgo para priorizar ajustes."
+                intro="Muestra dónde hay más usuarios en riesgo para priorizar ajustes."
                 items={analytics?.vulnerabilityByTopic || []}
                 valueKey="vulnerableCount"
               />
               <AnalyticsBarPanel
-                title="Desempeno por tema"
-                intro="Compara el score promedio entre categorias de aprendizaje."
+                title="Desempeño por tema"
+                intro="Compara el score promedio entre categorías de aprendizaje."
                 items={analytics?.topicPerformance || []}
                 valueKey="avgScore"
                 suffix="%"
               />
               <AnalyticsBarPanel
                 title="Mejora por edad"
-                intro="Permite detectar en que grupo etario se nota mas avance."
+                intro="Permite detectar en qué grupo etario se nota más avance."
                 items={analytics?.improvementByAge || []}
                 labelKey="age"
                 valueKey="avgImprovement"
@@ -326,12 +334,12 @@ export default function AdminView({
             <div className={cn('grid gap-4', compact ? 'grid-cols-1' : 'xl:grid-cols-2')}>
               <AnalyticsBarPanel
                 title="Mix de decisiones"
-                intro="Resume el tipo de respuesta que mas se esta tomando en las actividades."
+                intro="Resume el tipo de respuesta que más se está tomando en las actividades."
                 items={analytics?.decisionMix || []}
               />
               <AnalyticsBarPanel
-                title="Tiempo por modulo"
-                intro="Sirve para detectar modulos demasiado ligeros o demasiado pesados."
+                title="Tiempo por módulo"
+                intro="Sirve para detectar módulos demasiado ligeros o demasiado pesados."
                 items={analytics?.timeByModule || []}
                 labelKey="title"
                 valueKey="avgTimeMin"
@@ -340,12 +348,12 @@ export default function AdminView({
             </div>
 
             <ResponsiveAnalyticsTable
-              title="Rendimiento por modulo"
-              intro="En movil se muestra como tarjetas para reducir saturacion; en pantallas amplias vuelve a tabla."
+              title="Rendimiento por módulo"
+              intro="En móvil se muestra como tarjetas para reducir saturación; en pantallas amplias vuelve a tabla."
               rows={modulePerformanceRows}
               compact={compact}
               columns={[
-                { key: 'title', label: 'Modulo', format: (value) => cleanAnalyticsText(value) },
+                { key: 'title', label: 'Módulo', format: (value) => cleanAnalyticsText(value) },
                 { key: 'category', label: 'Tema', format: (value) => cleanAnalyticsText(value) },
                 { key: 'level', label: 'Nivel', format: (value) => cleanAnalyticsText(value) },
                 {
@@ -355,7 +363,7 @@ export default function AdminView({
                 },
                 {
                   key: 'completionRate',
-                  label: 'Finalizacion',
+                  label: 'Finalización',
                   format: (value) => formatAnalyticsValue(value, { suffix: '%' }),
                 },
                 {
@@ -368,7 +376,7 @@ export default function AdminView({
 
             <ResponsiveAnalyticsTable
               title="Resumen de usuarios"
-              intro="Conserva la lectura rapida en telefono y mas densidad informativa en tablet y desktop."
+              intro="Conserva la lectura rápida en teléfono y más densidad informativa en tablet y desktop."
               rows={userRows}
               compact={compact}
               columns={[

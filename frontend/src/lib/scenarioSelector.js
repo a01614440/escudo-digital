@@ -4,12 +4,12 @@ export const SIMULATION_GUIDES = {
   quiz: [
     'Lee el escenario completo antes de responder.',
     'Elige la opción más segura, no la más rápida.',
-    'Revisa el feedback para entender por qué esa decisión era mejor.',
+    'Usa el feedback para identificar qué señal cambió la decisión.',
   ],
   simulacion: [
     'Lee el escenario completo antes de responder.',
     'Elige la opción más segura, no la más rápida.',
-    'Revisa el feedback para entender por qué esa decisión era mejor.',
+    'Usa el feedback para identificar qué señal cambió la decisión.',
   ],
   sim_chat: [
     'Responde como si fuera una conversación real.',
@@ -19,21 +19,21 @@ export const SIMULATION_GUIDES = {
   compare_domains: [
     'Busca cambios mínimos en letras, terminaciones o estructura.',
     'El dominio más confiable suele ser el más simple y coherente.',
-    'Si sigues dudando, escribe tú mismo la dirección oficial.',
+    'Si sigues dudando, escríbelo tú mismo en el navegador.',
   ],
   signal_hunt: [
-    'Marca solo las señales que realmente indiquen riesgo.',
-    'No necesitas marcar todo: importa la precisión.',
-    'Piensa qué parte del mensaje te quiere presionar o engañar.',
+    'Marca solo las señales que realmente cambian la decisión.',
+    'No necesitas marcar todo: importa más la precisión.',
+    'Piensa qué parte del mensaje te quiere apurar, engañar o desviar.',
   ],
   inbox: [
-    'Abre el mensaje y revísalo antes de clasificarlo.',
+    'Abre el mensaje y revísalo completo antes de clasificarlo.',
     'Fíjate en remitente, asunto, cuerpo y enlaces visibles.',
     'No te guíes solo por el diseño: busca incoherencias concretas.',
   ],
   web_lab: [
-    'Recorre la página como si fueras a comprar o registrarte.',
-    'Marca hallazgos sospechosos mientras avanzas.',
+    'Recorre producto, carrito y checkout como si fueras a comprar.',
+    'Marca solo las señales más peligrosas y evita castigar detalles menores.',
     'Al final decide si seguirías o saldrías del sitio.',
   ],
   call_sim: [
@@ -83,30 +83,48 @@ export function moduleThemeMeta(module) {
       blurb:
         'Entrena respuestas firmes frente a suplantación, cobros urgentes y enlaces sospechosos dentro de un chat que se siente real.',
       badge: 'WhatsApp',
+      heroClass: 'from-emerald-50 via-white to-emerald-100/80',
+      accentClass: 'bg-emerald-100 text-emerald-800',
     },
     sms: {
       eyebrow: 'Bandeja móvil',
       blurb:
         'Lee SMS como lo harías en tu teléfono: detecta premios falsos, bloqueos, cobros y enlaces que quieren apurarte.',
       badge: 'SMS',
+      heroClass: 'from-sky-50 via-white to-cyan-100/80',
+      accentClass: 'bg-sky-100 text-sky-800',
     },
     correo_redes: {
       eyebrow: 'Inbox y phishing',
       blurb:
         'Analiza remitentes, asuntos, adjuntos y enlaces como si revisaras una bandeja real de correo o notificaciones sociales.',
       badge: 'Correo / Redes',
+      heroClass: 'from-violet-50 via-white to-fuchsia-100/70',
+      accentClass: 'bg-violet-100 text-violet-800',
     },
     llamadas: {
       eyebrow: 'Vishing y voz',
       blurb:
         'Practica llamadas convincentes donde lo importante es cortar el canal, no seguirle el juego al supuesto agente.',
       badge: 'Llamadas',
+      heroClass: 'from-amber-50 via-white to-orange-100/75',
+      accentClass: 'bg-amber-100 text-amber-800',
+    },
+    web: {
+      eyebrow: 'Sitios y páginas clonadas',
+      blurb:
+        'Recorre páginas como si fueras a comprar o iniciar sesión, pero con atención a dominio, pagos y políticas.',
+      badge: 'Web',
+      heroClass: 'from-slate-50 via-white to-rose-100/60',
+      accentClass: 'bg-rose-100 text-rose-800',
     },
     habitos: {
       eyebrow: 'Rutina de verificación',
       blurb:
         'Convierte decisiones seguras en una rutina corta, repetible y útil aunque el fraude cambie de canal o de tono.',
       badge: 'Hábitos',
+      heroClass: 'from-slate-50 via-white to-slate-100/80',
+      accentClass: 'bg-slate-200 text-slate-700',
     },
   };
 
