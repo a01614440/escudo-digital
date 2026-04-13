@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { formatDate } from '../lib/format.js';
+import Badge from './ui/Badge.jsx';
+import Button from './ui/Button.jsx';
+import SurfaceCard from './ui/SurfaceCard.jsx';
 
 const VIEW_LABELS = {
   survey: 'Encuesta',
@@ -26,28 +29,31 @@ export default function SessionBar({
 
   const navButtons = (
     <>
-      <button
-        className={`btn ghost ${currentView === 'survey' ? 'active' : ''}`}
+      <Button
+        variant="ghost"
+        active={currentView === 'survey'}
         type="button"
         onClick={() => onViewChange('survey')}
       >
         Encuesta
-      </button>
-      <button
-        className={`btn ghost ${currentView === 'courses' || currentView === 'lesson' ? 'active' : ''}`}
+      </Button>
+      <Button
+        variant="ghost"
+        active={currentView === 'courses' || currentView === 'lesson'}
         type="button"
         onClick={() => onViewChange('courses')}
       >
         Cursos
-      </button>
+      </Button>
       {isAdmin ? (
-        <button
-          className={`btn ghost ${currentView === 'admin' ? 'active' : ''}`}
+        <Button
+          variant="ghost"
+          active={currentView === 'admin'}
           type="button"
           onClick={() => onViewChange('admin')}
         >
           Panel interno
-        </button>
+        </Button>
       ) : null}
     </>
   );
@@ -55,31 +61,50 @@ export default function SessionBar({
   const utilityButtons = (
     <>
       {isAdmin ? (
-        <button
-          className={`btn ghost compact ${adminPreviewAsUser ? 'active' : ''}`}
+        <Button
+          variant="ghost"
+          size="compact"
+          active={adminPreviewAsUser}
           type="button"
           onClick={onToggleAdminPreview}
         >
           {adminPreviewAsUser ? 'Volver a modo admin' : 'Ver como usuario normal'}
-        </button>
+        </Button>
       ) : null}
-      <button className="btn ghost compact" type="button" onClick={onThemeToggle}>
+      <Button variant="ghost" size="compact" type="button" onClick={onThemeToggle}>
         {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-      </button>
-      <button className="btn ghost compact" type="button" onClick={() => setDetailsOpen((value) => !value)}>
+      </Button>
+      <Button
+        variant="ghost"
+        size="compact"
+        type="button"
+        onClick={() => setDetailsOpen((value) => !value)}
+      >
         {detailsOpen ? 'Ocultar cuenta' : 'Mi cuenta'}
-      </button>
+      </Button>
     </>
   );
 
   return (
-    <section className={`panel session-bar session-bar-compact viewport-${viewport}`}>
+    <SurfaceCard
+      padding="md"
+      className={`session-bar session-bar-compact viewport-${viewport} sd-page-shell`}
+    >
       <div className="session-main">
         <div className="session-identity">
           <p className="eyebrow">Cuenta</p>
-          <h2>{user?.email || 'usuario@correo.com'}</h2>
+          <h2 className="sd-title text-[1.7rem] sm:text-[2rem]">
+            {user?.email || 'usuario@correo.com'}
+          </h2>
           <p className="hint">{`Vista actual: ${activeViewLabel}`}</p>
-          {isCompact ? <span className="session-current-chip">{activeViewLabel}</span> : null}
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="accent">{activeViewLabel}</Badge>
+            {isAdmin ? (
+              <Badge tone={adminPreviewAsUser ? 'soft' : 'neutral'}>
+                {adminPreviewAsUser ? 'Preview usuario' : 'Admin'}
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
         {isCompact ? (
@@ -108,16 +133,20 @@ export default function SessionBar({
           {isAdmin ? (
             <div className="session-detail-card">
               <span>Modo admin</span>
-              <strong>{adminPreviewAsUser ? 'Vista de usuario normal' : 'Acceso libre a todos los módulos'}</strong>
+              <strong>
+                {adminPreviewAsUser
+                  ? 'Vista de usuario normal'
+                  : 'Acceso libre a todos los módulos'}
+              </strong>
             </div>
           ) : null}
           <div className="session-detail-actions">
-            <button className="btn primary" type="button" onClick={onLogout}>
+            <Button variant="primary" type="button" onClick={onLogout}>
               Cerrar sesión
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
-    </section>
+    </SurfaceCard>
   );
 }

@@ -1,746 +1,316 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDate } from '../lib/format.js';
 import {
   ACTIVITY_LABELS,
   CATEGORY_LABELS,
-  LEVEL_LABELS,
   computeCompetenciesFromProgress,
+  LEVEL_LABELS,
   normalizeModuleLevel,
   normalizeModuleTitleForDisplay,
   repairPossibleMojibake,
   summarizeProgressInsights,
 } from '../lib/course.js';
+import { getLevelCopy, LEVEL_ORDER, TOPIC_ORDER } from '../lib/difficultyRules.js';
+import { cn } from '../lib/ui.js';
+import Badge from './ui/Badge.jsx';
+import Button from './ui/Button.jsx';
+import SurfaceCard from './ui/SurfaceCard.jsx';
 
-const DASHBOARD_TABS = [
-  { id: 'ruta', label: 'Ruta' },
-  { id: 'progreso', label: 'Progreso' },
-  { id: 'ajustes', label: 'Ajustes' },
-];
-
-const LEVEL_ORDER = ['basico', 'refuerzo', 'avanzado'];
+const TABS = ['ruta', 'progreso', 'ajustes'];
 const COMPACT_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact']);
-const TOPIC_ORDER = ['web', 'whatsapp', 'sms', 'llamadas', 'correo_redes', 'habitos'];
 
-const LEVEL_COPY = {
-  basico: {
-    eyebrow: 'Base',
-    title: 'Nivel básico',
-    description: 'Empieza con señales claras y decisiones simples para construir criterio.',
-  },
-  refuerzo: {
-    eyebrow: 'Refuerzo',
-    title: 'Nivel intermedio',
-    description: 'Practica casos más retadores cuando ya dominaste la base.',
-  },
-  avanzado: {
-    eyebrow: 'Avanzado',
-    title: 'Nivel avanzado',
-    description: 'Se desbloquea cuando completas los bloques anteriores.',
-  },
-};
-
-function cleanText(value, fallback = '') {
-  const safe = repairPossibleMojibake(String(value || '')).trim();
-  return safe || fallback;
-}
-
-function isCompactViewport(viewport) {
-  return COMPACT_VIEWPORTS.has(viewport);
-}
-
-function displayModuleTitle(module) {
-  return normalizeModuleTitleForDisplay(module?.categoria, module?.titulo || module?.title || '');
-}
-
-function displayActivityTitle(activity, fallback = 'Actividad') {
-  return cleanText(ACTIVITY_LABELS[activity?.tipo] || activity?.titulo || activity?.title || '', fallback);
-}
-
-function formatPercent(value) {
-  const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
-  return `${Math.round(safe)}%`;
-}
-
-function formatMinutesFromMs(value) {
-  const safe = Number(value) || 0;
-  if (!safe) return 'Sin tiempo';
-  const minutes = safe / 60000;
+const cleanText = (value, fallback = '') =>
+  repairPossibleMojibake(String(value || '')).trim() || fallback;
+const compactViewport = (viewport) => COMPACT_VIEWPORTS.has(viewport);
+const displayModuleTitle = (module) =>
+  normalizeModuleTitleForDisplay(module?.categoria, module?.titulo || module?.title || '');
+const displayActivityTitle = (activity, fallback = 'Actividad') =>
+  cleanText(ACTIVITY_LABELS[activity?.tipo] || activity?.titulo || fallback, fallback);
+const formatPercent = (value) => `${Math.round(Number(value) || 0)}%`;
+const formatMinutesFromMs = (value) => {
+  const minutes = (Number(value) || 0) / 60000;
+  if (!minutes) return 'Sin tiempo';
   if (minutes < 1) return '<1 min';
   if (minutes < 10) return `${minutes.toFixed(1)} min`;
   return `${Math.round(minutes)} min`;
-}
+};
 
 function getModuleStats(module, progress) {
   const activities = Array.isArray(module?.actividades) ? module.actividades : [];
-  const completedEntries = activities
-    .map((activity) => progress?.completed?.[activity.id])
-    .filter(Boolean);
+  const completedEntries = activities.map((activity) => progress?.completed?.[activity.id]).filter(Boolean);
   const completedCount = completedEntries.length;
   const total = activities.length;
   const pct = total ? Math.round((completedCount / total) * 100) : 0;
   const avgScore = completedEntries.length
-    ? Math.round(
-        (completedEntries.reduce((acc, entry) => acc + (Number(entry.score) || 0), 0) /
-          completedEntries.length) *
-          100
-      )
+    ? Math.round((completedEntries.reduce((acc, item) => acc + (Number(item.score) || 0), 0) / completedEntries.length) * 100)
     : 0;
-  const nextActivity = activities.find((activity) => !progress?.completed?.[activity.id]) || activities[0] || null;
   const moduleEntry = progress?.modules?.[module?.id] || {};
-  const seenKey = `${module?.categoria}:${module?.nivel}`;
-  const seenCount = Array.isArray(progress?.seenScenarioIds?.[seenKey])
-    ? progress.seenScenarioIds[seenKey].length
-    : 0;
-
   return {
+    pct,
     total,
     completedCount,
-    pct,
     avgScore,
-    nextActivity,
     visits: Number(moduleEntry.visits) || 0,
     durationLabel: formatMinutesFromMs(moduleEntry.durationMs),
     completedAt: moduleEntry.completedAt || null,
-    seenCount,
+    nextActivity: activities.find((activity) => !progress?.completed?.[activity.id]) || activities[0] || null,
     status: pct >= 100 ? 'completed' : completedCount > 0 ? 'active' : 'pending',
   };
 }
 
-function getRecommendedModuleIndex(route, progress) {
-  if (!route.length) return 0;
-  const firstIncomplete = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
-  return firstIncomplete === -1 ? 0 : firstIncomplete;
-}
-
-function getUnlockedLimit(route, progress) {
-  const firstIncomplete = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
-  return firstIncomplete === -1 ? route.length - 1 : firstIncomplete;
-}
+const getRecommendedIndex = (route, progress) => {
+  const idx = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
+  return idx === -1 ? 0 : idx;
+};
+const getUnlockedLimit = (route, progress) => {
+  const idx = route.findIndex((module) => getModuleStats(module, progress).pct < 100);
+  return idx === -1 ? route.length - 1 : idx;
+};
 
 function getPrioritySummary(answers, assessment) {
   const priority = String(answers?.priority || '').toLowerCase();
   if (priority === 'todo') return 'Ruta amplia para cubrir varios frentes con un orden claro.';
-  if (priority && CATEGORY_LABELS[priority]) {
-    return `Tu enfoque actual prioriza ${CATEGORY_LABELS[priority].toLowerCase()}.`;
-  }
-
-  const level = String(assessment?.nivel || '').trim();
-  if (level) {
-    return `La ruta se ajustó a tu evaluación ${level.toLowerCase()} y a tu progreso reciente.`;
-  }
-
-  return 'La ruta prioriza avanzar con criterio antes de abrir módulos más complejos.';
+  if (priority && CATEGORY_LABELS[priority]) return `Tu enfoque actual prioriza ${CATEGORY_LABELS[priority].toLowerCase()}.`;
+  if (assessment?.nivel) return `La ruta se ajusto a tu evaluacion ${String(assessment.nivel).toLowerCase()} y a tu progreso reciente.`;
+  return 'La ruta prioriza avanzar con criterio antes de abrir modulos mas complejos.';
 }
 
-function getStrongestTopic(competencies) {
-  const entries = Object.entries(competencies || {}).sort((a, b) => b[1] - a[1]);
-  return entries[0] || null;
-}
-
-function getWeakestTopic(competencies) {
-  const entries = Object.entries(competencies || {}).sort((a, b) => a[1] - b[1]);
-  return entries[0] || null;
-}
-
-function TabSwitcher({ activeTab, onChange }) {
+function EmptyState({ title, body, error, actionLabel, onAction, generating }) {
   return (
-    <div className="dashboard-tabs" role="tablist" aria-label="Panel de cursos">
-      {DASHBOARD_TABS.map((tab) => (
+    <section className="sd-page-shell py-8 sm:py-10">
+      <SurfaceCard className="mx-auto max-w-3xl text-center">
+        <p className="eyebrow">Ruta personalizada</p>
+        <h1 className="sd-title mt-3">{title}</h1>
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-sd-muted sm:text-base">{body}</p>
+        {error ? <div className="alert mx-auto mt-5 max-w-2xl text-left">{error}</div> : null}
+        {actionLabel ? (
+          <div className="mt-6 flex justify-center">
+            <Button variant="primary" type="button" onClick={onAction} disabled={generating}>
+              {generating ? 'Actualizando ruta...' : actionLabel}
+            </Button>
+          </div>
+        ) : null}
+      </SurfaceCard>
+    </section>
+  );
+}
+
+function LevelBar({ levels, activeLevel, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {levels.map((value) => (
         <button
-          key={tab.id}
-          className={`dashboard-tab ${activeTab === tab.id ? 'active' : ''}`}
+          className={cn(
+            'rounded-full border px-4 py-2 text-sm font-semibold transition',
+            activeLevel === value
+              ? 'border-sd-accent bg-sd-accent-soft text-sd-accent'
+              : 'border-sd-border bg-white/70 text-sd-text hover:bg-white'
+          )}
+          key={value}
           type="button"
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          onClick={() => onChange(tab.id)}
+          onClick={() => onChange(value)}
         >
-          {tab.label}
+          {getLevelCopy(value).title}
         </button>
       ))}
     </div>
   );
 }
 
-function ShieldCard({
-  viewport = 'desktop',
-  scoreTotal,
-  completedModules,
-  totalModules,
-  lastAccessAt,
-  strongestTopic,
-  weakestTopic,
-  prioritySummary,
-  adminAccess = false,
-}) {
-  const compact = isCompactViewport(viewport);
-  const completionPct = totalModules ? Math.round((completedModules / totalModules) * 100) : 0;
-
+function ModuleListItem({ entry, selected, locked, recommended, adminAccess = false, onSelect }) {
   return (
-    <section className={`panel dashboard-card shield-card-clean ${compact ? 'compact-device-card' : ''}`}>
-      <div className="dashboard-title-stack">
+    <button
+      className={cn(
+        'w-full rounded-[24px] border px-4 py-4 text-left transition',
+        selected
+          ? 'border-sd-accent bg-sd-accent-soft'
+          : 'border-sd-border bg-white/75 hover:-translate-y-0.5 hover:bg-white',
+        locked ? 'opacity-70' : ''
+      )}
+      type="button"
+      onClick={onSelect}
+    >
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="eyebrow">Blindaje actual</p>
-          <h2>Vista general</h2>
-          <p className="lead shield-intro">
-            Tu blindaje combina tu evaluación inicial con el progreso real que llevas en actividades y módulos.
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
+            {`Modulo ${entry.index + 1}`}
           </p>
+          <strong className="mt-2 block text-base text-sd-text">
+            {displayModuleTitle(entry.module)}
+          </strong>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          {recommended ? <Badge tone="accent">Recomendado</Badge> : null}
+          {adminAccess ? <Badge tone="soft">Admin</Badge> : null}
         </div>
       </div>
-      <div className="shield-card-body">
-        <div className="donut-shell shield-card-donut">
-          <div className="shield-donut" style={{ '--p': scoreTotal }}>
-            <div className="shield-inner">
-              <strong>{formatPercent(scoreTotal)}</strong>
-              <span>Blindaje Digital</span>
-            </div>
-          </div>
-          <div className="shield-donut-caption">
-            <strong>{completedModules === totalModules ? 'Ruta al día' : 'Sigue sumando progreso'}</strong>
-            <p>
-              {completedModules === totalModules
-                ? 'Ya cubriste todos los módulos activos de esta ruta.'
-                : 'Tu puntaje sube conforme completas bloques y mejoras tu toma de decisiones.'}
-            </p>
-          </div>
-          <div className="shield-mini-track" aria-hidden="true">
-            <span style={{ width: `${completionPct}%` }} />
-          </div>
-          <p className="shield-mini-caption">{`${completionPct}% de la ruta activa desbloqueada`}</p>
-        </div>
-
-        <div className="shield-summary-strip">
-          <article className="shield-summary-tile">
-            <span>Ruta activa</span>
-            <strong>{`${completedModules}/${totalModules}`}</strong>
-            <p>Módulos completados.</p>
-          </article>
-          <article className="shield-summary-tile">
-            <span>Fortaleza</span>
-            <strong>
-              {strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}
-            </strong>
-            <p>Tu mejor canal hoy.</p>
-          </article>
-          <article className="shield-summary-tile">
-            <span>Siguiente foco</span>
-            <strong>
-              {weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}
-            </strong>
-            <p>
-              {prioritySummary === 'Ruta amplia para cubrir varios frentes con un orden claro.'
-                ? 'Prioridad actual de la ruta.'
-                : prioritySummary}
-            </p>
-          </article>
-          <article className="shield-summary-tile">
-            <span>Último acceso</span>
-            <strong>{formatDate(lastAccessAt)}</strong>
-            <p>Guardado automático.</p>
-          </article>
-        </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Badge tone="neutral">{CATEGORY_LABELS[entry.module.categoria] || 'Curso'}</Badge>
+        <Badge tone="neutral">{formatPercent(entry.stats.pct)}</Badge>
       </div>
-
-      <div className="shield-highlight-bar shield-highlight-bar-desktop">
-        <div className="shield-highlight-chip">
-          <span>Mejor desempeño</span>
-          <strong>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong>
-        </div>
-        <div className="shield-highlight-chip">
-          <span>Siguiente foco</span>
-          <strong>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}</strong>
-        </div>
-        <div className="shield-highlight-chip">
-          <span>Contexto</span>
-          <strong>{prioritySummary}</strong>
-        </div>
-        {adminAccess ? (
-          <div className="shield-highlight-chip admin-mode-chip">
-            <span>Modo admin</span>
-            <strong>Acceso libre a todos los módulos</strong>
-          </div>
-        ) : null}
-      </div>
-
-      <details className="dashboard-disclosure compact-only">
-        <summary>Más contexto de la ruta</summary>
-        <div className="shield-highlight-bar">
-          <div className="shield-highlight-chip">
-            <span>Mejor desempeño</span>
-            <strong>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong>
-          </div>
-          <div className="shield-highlight-chip">
-            <span>Siguiente foco</span>
-            <strong>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}</strong>
-          </div>
-          <div className="shield-highlight-chip">
-            <span>Contexto</span>
-            <strong>{prioritySummary}</strong>
-          </div>
-          {adminAccess ? (
-            <div className="shield-highlight-chip admin-mode-chip">
-              <span>Modo admin</span>
-              <strong>Acceso libre a todos los módulos</strong>
-            </div>
-          ) : null}
-        </div>
-      </details>
-    </section>
+      <p className="mt-4 text-sm leading-6 text-sd-muted">
+        {cleanText(entry.module.descripcion, 'Bloque practico para reforzar criterio y habitos.')}
+      </p>
+    </button>
   );
 }
 
-function SpotlightCard({ viewport = 'desktop', module, stats, adminAccess = false, onOpenModule, onShowRoute }) {
-  const compact = isCompactViewport(viewport);
-
-  if (!module) {
+function ModuleDetail({ entry, locked, recommended, adminAccess = false, unlockMessage, onOpenModule }) {
+  if (!entry) {
     return (
-      <section className={`panel dashboard-card spotlight-card-clean empty-state ${compact ? 'compact-device-card' : ''}`}>
-        <p className="eyebrow">Empieza por aquí</p>
-        <h2>Tu ruta está lista</h2>
-        <p className="lead">Cuando generes un curso, aquí verás el módulo que conviene abrir primero.</p>
-      </section>
+      <SurfaceCard>
+        <p className="eyebrow">Ruta</p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-sd-text">Elige un modulo</h2>
+      </SurfaceCard>
     );
   }
 
-  const visibleActivities = (Array.isArray(module.actividades) ? module.actividades : []).slice(0, 3);
-  const extraActivities = Math.max((module.actividades?.length || 0) - visibleActivities.length, 0);
-
-  return (
-    <section className={`panel dashboard-card spotlight-card-clean ${compact ? 'compact-device-card' : ''}`}>
-      <div className="section-title-row dashboard-title-row">
-        <div>
-          <p className="eyebrow">Empieza por aquí</p>
-          <h2>{displayModuleTitle(module)}</h2>
-        </div>
-        <div className="hero-chip-row compact">
-          <span className={`status-pill ${stats.status}`}>
-            {stats.status === 'active' ? 'En curso' : stats.status === 'completed' ? 'Completado' : 'Pendiente'}
-          </span>
-          <span className="activity-pill">{CATEGORY_LABELS[module.categoria] || 'Curso'}</span>
-          <span className="activity-pill">{LEVEL_LABELS[normalizeModuleLevel(module.nivel)] || 'Módulo'}</span>
-          {adminAccess ? <span className="activity-pill soft admin-pill">Admin</span> : null}
-        </div>
-      </div>
-
-      <p className="lead spotlight-lead">
-        {cleanText(module.descripcion, 'Práctica guiada para mejorar criterio sin saturar la experiencia.')}
-      </p>
-
-      <div className="focus-progress-row">
-        <div className="progress-track">
-          <span className="progress-fill" style={{ width: `${stats.pct}%` }} />
-        </div>
-        <strong>{`${stats.completedCount} de ${stats.total} actividades · ${formatPercent(stats.pct)}`}</strong>
-      </div>
-
-      <div className="spotlight-metrics">
-        <div className="focus-metric">
-          <span>Sigue con</span>
-          <strong>{cleanText(stats.nextActivity?.titulo, 'Módulo listo para repaso')}</strong>
-        </div>
-        <div className="focus-metric">
-          <span>Score promedio</span>
-          <strong>{stats.avgScore ? formatPercent(stats.avgScore) : 'Sin score'}</strong>
-        </div>
-        <div className="focus-metric">
-          <span>Escenarios</span>
-          <strong>{stats.seenCount || 0}</strong>
-        </div>
-        <div className="focus-metric">
-          <span>Tiempo</span>
-          <strong>{stats.durationLabel}</strong>
-        </div>
-      </div>
-
-      <div className="activity-pill-row compact-row spotlight-pill-grid">
-        {visibleActivities.map((activity) => (
-          <span key={activity.id} className="activity-pill">
-            {displayActivityTitle(activity)}
-          </span>
-        ))}
-        {extraActivities ? <span className="activity-pill">{`+${extraActivities} formatos`}</span> : null}
-        {stats.seenCount ? <span className="activity-pill soft">{`${stats.seenCount} escenarios vistos`}</span> : null}
-      </div>
-
-      <div className="row inline spotlight-actions">
-        <button
-          className="btn primary"
-          type="button"
-          onClick={() =>
-            onOpenModule(module.__moduleIndex, {
-              restart: adminAccess && stats.pct >= 100,
-            })
-          }
-        >
-          {adminAccess && stats.pct >= 100
-            ? 'Repetir módulo'
-            : stats.completedCount
-              ? 'Continuar módulo'
-              : 'Empezar módulo'}
-        </button>
-        <button className="btn ghost" type="button" onClick={onShowRoute}>
-          Ver ruta
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function LevelPicker({ levels, activeLevel, onChange }) {
-  return (
-    <div className="level-picker" role="tablist" aria-label="Niveles de la ruta">
-      {levels.map((level) => (
-        <button
-          key={level}
-          className={`level-pill ${activeLevel === level ? 'active' : ''}`}
-          type="button"
-          onClick={() => onChange(level)}
-        >
-          {LEVEL_LABELS[level]}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function ModuleAccordionItem({
-  entry,
-  isExpanded,
-  isLocked,
-  isRecommended,
-  adminAccess = false,
-  unlockMessage,
-  onToggle,
-  onOpenModule,
-}) {
   const { module, index, stats } = entry;
-
   return (
-    <article className={`module-accordion ${isExpanded ? 'expanded' : ''} ${isLocked ? 'locked' : ''}`}>
-      <button className="module-accordion-head" type="button" onClick={onToggle}>
-        <span className="module-step">{String(index + 1).padStart(2, '0')}</span>
-        <div className="module-accordion-copy">
-          <div className="module-accordion-title-row">
-            <strong>{displayModuleTitle(module)}</strong>
-            <div className="hero-chip-row compact">
-              {isRecommended ? <span className="activity-pill soft">Recomendado</span> : null}
-              <span className={`status-pill ${isLocked ? 'locked' : stats.status}`}>
-                {isLocked
-                  ? 'Bloqueado'
-                  : stats.status === 'active'
-                    ? 'En curso'
-                    : stats.status === 'completed'
-                      ? 'Completado'
-                      : 'Pendiente'}
-              </span>
-            </div>
-          </div>
-          <div className="module-accordion-meta">
-            <span>{CATEGORY_LABELS[module.categoria] || 'Curso'}</span>
-            <span>{`${stats.completedCount}/${stats.total} actividades`}</span>
-            <span>{formatPercent(stats.pct)}</span>
-          </div>
-        </div>
-      </button>
-
-      {isExpanded ? (
-        <div className="module-accordion-body">
-          <p>{cleanText(module.descripcion, 'Bloque práctico para reforzar criterio y hábitos digitales.')}</p>
-
-          <div className="module-accordion-body-grid">
-            <div className="module-fact">
-              <span>Siguiente actividad</span>
-              <strong>
-                {isLocked
-                  ? 'Completa el bloque anterior'
-                  : cleanText(stats.nextActivity?.titulo, 'Módulo listo para repaso')}
-              </strong>
-            </div>
-            <div className="module-fact">
-              <span>Score promedio</span>
-              <strong>{stats.avgScore ? formatPercent(stats.avgScore) : 'Sin score'}</strong>
-            </div>
-            <div className="module-fact">
-              <span>Visitas</span>
-              <strong>{stats.visits || 0}</strong>
-            </div>
-            <div className="module-fact">
-              <span>Tiempo</span>
-              <strong>{stats.durationLabel}</strong>
-            </div>
-          </div>
-
-          <div className="activity-pill-row compact-row">
-            {(Array.isArray(module.actividades) ? module.actividades : []).slice(0, 5).map((activity) => (
-              <span key={activity.id} className="activity-pill">
-                {displayActivityTitle(activity)}
-              </span>
-            ))}
-          </div>
-
-          {isLocked ? <p className="module-lock-note">{unlockMessage}</p> : null}
-          {adminAccess ? (
-            <p className="module-admin-note">
-              Modo admin: puedes abrir, repetir y revisar este módulo sin bloqueos.
-            </p>
-          ) : null}
-
-          <div className="row inline">
-            <button
-              className="btn primary"
-              type="button"
-              disabled={isLocked}
-              onClick={() =>
-                onOpenModule(index, {
-                  restart: adminAccess && stats.pct >= 100,
-                })
-              }
-            >
-              {isLocked
-                ? 'Bloqueado'
-                : adminAccess && stats.pct >= 100
-                  ? 'Repetir módulo'
-                  : stats.completedCount
-                    ? 'Continuar'
-                    : 'Abrir módulo'}
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
-function RouteTab({
-  routeEntries,
-  availableLevels,
-  activeLevel,
-  onChangeLevel,
-  expandedModuleId,
-  onToggleModule,
-  recommendedIndex,
-  unlockedLimit,
-  adminAccess = false,
-  onOpenModule,
-}) {
-  const levelCopy = LEVEL_COPY[activeLevel] || LEVEL_COPY.basico;
-  const levelEntries = routeEntries.filter(
-    (entry) => normalizeModuleLevel(entry.module.nivel) === activeLevel
-  );
-
-  return (
-    <section className="dashboard-panel route-tab">
-      <div className="section-title-row dashboard-title-row">
+    <SurfaceCard className="lg:sticky lg:top-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="eyebrow">{levelCopy.eyebrow}</p>
-          <h2>{levelCopy.title}</h2>
-          <p className="lead">{levelCopy.description}</p>
+          <p className="eyebrow">{`Modulo ${index + 1}`}</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-sd-text">
+            {displayModuleTitle(module)}
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-sd-muted">
+            {cleanText(module.descripcion, 'Bloque practico para detectar senales y repetir una rutina segura.')}
+          </p>
         </div>
-        {availableLevels.length > 1 ? (
-          <LevelPicker levels={availableLevels} activeLevel={activeLevel} onChange={onChangeLevel} />
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {recommended ? <Badge tone="accent">Recomendado</Badge> : null}
+          <Badge tone="neutral">{CATEGORY_LABELS[module.categoria] || 'Curso'}</Badge>
+          <Badge tone="neutral">{LEVEL_LABELS[normalizeModuleLevel(module.nivel)] || 'Nivel'}</Badge>
+        </div>
       </div>
 
-      {adminAccess ? (
-        <p className="hint admin-preview-copy">
-          Modo admin activo: acceso libre para revisar cualquier nivel y repetir módulos.
-        </p>
-      ) : null}
-
-      <div className="module-accordion-list">
-        {levelEntries.map((entry) => {
-          const isLocked = adminAccess ? false : entry.index > unlockedLimit;
-          const unlockMessage =
-            routeEntries[unlockedLimit]?.module?.titulo
-              ? `Completa "${displayModuleTitle(routeEntries[unlockedLimit].module)}" para desbloquear este bloque.`
-              : 'Completa el bloque anterior para avanzar.';
-
-          return (
-            <ModuleAccordionItem
-              key={entry.module.id}
-              entry={entry}
-              isExpanded={expandedModuleId === entry.module.id}
-              isLocked={isLocked}
-              isRecommended={entry.index === recommendedIndex}
-              adminAccess={adminAccess}
-              unlockMessage={unlockMessage}
-              onToggle={() => onToggleModule(entry.module.id)}
-              onOpenModule={onOpenModule}
-            />
-          );
-        })}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Avance</span><strong className="mt-3 block text-2xl text-sd-text">{formatPercent(stats.pct)}</strong></div>
+        <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Score</span><strong className="mt-3 block text-2xl text-sd-text">{stats.avgScore ? formatPercent(stats.avgScore) : 'Sin score'}</strong></div>
+        <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Visitas</span><strong className="mt-3 block text-2xl text-sd-text">{stats.visits || 0}</strong></div>
+        <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Tiempo</span><strong className="mt-3 block text-2xl text-sd-text">{stats.durationLabel}</strong></div>
       </div>
-    </section>
+
+      <div className="mt-5 rounded-[24px] border border-sd-border bg-white/70 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Actividades del modulo</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(Array.isArray(module.actividades) ? module.actividades : []).map((activity) => (
+            <span className="rounded-full border border-sd-border bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-sd-muted" key={activity.id}>
+              {displayActivityTitle(activity)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {locked ? <div className="mt-5 rounded-[20px] border border-amber-300/70 bg-amber-50/90 px-4 py-4 text-sm leading-6 text-amber-900">{unlockMessage}</div> : null}
+      {adminAccess ? <div className="mt-5 rounded-[20px] border border-sd-border bg-white/65 px-4 py-4 text-sm leading-6 text-sd-muted">Modo admin activo: puedes abrir o repetir este modulo sin bloqueos.</div> : null}
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Button variant="primary" type="button" disabled={locked} onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}>
+          {locked ? 'Bloqueado' : adminAccess && stats.pct >= 100 ? 'Repetir modulo' : stats.completedCount ? 'Continuar' : 'Abrir modulo'}
+        </Button>
+      </div>
+    </SurfaceCard>
   );
 }
 
 function ProgressTab({ computed, progress, coursePlan, coursePrefs, answers, assessment }) {
+  const strongestTopic = Object.entries(computed.competencias || {}).sort((a, b) => b[1] - a[1])[0] || null;
+  const weakestTopic = Object.entries(computed.competencias || {}).sort((a, b) => a[1] - b[1])[0] || null;
   const insights = summarizeProgressInsights(coursePlan, progress);
-  const strongestTopic = getStrongestTopic(computed.competencias);
-  const weakestTopic = getWeakestTopic(computed.competencias);
   const history = Array.isArray(progress?.snapshots) ? [...progress.snapshots].slice(-3).reverse() : [];
 
   return (
-    <section className="dashboard-panel-grid">
-      <article className="panel dashboard-panel">
+    <div className="grid gap-4 xl:grid-cols-2">
+      <SurfaceCard>
         <p className="eyebrow">Fortalezas y foco</p>
-        <h2>Qué estamos viendo</h2>
-        <div className="summary-list compact">
-          <div className="summary-item">
-            <strong>Fortaleza principal</strong>
-            <p>{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos suficientes.'}</p>
-          </div>
-          <div className="summary-item">
-            <strong>Zona a reforzar</strong>
-            <p>{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos suficientes.'}</p>
-          </div>
-          <div className="summary-item">
-            <strong>Prioridad declarada</strong>
-            <p>{getPrioritySummary(answers, assessment)}</p>
-          </div>
+        <div className="mt-5 grid gap-3">
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Fortaleza principal</span><strong className="mt-3 block text-lg text-sd-text">{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong></div>
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Zona a reforzar</span><strong className="mt-3 block text-lg text-sd-text">{weakestTopic ? `${CATEGORY_LABELS[weakestTopic[0]]} ${formatPercent(weakestTopic[1])}` : 'Sin datos'}</strong></div>
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Prioridad declarada</span><strong className="mt-3 block text-lg text-sd-text">{getPrioritySummary(answers, assessment)}</strong></div>
         </div>
-      </article>
-
-      <article className="panel dashboard-panel">
+      </SurfaceCard>
+      <SurfaceCard>
         <p className="eyebrow">Competencias</p>
-        <h2>Por canal</h2>
-        <div className="analytics-bar-list">
+        <div className="mt-5 space-y-4">
           {TOPIC_ORDER.map((topic) => (
-            <div key={topic} className="analytics-bar-row">
-              <div className="analytics-bar-top">
-                <span>{CATEGORY_LABELS[topic]}</span>
-                <strong>{formatPercent(computed.competencias?.[topic] || 0)}</strong>
+            <div key={topic}>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-sd-text">{CATEGORY_LABELS[topic]}</span>
+                <strong className="text-sd-text">{formatPercent(computed.competencias?.[topic] || 0)}</strong>
               </div>
-              <div className="analytics-bar-track">
-                <div className="analytics-bar-fill" style={{ width: `${computed.competencias?.[topic] || 0}%` }} />
-              </div>
+              <div className="mt-2 h-2 rounded-full bg-slate-100"><div className="h-full rounded-full bg-sd-accent" style={{ width: `${computed.competencias?.[topic] || 0}%` }} /></div>
             </div>
           ))}
         </div>
-      </article>
-      <article className="panel dashboard-panel">
-        <p className="eyebrow">Evolución</p>
-        <h2>Señales recientes</h2>
-        <div className="summary-list compact">
-          <div className="summary-item">
-            <strong>Último acceso</strong>
-            <p>{formatDate(progress?.lastAccessAt)}</p>
-          </div>
-          <div className="summary-item">
-            <strong>Fortalezas visibles</strong>
-            <p>{insights.strengths.length ? insights.strengths.join(' · ') : 'Todavía no hay suficiente historial.'}</p>
-          </div>
-          <div className="summary-item">
-            <strong>Lo que conviene reforzar</strong>
-            <p>{insights.focus.length ? insights.focus.join(' | ') : 'Sin señales repetidas por ahora.'}</p>
-          </div>
+      </SurfaceCard>
+      <SurfaceCard>
+        <p className="eyebrow">Evolucion</p>
+        <div className="mt-5 grid gap-3">
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Ultimo acceso</span><strong className="mt-3 block text-lg text-sd-text">{formatDate(progress?.lastAccessAt)}</strong></div>
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Fortalezas visibles</span><strong className="mt-3 block text-lg text-sd-text">{insights.strengths.length ? insights.strengths.join(' · ') : 'Sin historial suficiente'}</strong></div>
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Errores recurrentes</span><strong className="mt-3 block text-lg text-sd-text">{insights.mistakes.length ? insights.mistakes.join(' | ') : 'Sin tropiezos claros por ahora'}</strong></div>
         </div>
-      </article>
-
-      <article className="panel dashboard-panel">
+      </SurfaceCard>
+      <SurfaceCard>
         <p className="eyebrow">Ruta activa</p>
-        <h2>Resumen del plan</h2>
-        <div className="summary-list compact">
-          <div className="summary-item">
-            <strong>Versión del plan</strong>
-            <p>{`Versión ${coursePlan?.planVersion || 0} con ${Array.isArray(coursePlan?.ruta) ? coursePlan.ruta.length : 0} módulos activos.`}</p>
-          </div>
-          <div className="summary-item">
-            <strong>Preferencias aplicadas</strong>
-            <p>{`Estilo ${coursePrefs?.estilo || 'mix'} · dificultad ${coursePrefs?.dificultad || 'auto'} · sesiones ${coursePrefs?.duracion || '5-10'} min.`}</p>
-          </div>
-          <div className="summary-item">
-            <strong>Últimos hitos</strong>
-            <p>
-              {history.length
-                ? history.map((item) => `${formatPercent(item.scoreTotal)} (${item.completedCount})`).join(' · ')
-                : 'Completa más actividades para ver evolución.'}
-            </p>
-          </div>
+        <div className="mt-5 grid gap-3">
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Version del plan</span><strong className="mt-3 block text-lg text-sd-text">{`Version ${coursePlan?.planVersion || 0}`}</strong></div>
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Preferencias</span><strong className="mt-3 block text-lg text-sd-text">{`Estilo ${coursePrefs?.estilo || 'mix'} · dificultad ${coursePrefs?.dificultad || 'auto'}`}</strong></div>
+          <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Snapshots recientes</span><strong className="mt-3 block text-lg text-sd-text">{history.length ? history.map((item) => `${formatPercent(item.scoreTotal)} (${item.completedCount})`).join(' · ') : 'Completa mas actividades para ver evolucion'}</strong></div>
         </div>
-      </article>
-    </section>
+      </SurfaceCard>
+    </div>
   );
 }
 
-function SettingsTab({ coursePrefs, onCoursePrefsChange, onGenerateCourse, generating }) {
-  const setField = (field, value) => {
-    onCoursePrefsChange((current) => ({ ...current, [field]: value }));
-  };
-
+function SettingsTab({ coursePrefs, onCoursePrefsChange, onGenerateCourse, generating, error }) {
+  const setField = (field, value) => onCoursePrefsChange((current) => ({ ...current, [field]: value }));
   const toggleTopic = (topic) => {
     onCoursePrefsChange((current) => {
       const currentTopics = Array.isArray(current?.temas) ? current.temas : [];
-      const exists = currentTopics.includes(topic);
-      const nextTopics = exists
+      const nextTopics = currentTopics.includes(topic)
         ? currentTopics.filter((item) => item !== topic)
         : [...currentTopics, topic];
-      return {
-        ...current,
-        temas: nextTopics.length ? nextTopics : currentTopics,
-      };
+      return { ...current, temas: nextTopics.length ? nextTopics : currentTopics };
     });
   };
 
   return (
-    <section className="panel dashboard-panel settings-panel-clean">
-      <div>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+      <SurfaceCard>
         <p className="eyebrow">Ajustes de la ruta</p>
-        <h2>Personaliza sin salir del panel</h2>
-        <p className="lead">Mantén todo aquí para que la pantalla principal siga limpia y fácil de usar.</p>
-      </div>
-
-      <div className="prefs-grid">
-        <label>
-          <span>Estilo</span>
-          <select value={coursePrefs?.estilo || 'mix'} onChange={(event) => setField('estilo', event.target.value)}>
-            <option value="mix">Mix</option>
-            <option value="guiado">Guiado</option>
-            <option value="practico">Práctico</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Dificultad</span>
-          <select value={coursePrefs?.dificultad || 'auto'} onChange={(event) => setField('dificultad', event.target.value)}>
-            <option value="auto">Auto</option>
-            <option value="facil">Fácil</option>
-            <option value="normal">Normal</option>
-            <option value="avanzada">Avanzada</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Duración</span>
-          <select value={coursePrefs?.duracion || '5-10'} onChange={(event) => setField('duracion', event.target.value)}>
-            <option value="5-10">5-10 min</option>
-            <option value="10-15">10-15 min</option>
-            <option value="15-20">15-20 min</option>
-          </select>
-        </label>
-      </div>
-
-      <div className="topic-toggle-grid">
-        {TOPIC_ORDER.map((topic) => {
-          const active = Array.isArray(coursePrefs?.temas) ? coursePrefs.temas.includes(topic) : false;
-          return (
-            <button
-              key={topic}
-              className={`activity-pill topic-pill ${active ? 'active' : ''}`}
-              type="button"
-              onClick={() => toggleTopic(topic)}
-            >
-              {CATEGORY_LABELS[topic]}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="row inline">
-        <button className="btn primary" type="button" onClick={onGenerateCourse} disabled={generating}>
-          {generating ? 'Actualizando ruta...' : 'Actualizar ruta'}
-        </button>
-      </div>
-    </section>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <label className="grid gap-2 text-sm font-medium text-sd-text">
+            <span>Estilo</span>
+            <select className="sd-input" value={coursePrefs?.estilo || 'mix'} onChange={(event) => setField('estilo', event.target.value)}><option value="mix">Mix</option><option value="guiado">Guiado</option><option value="practico">Practico</option></select>
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-sd-text">
+            <span>Dificultad</span>
+            <select className="sd-input" value={coursePrefs?.dificultad || 'auto'} onChange={(event) => setField('dificultad', event.target.value)}><option value="auto">Auto</option><option value="facil">Facil</option><option value="normal">Normal</option><option value="avanzada">Avanzada</option></select>
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-sd-text">
+            <span>Duracion</span>
+            <select className="sd-input" value={coursePrefs?.duracion || '5-10'} onChange={(event) => setField('duracion', event.target.value)}><option value="5-10">5-10 min</option><option value="10-15">10-15 min</option><option value="15-20">15-20 min</option></select>
+          </label>
+        </div>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {TOPIC_ORDER.map((topic) => {
+            const active = Array.isArray(coursePrefs?.temas) ? coursePrefs.temas.includes(topic) : false;
+            return <button className={cn('rounded-full border px-4 py-2 text-sm font-semibold transition', active ? 'border-sd-accent bg-sd-accent-soft text-sd-accent' : 'border-sd-border bg-white/70 text-sd-text hover:bg-white')} key={topic} type="button" onClick={() => toggleTopic(topic)}>{CATEGORY_LABELS[topic]}</button>;
+          })}
+        </div>
+      </SurfaceCard>
+      <SurfaceCard>
+        <p className="eyebrow">Aplicar cambios</p>
+        <p className="mt-4 text-sm leading-7 text-sd-muted">Regenera la ruta cuando quieras reorganizar modulos, ritmo y prioridad sin perder contexto.</p>
+        {error ? <div className="alert mt-5">{error}</div> : null}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button variant="primary" type="button" onClick={onGenerateCourse} disabled={generating}>{generating ? 'Actualizando ruta...' : 'Actualizar ruta'}</Button>
+        </div>
+      </SurfaceCard>
+    </div>
   );
 }
 
@@ -753,155 +323,216 @@ export default function CoursesView({
   coursePrefs,
   adminAccess = false,
   generating,
+  error,
   onCoursePrefsChange,
   onGenerateCourse,
   onOpenModule,
 }) {
-  const [activeTab, setActiveTab] = useState('ruta');
-  const route = (Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : []).map((module) => ({
-    ...module,
-    titulo: displayModuleTitle(module),
-    descripcion: cleanText(module?.descripcion),
-    actividades: (Array.isArray(module?.actividades) ? module.actividades : []).map((activity) => ({
-      ...activity,
-      titulo: cleanText(activity?.titulo),
-      escenario: cleanText(activity?.escenario),
-      prompt: cleanText(activity?.prompt),
-    })),
-  }));
-  const routeEntries = route.map((module, index) => ({
-    module,
-    index,
-    stats: getModuleStats(module, courseProgress),
-  }));
-  const recommendedIndex = getRecommendedModuleIndex(route, courseProgress);
-  const recommendedEntry = routeEntries[recommendedIndex] || null;
-  const recommendedModule = recommendedEntry
-    ? { ...recommendedEntry.module, __moduleIndex: recommendedEntry.index }
-    : null;
-  const computed = computeCompetenciesFromProgress(coursePlan, courseProgress);
-  const strongestTopic = getStrongestTopic(computed.competencias);
-  const weakestTopic = getWeakestTopic(computed.competencias);
-  const completedModules = routeEntries.filter((entry) => entry.stats.pct >= 100).length;
-  const prioritySummary = getPrioritySummary(answers, assessment);
-  const unlockedLimit = adminAccess ? route.length - 1 : getUnlockedLimit(route, courseProgress);
-  const availableLevels = LEVEL_ORDER.filter((level) =>
-    routeEntries.some((entry) => normalizeModuleLevel(entry.module.nivel) === level)
+  const compact = compactViewport(viewport);
+  const route = useMemo(
+    () =>
+      (Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : []).map((module) => ({
+        ...module,
+        titulo: displayModuleTitle(module),
+        descripcion: cleanText(module?.descripcion),
+        actividades: (Array.isArray(module?.actividades) ? module.actividades : []).map((activity) => ({
+          ...activity,
+          titulo: cleanText(activity?.titulo),
+        })),
+      })),
+    [coursePlan]
   );
+  const entries = useMemo(
+    () => route.map((module, index) => ({ module, index, stats: getModuleStats(module, courseProgress) })),
+    [courseProgress, route]
+  );
+  const recommendedIndex = getRecommendedIndex(route, courseProgress);
+  const recommendedEntry = entries[recommendedIndex] || null;
+  const recommendedModule = recommendedEntry ? { ...recommendedEntry.module, __moduleIndex: recommendedEntry.index } : null;
+  const unlockedLimit = adminAccess ? route.length - 1 : getUnlockedLimit(route, courseProgress);
+  const availableLevels = LEVEL_ORDER.filter((level) => entries.some((entry) => normalizeModuleLevel(entry.module.nivel) === level));
   const defaultLevel = recommendedModule ? normalizeModuleLevel(recommendedModule.nivel) : availableLevels[0] || 'basico';
-  const [activeLevel, setActiveLevel] = useState(defaultLevel);
-  const [expandedModuleId, setExpandedModuleId] = useState(recommendedModule?.id || routeEntries[0]?.module?.id || null);
+  const computed = computeCompetenciesFromProgress(coursePlan, courseProgress);
+  const insights = summarizeProgressInsights(coursePlan, courseProgress);
+  const strongestTopic = Object.entries(computed.competencias || {}).sort((a, b) => b[1] - a[1])[0] || null;
+  const weakestTopic = Object.entries(computed.competencias || {}).sort((a, b) => a[1] - b[1])[0] || null;
+  const [tab, setTab] = useState('ruta');
+  const [level, setLevel] = useState(defaultLevel);
+  const [selectedModuleId, setSelectedModuleId] = useState(recommendedModule?.id || entries[0]?.module?.id || null);
 
   useEffect(() => {
-    if (!availableLevels.includes(activeLevel)) {
-      setActiveLevel(defaultLevel);
-    }
-  }, [activeLevel, availableLevels, defaultLevel]);
-
+    if (!availableLevels.includes(level)) setLevel(defaultLevel);
+  }, [availableLevels, defaultLevel, level]);
   useEffect(() => {
-    if (!routeEntries.some((entry) => entry.module.id === expandedModuleId)) {
-      setExpandedModuleId(recommendedModule?.id || routeEntries[0]?.module?.id || null);
+    const currentLevelEntries = entries.filter((entry) => normalizeModuleLevel(entry.module.nivel) === level);
+    if (!currentLevelEntries.some((entry) => entry.module.id === selectedModuleId)) {
+      setSelectedModuleId(currentLevelEntries[0]?.module?.id || entries[0]?.module?.id || null);
     }
-  }, [expandedModuleId, recommendedModule?.id, routeEntries]);
+  }, [entries, level, selectedModuleId]);
 
-  if (!assessment) {
-    return (
-      <section className="panel empty-state">
-        <p className="eyebrow">Ruta personalizada</p>
-        <h1>Primero completa tu evaluación</h1>
-        <p className="lead">Necesitamos tu encuesta para organizar una ruta profesional y priorizada.</p>
-      </section>
-    );
-  }
+  if (!assessment) return <EmptyState title="Primero completa tu evaluacion" body="Necesitamos la encuesta inicial para organizar una ruta profesional y con continuidad real." error={error} />;
+  if (!coursePlan || !courseProgress) return <EmptyState title="Tu ruta todavia no esta lista" body="Genera tu plan y aqui veras una vista clara de blindaje, modulos y progreso." error={error} actionLabel="Generar mi ruta" onAction={onGenerateCourse} generating={generating} />;
 
-  if (!coursePlan || !courseProgress) {
-    return (
-      <section className="panel empty-state">
-        <p className="eyebrow">Ruta personalizada</p>
-        <h1>Tu ruta todavía no está lista</h1>
-        <p className="lead">Genera tu plan y aquí verás una vista compacta de blindaje, módulos y progreso.</p>
-        <button className="btn primary" type="button" onClick={onGenerateCourse} disabled={generating}>
-          {generating ? 'Generando ruta...' : 'Generar mi ruta'}
-        </button>
-      </section>
-    );
-  }
-
-  const recommendedStats = recommendedEntry?.stats || null;
+  const currentLevelEntries = entries.filter((entry) => normalizeModuleLevel(entry.module.nivel) === level);
+  const selectedEntry = currentLevelEntries.find((entry) => entry.module.id === selectedModuleId) || currentLevelEntries[0] || null;
+  const prioritySummary = getPrioritySummary(answers, assessment);
+  const completedModules = entries.filter((entry) => entry.stats.pct >= 100).length;
 
   return (
-    <div className={`dashboard-shell course-dashboard course-dashboard-${viewport}`}>
-      <div className="dashboard-grid course-hero-grid">
-        <ShieldCard
-          viewport={viewport}
-          scoreTotal={computed.score_total}
-          completedModules={completedModules}
-          totalModules={route.length}
-          lastAccessAt={courseProgress?.lastAccessAt}
-          strongestTopic={strongestTopic}
-          weakestTopic={weakestTopic}
-          prioritySummary={prioritySummary}
-          adminAccess={adminAccess}
-        />
+    <section className="sd-page-shell space-y-5 py-6 sm:space-y-6 sm:py-8">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.95fr)]">
+        <SurfaceCard className="overflow-hidden bg-gradient-to-br from-white via-white/92 to-sd-accent-soft">
+          <p className="eyebrow">Blindaje actual</p>
+          <h1 className="sd-title mt-3">Vista general de tu ruta</h1>
+          <p className="mt-4 max-w-[58ch] text-sm leading-7 text-sd-muted sm:text-base">{prioritySummary}</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[22px] border border-sd-accent/20 bg-sd-accent-soft p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Blindaje</span><strong className="mt-3 block text-3xl text-sd-text">{formatPercent(computed.score_total)}</strong></div>
+            <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Ruta activa</span><strong className="mt-3 block text-3xl text-sd-text">{`${completedModules}/${route.length}`}</strong></div>
+            <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Fortaleza</span><strong className="mt-3 block text-lg text-sd-text">{strongestTopic ? `${CATEGORY_LABELS[strongestTopic[0]]} ${formatPercent(strongestTopic[1])}` : 'Sin datos'}</strong></div>
+            <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Ultimo acceso</span><strong className="mt-3 block text-lg text-sd-text">{formatDate(courseProgress?.lastAccessAt)}</strong></div>
+          </div>
+        </SurfaceCard>
 
-        <SpotlightCard
-          viewport={viewport}
-          module={recommendedModule}
-          stats={recommendedStats}
-          adminAccess={adminAccess}
-          onOpenModule={onOpenModule}
-          onShowRoute={() => setActiveTab('ruta')}
-        />
+        <SurfaceCard>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="eyebrow">Siguiente paso recomendado</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-sd-text">{recommendedModule ? displayModuleTitle(recommendedModule) : 'Tu ruta esta lista'}</h2>
+              <p className="mt-4 text-sm leading-7 text-sd-muted sm:text-base">{recommendedModule ? cleanText(recommendedModule.descripcion, 'Bloque practico para reforzar criterio y repetir una rutina segura.') : 'Aqui veras el modulo que conviene abrir primero.'}</p>
+            </div>
+            {adminAccess ? <Badge tone="accent">Modo admin</Badge> : null}
+          </div>
+          {recommendedEntry ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Avance</span><strong className="mt-3 block text-2xl text-sd-text">{formatPercent(recommendedEntry.stats.pct)}</strong></div>
+                <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Score</span><strong className="mt-3 block text-2xl text-sd-text">{recommendedEntry.stats.avgScore ? formatPercent(recommendedEntry.stats.avgScore) : 'Sin score'}</strong></div>
+                <div className="rounded-[22px] border border-sd-border bg-white/75 p-4"><span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">Siguiente</span><strong className="mt-3 block text-base text-sd-text">{displayActivityTitle(recommendedEntry.stats.nextActivity, 'Modulo listo para repaso')}</strong></div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button variant="primary" type="button" onClick={() => onOpenModule(recommendedModule.__moduleIndex, { restart: adminAccess && recommendedEntry.stats.pct >= 100 })}>
+                  {adminAccess && recommendedEntry.stats.pct >= 100 ? 'Repetir modulo' : recommendedEntry.stats.completedCount ? 'Continuar modulo' : 'Abrir modulo'}
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => setTab('ruta')}>Ver ruta completa</Button>
+              </div>
+            </div>
+          ) : null}
+        </SurfaceCard>
       </div>
 
-      <section className="panel dashboard-shell-panel">
-        <div className="section-title-row dashboard-title-row">
+      <SurfaceCard className="overflow-hidden">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="eyebrow">Panel de aprendizaje</p>
-            <h1>Ruta de cursos</h1>
+            <h1 className="sd-title mt-3">Ruta de cursos</h1>
+            <p className="mt-4 max-w-[62ch] text-sm leading-7 text-sd-muted sm:text-base">{compact ? 'Modo guiado para movil con tarjetas apiladas y menos carga visual.' : 'Vista amplia para escritorio con lista lateral y detalle persistente del modulo.'}</p>
           </div>
-          <span className="activity-pill soft">Compacto, interactivo y sin scroll innecesario</span>
+          <Badge tone="soft">{compact ? 'Modo guiado para movil' : 'Vista amplia para escritorio'}</Badge>
+        </div>
+        {error ? <div className="alert mt-5">{error}</div> : null}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {TABS.map((value) => (
+            <button className={cn('rounded-full border px-4 py-2 text-sm font-semibold transition', tab === value ? 'border-sd-accent bg-sd-accent text-white' : 'border-sd-border bg-white/70 text-sd-text hover:bg-white')} key={value} type="button" onClick={() => setTab(value)}>
+              {value === 'ruta' ? 'Ruta' : value === 'progreso' ? 'Progreso' : 'Ajustes'}
+            </button>
+          ))}
         </div>
 
-        <TabSwitcher activeTab={activeTab} onChange={setActiveTab} />
+        {tab === 'ruta' ? (
+          <div className="mt-6 space-y-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="eyebrow">{getLevelCopy(level).eyebrow}</p>
+                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-sd-text">{getLevelCopy(level).title}</h2>
+                <p className="mt-3 text-sm leading-7 text-sd-muted sm:text-base">{getLevelCopy(level).description}</p>
+              </div>
+              {availableLevels.length > 1 ? <LevelBar levels={availableLevels} activeLevel={level} onChange={setLevel} /> : null}
+            </div>
 
-        {activeTab === 'ruta' ? (
-          <RouteTab
-            routeEntries={routeEntries}
-            availableLevels={availableLevels}
-            activeLevel={activeLevel}
-            onChangeLevel={setActiveLevel}
-            expandedModuleId={expandedModuleId}
-            onToggleModule={(moduleId) =>
-              setExpandedModuleId((current) => (current === moduleId ? null : moduleId))
-            }
-            recommendedIndex={recommendedIndex}
-            unlockedLimit={unlockedLimit}
-            adminAccess={adminAccess}
-            onOpenModule={onOpenModule}
-          />
+            {compact ? (
+              <div className="space-y-4">
+                {currentLevelEntries.map((entry) => {
+                  const locked = adminAccess ? false : entry.index > unlockedLimit;
+                  const unlockMessage = entries[unlockedLimit]?.module?.titulo
+                    ? `Completa "${displayModuleTitle(entries[unlockedLimit].module)}" para desbloquear este bloque.`
+                    : 'Completa el bloque anterior para avanzar.';
+                  return (
+                    <div className="space-y-3" key={entry.module.id}>
+                      <ModuleListItem
+                        entry={entry}
+                        selected={selectedEntry?.module.id === entry.module.id}
+                        locked={locked}
+                        recommended={entry.index === recommendedIndex}
+                        adminAccess={adminAccess}
+                        onSelect={() => setSelectedModuleId(entry.module.id)}
+                      />
+                      {selectedEntry?.module.id === entry.module.id ? (
+                        <ModuleDetail
+                          entry={entry}
+                          locked={locked}
+                          recommended={entry.index === recommendedIndex}
+                          adminAccess={adminAccess}
+                          unlockMessage={unlockMessage}
+                          onOpenModule={onOpenModule}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid gap-5 xl:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)]">
+                <div className="space-y-3">
+                  {currentLevelEntries.map((entry) => (
+                    <ModuleListItem
+                      key={entry.module.id}
+                      entry={entry}
+                      selected={selectedEntry?.module.id === entry.module.id}
+                      locked={adminAccess ? false : entry.index > unlockedLimit}
+                      recommended={entry.index === recommendedIndex}
+                      adminAccess={adminAccess}
+                      onSelect={() => setSelectedModuleId(entry.module.id)}
+                    />
+                  ))}
+                </div>
+                <ModuleDetail
+                  entry={selectedEntry}
+                  locked={selectedEntry ? (adminAccess ? false : selectedEntry.index > unlockedLimit) : false}
+                  recommended={selectedEntry?.index === recommendedIndex}
+                  adminAccess={adminAccess}
+                  unlockMessage={entries[unlockedLimit]?.module?.titulo ? `Completa "${displayModuleTitle(entries[unlockedLimit].module)}" para desbloquear este bloque.` : 'Completa el bloque anterior para avanzar.'}
+                  onOpenModule={onOpenModule}
+                />
+              </div>
+            )}
+          </div>
         ) : null}
 
-        {activeTab === 'progreso' ? (
-          <ProgressTab
-            computed={computed}
-            progress={courseProgress}
-            coursePlan={coursePlan}
-            coursePrefs={coursePrefs}
-            answers={answers}
-            assessment={assessment}
-          />
+        {tab === 'progreso' ? (
+          <div className="mt-6">
+            <ProgressTab
+              computed={computed}
+              progress={courseProgress}
+              coursePlan={coursePlan}
+              coursePrefs={coursePrefs}
+              answers={answers}
+              assessment={assessment}
+            />
+          </div>
         ) : null}
 
-        {activeTab === 'ajustes' ? (
-          <SettingsTab
-            coursePrefs={coursePrefs}
-            onCoursePrefsChange={onCoursePrefsChange}
-            onGenerateCourse={onGenerateCourse}
-            generating={generating}
-          />
+        {tab === 'ajustes' ? (
+          <div className="mt-6">
+            <SettingsTab
+              coursePrefs={coursePrefs}
+              onCoursePrefsChange={onCoursePrefsChange}
+              onGenerateCourse={onGenerateCourse}
+              generating={generating}
+              error={error}
+            />
+          </div>
         ) : null}
-      </section>
-    </div>
+      </SurfaceCard>
+    </section>
   );
 }

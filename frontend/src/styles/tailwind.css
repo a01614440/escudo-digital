@@ -1,0 +1,121 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source("../");
+
+:root {
+  --sd-canvas: #eef4ff;
+  --sd-surface: #ffffff;
+  --sd-panel: rgba(255, 255, 255, 0.88);
+  --sd-border: rgba(78, 110, 198, 0.16);
+  --sd-text: #10213d;
+  --sd-muted: #536684;
+  --sd-accent: #2f6bff;
+  --sd-accent-strong: #2458db;
+  --sd-accent-soft: rgba(47, 107, 255, 0.14);
+  --sd-success: #18a167;
+  --sd-warning: #d97706;
+}
+
+body[data-theme='dark'] {
+  --sd-canvas: #09111f;
+  --sd-surface: #0f1b30;
+  --sd-panel: rgba(15, 27, 48, 0.86);
+  --sd-border: rgba(115, 145, 255, 0.22);
+  --sd-text: #edf3ff;
+  --sd-muted: #9db0cf;
+  --sd-accent: #7a9bff;
+  --sd-accent-strong: #90adff;
+  --sd-accent-soft: rgba(122, 155, 255, 0.18);
+  --sd-success: #3ed598;
+  --sd-warning: #f6ad55;
+}
+
+@theme inline {
+  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", "Sora", ui-sans-serif, system-ui, sans-serif;
+  --color-sd-canvas: var(--sd-canvas);
+  --color-sd-surface: var(--sd-surface);
+  --color-sd-panel: var(--sd-panel);
+  --color-sd-border: var(--sd-border);
+  --color-sd-text: var(--sd-text);
+  --color-sd-muted: var(--sd-muted);
+  --color-sd-accent: var(--sd-accent);
+  --color-sd-accent-strong: var(--sd-accent-strong);
+  --color-sd-accent-soft: var(--sd-accent-soft);
+  --color-sd-success: var(--sd-success);
+  --color-sd-warning: var(--sd-warning);
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    background-color: var(--sd-canvas);
+    color: var(--sd-text);
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  .sd-page-shell {
+    @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .sd-panel {
+    @apply rounded-[28px] border border-sd-border bg-sd-panel shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)] backdrop-blur-[18px];
+  }
+
+  .sd-section-header {
+    @apply flex flex-col gap-3 md:flex-row md:items-end md:justify-between;
+  }
+
+  .sd-title {
+    @apply font-display text-2xl leading-[1.05] tracking-[-0.04em] text-sd-text sm:text-3xl lg:text-[2.4rem];
+  }
+
+  .sd-subtitle {
+    @apply max-w-[60ch] text-sm leading-6 text-sd-muted sm:text-base;
+  }
+
+  .sd-badge {
+    @apply inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.14em];
+  }
+
+  .sd-badge-neutral {
+    @apply border-sd-border bg-white/45 text-sd-muted;
+  }
+
+  .sd-badge-accent {
+    @apply border-sd-accent/20 bg-sd-accent-soft text-sd-accent;
+  }
+
+  .sd-badge-soft {
+    @apply border-transparent bg-white/60 text-sd-text shadow-[inset_0_1px_0_rgba(255,255,255,0.75)];
+  }
+
+  .sd-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border font-semibold tracking-[-0.01em] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .sd-button-primary {
+    @apply border-sd-accent bg-sd-accent px-4 py-3 text-white shadow-[0_18px_30px_-18px_rgba(47,107,255,0.9)] hover:-translate-y-0.5 hover:bg-sd-accent-strong;
+  }
+
+  .sd-button-ghost {
+    @apply border-sd-border bg-white/35 px-4 py-3 text-sd-text hover:-translate-y-0.5 hover:bg-white/60;
+  }
+
+  .sd-button-compact {
+    @apply px-3 py-2 text-xs sm:text-sm;
+  }
+
+  .sd-input {
+    @apply w-full rounded-[20px] border border-sd-border bg-white/75 px-4 py-3 text-sm text-sd-text outline-none transition duration-200 placeholder:text-sd-muted/80 focus:border-sd-accent/45 focus:bg-white focus:shadow-[0_0_0_4px_rgba(47,107,255,0.12)];
+  }
+
+  body[data-theme='dark'] .sd-input {
+    @apply bg-sd-surface/80;
+  }
+}

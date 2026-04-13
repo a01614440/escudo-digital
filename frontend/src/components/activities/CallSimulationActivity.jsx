@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { postJson } from '../../lib/api.js';
 import { feedbackRatingLabel, repairPossibleMojibake } from '../../lib/course.js';
+import { requestSimulationTurn } from '../../services/courseService.js';
 
 const getSpeechRecognition = () =>
   window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -316,7 +316,7 @@ export default function CallSimulationActivity({
     stopListening();
 
     try {
-      const response = await postJson('/api/course/sim-turn', {
+      const response = await requestSimulationTurn({
         scenario: scenarioContext,
         history: nextHistory,
         userMessage: safeMessage,

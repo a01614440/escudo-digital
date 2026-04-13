@@ -10,6 +10,7 @@
     "dev": "vite",
     "preview": "vite preview",
     "start": "node server.js",
+    "test": "node --test",
     "dev:client": "vite",
     "build:client": "vite build",
     "preview:client": "vite preview"
@@ -22,7 +23,9 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-react": "^5.1.4",
+    "tailwindcss": "^4.2.2",
     "vite": "^7.3.1"
   }
 }

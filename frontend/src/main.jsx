@@ -3,6 +3,7 @@ import App from './App.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import './styles/legacy.css';
 import './styles/app.css';
+import './styles/tailwind.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <AppErrorBoundary>

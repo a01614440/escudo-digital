@@ -1,4 +1,4 @@
-.legacy-react-host {
+﻿.legacy-react-host {
   display: contents;
 }
 
@@ -147,10 +147,6 @@ body[data-theme='dark'] .app-crash-detail {
 .course-summary-grid,
 .dashboard-grid,
 .analytics-grid,
-.admin-grid {
-  transition: background 0.25s ease, color 0.25s ease;
-}
-
 .session-bar-compact {
   display: grid;
   gap: 18px;
@@ -221,34 +217,6 @@ body[data-theme='dark'] .app-crash-detail {
   border: 1px dashed rgba(47, 107, 255, 0.2);
   border-radius: 14px;
   background: rgba(47, 107, 255, 0.06);
-}
-
-.dashboard-grid,
-.course-summary-grid,
-.analytics-grid,
-.admin-grid {
-  display: grid;
-  gap: 24px;
-}
-
-.dashboard-grid,
-.course-summary-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.analytics-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.admin-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.summary-card,
-.lesson-card,
-.admin-card,
-.stat-card {
-  min-width: 0;
 }
 
 .donut-shell {
@@ -775,61 +743,6 @@ body[data-theme='dark'] .app-crash-detail {
   color: #aa1f1f;
 }
 
-.stat-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: var(--shadow);
-}
-
-.stat-label,
-.stat-note,
-.stat-value {
-  margin: 0;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.analytics-bar-row {
-  display: grid;
-  gap: 8px;
-}
-
-.analytics-bar-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.analytics-bar-track {
-  height: 10px;
-  background: rgba(47, 107, 255, 0.12);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.analytics-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--accent));
-}
-
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.admin-table th,
-.admin-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
 .empty-state {
   text-align: center;
 }
@@ -970,10 +883,6 @@ body[data-theme='dark'] .app-crash-detail {
 
 .course-stat-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stat-card.compact {
-  padding: 20px;
 }
 
 .route-map,
@@ -1159,10 +1068,6 @@ body[data-theme='dark'] .app-crash-detail {
 .call-bubble strong,
 .call-bubble p {
   margin: 0;
-}
-
-.chat-backdrop.hidden {
-  display: none;
 }
 
 .course-dashboard {
@@ -4697,8 +4602,7 @@ body[data-theme='dark'] input[type='text'],
 body[data-theme='dark'] input[type='email'],
 body[data-theme='dark'] input[type='password'],
 body[data-theme='dark'] select,
-body[data-theme='dark'] .wa-inputbar input,
-body[data-theme='dark'] .chat-form input {
+body[data-theme='dark'] .wa-inputbar input {
   background: rgba(7, 14, 26, 0.78);
   color: var(--ink);
   border-color: rgba(159, 181, 221, 0.24);
@@ -4708,29 +4612,6 @@ body[data-theme='dark'] .chat-form input {
 body[data-theme='dark'] textarea::placeholder,
 body[data-theme='dark'] input::placeholder {
   color: rgba(158, 177, 207, 0.82);
-}
-
-body[data-theme='dark'] .analytics-table,
-body[data-theme='dark'] .analytics-table th,
-body[data-theme='dark'] .analytics-table td,
-body[data-theme='dark'] .admin-table,
-body[data-theme='dark'] .admin-table th,
-body[data-theme='dark'] .admin-table td {
-  border-color: rgba(159, 181, 221, 0.14);
-}
-
-body[data-theme='dark'] .analytics-table th,
-body[data-theme='dark'] .admin-table th {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ink);
-}
-
-body[data-theme='dark'] .table-wrap,
-body[data-theme='dark'] .admin-table-wrap {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015));
-  border: 1px solid rgba(159, 181, 221, 0.12);
-  border-radius: 18px;
 }
 
 body[data-theme='dark'] .chat-drawer-head,
@@ -4876,21 +4757,13 @@ body[data-theme='dark'] .backdrop {
 
 @media (max-width: 720px) {
   .actions,
-  .nav-responsive,
-  .auth-toggle,
-  .chat-header-actions,
-  .module-meta,
-  .lesson-meta,
-  .result-actions {
+  .nav-responsive {
     flex-direction: column;
     align-items: stretch;
   }
 
   .actions .btn,
-  .nav-responsive .btn,
-  .auth-toggle .btn,
-  .chat-header-actions .btn,
-  .result-actions .btn {
+  .nav-responsive .btn {
     width: 100%;
   }
 
@@ -4999,14 +4872,6 @@ body[data-input-mode='touch'] input[type='email'],
 body[data-input-mode='touch'] input[type='password'],
 body[data-input-mode='touch'] select {
   font-size: 16px;
-}
-
-body[data-input-mode='touch'] .dashboard-tabs,
-body[data-input-mode='touch'] .level-picker,
-body[data-input-mode='touch'] .admin-table-wrap,
-body[data-input-mode='touch'] .table-wrap,
-body[data-input-mode='touch'] .chat-drawer {
-  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 1280px) {
@@ -5166,8 +5031,7 @@ body[data-input-mode='touch'] .chat-drawer {
   }
 
   .lesson-meta,
-  .lesson-actions,
-  .chat-header-actions {
+  .lesson-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -5356,8 +5220,7 @@ body[data-input-mode='touch'] .chat-drawer {
 
   .lesson-meta,
   .lesson-actions,
-  .activity-head-badges,
-  .chat-header-actions {
+  .activity-head-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -5365,7 +5228,6 @@ body[data-input-mode='touch'] .chat-drawer {
 
   .lesson-actions .btn,
   .activity-actions .btn,
-  .chat-form .btn,
   .call-control-btn {
     width: 100%;
   }
@@ -5433,12 +5295,6 @@ body[data-input-mode='touch'] .chat-drawer {
     bottom: 12px;
     min-width: 58px;
     height: 58px;
-  }
-
-  .admin-table th,
-  .admin-table td {
-    padding: 10px 12px;
-    white-space: nowrap;
   }
 
   .activity-shell .activity-head-blurb,
@@ -5626,20 +5482,6 @@ body[data-input-mode='touch'] .chat-drawer {
   background: rgba(47, 107, 255, 0.05);
 }
 
-.admin-page-phone .admin-grid,
-.admin-page-phone-small .admin-grid,
-.admin-page-tablet-compact .admin-grid,
-.admin-page-phone .analytics-grid,
-.admin-page-phone-small .analytics-grid,
-.admin-page-tablet-compact .analytics-grid {
-  grid-template-columns: 1fr;
-}
-
-.chat-drawer-phone-small,
-.chat-drawer-phone {
-  gap: 14px;
-}
-
 body[data-viewport='phone-small'] .compact-only,
 body[data-viewport='phone'] .compact-only,
 body[data-viewport='tablet-compact'] .compact-only {
@@ -5756,11 +5598,6 @@ body[data-viewport='tablet-compact'] .lesson-header {
   padding: 18px 16px;
 }
 
-body[data-viewport='phone-small'] .chat-drawer,
-body[data-viewport='phone'] .chat-drawer {
-  max-height: 82vh;
-}
-
 body[data-viewport='tablet'] .app-shell,
 body[data-viewport='laptop'] .app-shell {
   gap: 22px;
@@ -5812,3 +5649,4 @@ body[data-theme='dark'] .question-card,
 body[data-theme='dark'] .summary-item {
   background: linear-gradient(180deg, rgba(18, 28, 47, 0.92), rgba(13, 21, 37, 0.94));
 }
+
