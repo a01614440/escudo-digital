@@ -751,6 +751,20 @@ const loadPlanRoute = async (client, coursePlanId) => {
 
 const buildCourseProgressWithClient = async (client, user, planRow, cachedState) => {
   const planId = planRow.id;
+  const cachedProgress = cachedState?.courseProgress
+    ? normalizeCourseProgress(cachedState.courseProgress)
+    : null;
+  const activePlanSignature = firstNullableText(planRow.plan_signature);
+  const cachedPlanSignature = firstNullableText(
+    cachedState?.coursePlan?.plan_signature,
+    cachedState?.coursePlan?.planSignature
+  );
+  const canUseCachedProgress =
+    Boolean(cachedProgress) &&
+    (!activePlanSignature ||
+      !cachedProgress?.planSig ||
+      cachedProgress.planSig === activePlanSignature ||
+      cachedPlanSignature === activePlanSignature);
   const [modulesResult, activitiesResult, snapshotsResult, seenResult] = await Promise.all([
     client.query(
       'SELECT * FROM module_progress WHERE user_id = $1 AND course_plan_id = $2 ORDER BY module_id ASC',
@@ -770,7 +784,7 @@ const buildCourseProgressWithClient = async (client, user, planRow, cachedState)
     ),
   ]);
 
-  const modules = {};
+  const modules = canUseCachedProgress ? safeClone(cachedProgress.modules) : {};
   modulesResult.rows.forEach((row) => {
     modules[row.module_id] = {
       startedAt: toIso(row.started_at, null),
@@ -781,7 +795,7 @@ const buildCourseProgressWithClient = async (client, user, planRow, cachedState)
     };
   });
 
-  const completed = {};
+  const completed = canUseCachedProgress ? safeClone(cachedProgress.completed) : {};
   activitiesResult.rows.forEach((row) => {
     completed[row.activity_id] = {
       score: row.score != null ? Number(row.score) : null,
@@ -793,14 +807,18 @@ const buildCourseProgressWithClient = async (client, user, planRow, cachedState)
     };
   });
 
-  const snapshots = snapshotsResult.rows.map((row) => ({
-    at: toIso(row.created_at, nowIso()),
-    scoreTotal: row.score_total != null ? Number(row.score_total) : 0,
-    competencias: parseJsonField(row.competencies_json, {}),
-    completedCount: Math.max(0, toInt(row.completed_count, 0)),
-  }));
+  const snapshots = snapshotsResult.rows.length
+    ? snapshotsResult.rows.map((row) => ({
+        at: toIso(row.created_at, nowIso()),
+        scoreTotal: row.score_total != null ? Number(row.score_total) : 0,
+        competencias: parseJsonField(row.competencies_json, {}),
+        completedCount: Math.max(0, toInt(row.completed_count, 0)),
+      }))
+    : canUseCachedProgress
+      ? safeClone(cachedProgress.snapshots)
+      : [];
 
-  const seenScenarioIds = {};
+  const seenScenarioIds = canUseCachedProgress ? safeClone(cachedProgress.seenScenarioIds) : {};
   seenResult.rows.forEach((row) => {
     const key = `${row.category}:${row.level}`;
     const list = seenScenarioIds[key] || [];
@@ -810,13 +828,15 @@ const buildCourseProgressWithClient = async (client, user, planRow, cachedState)
 
   return {
     planSig:
-      firstNullableText(planRow.plan_signature, cachedState?.courseProgress?.planSig) ||
+      firstNullableText(planRow.plan_signature, cachedProgress?.planSig, cachedState?.courseProgress?.planSig) ||
       computePlanSignature(planRowToClient(planRow, [])),
     completed,
     modules,
     snapshots,
     seenScenarioIds,
-    lastAccessAt: firstNullableText(cachedState?.courseProgress?.lastAccessAt, user.lastAccessAt) || nowIso(),
+    lastAccessAt:
+      firstNullableText(cachedProgress?.lastAccessAt, cachedState?.courseProgress?.lastAccessAt, user.lastAccessAt) ||
+      nowIso(),
   };
 };
 

@@ -139,6 +139,8 @@ export function useCourseProgress({
       coursePlan.planVersion !== COURSE_PLAN_VERSION ||
       !planMatchesCurrentMode
     ) {
+      setCurrentView('courses');
+      setCourseError('');
       return generateCourse({
         answers,
         assessment,

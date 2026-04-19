@@ -142,12 +142,27 @@ function JourneyStrip({ steps }) {
 }
 
 function EmptyState({ title, body, error, actionLabel, onAction, generating }) {
+  const resolvedTitle = generating ? 'Estamos generando tu ruta' : title;
+  const resolvedBody = generating
+    ? 'Estamos armando tus módulos y ordenándolos según tu diagnóstico. Esto tarda solo unos segundos.'
+    : body;
+
   return (
     <section className="sd-page-shell py-8 sm:py-10">
       <SurfaceCard className="mx-auto max-w-3xl text-center">
         <p className="eyebrow">Ruta personalizada</p>
-        <h1 className="sd-title mt-3">{title}</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-sd-muted sm:text-base">{body}</p>
+        <h1 className="sd-title mt-3">{resolvedTitle}</h1>
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-sd-muted sm:text-base">{resolvedBody}</p>
+        {generating ? (
+          <div className="mx-auto mt-6 max-w-xl">
+            <div className="loader">
+              <div className="loader-bar" />
+            </div>
+            <p className="mt-3 text-sm leading-6 text-sd-muted">
+              Qué sigue: en cuanto termine, entrarás a tu ruta sin perder el contexto del diagnóstico.
+            </p>
+          </div>
+        ) : null}
         {error ? <div className="alert mx-auto mt-5 max-w-2xl text-left">{error}</div> : null}
         {actionLabel ? (
           <div className="mt-6 flex justify-center">

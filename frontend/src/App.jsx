@@ -189,7 +189,14 @@ export default function App() {
   }, [course.currentView, assessment.surveyStage, course.currentLesson.moduleIndex]);
 
   useEffect(() => {
-    if (!assessment.assessment || !auth.currentUser || course.generatingCourse) return;
+    if (
+      !assessment.assessment ||
+      !auth.currentUser ||
+      course.generatingCourse ||
+      course.currentView === 'survey'
+    ) {
+      return;
+    }
 
     const currentScope = course.coursePlan?.planScope === 'admin_full' ? 'admin_full' : 'standard';
     const expectedScope = wantsAdminCourseAccess ? 'admin_full' : 'standard';
@@ -208,6 +215,7 @@ export default function App() {
     assessment.assessment,
     auth.authToken,
     auth.currentUser,
+    course.currentView,
     course.coursePlan?.planScope,
     course.generatingCourse,
     wantsAdminCourseAccess,
