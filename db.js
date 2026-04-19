@@ -607,6 +607,186 @@ CREATE INDEX IF NOT EXISTS idx_legacy_user_metrics_age_bucket
 `;
 
 let initPromise = null;
+const DEV_FILE_STORE_PATH = path.join(process.cwd(), 'data', 'dev-db.json');
+const isDevFileFallbackAllowed = (() => {
+  const flag = String(process.env.DEV_FILE_DB_FALLBACK ?? process.env.ALLOW_LOCAL_DB_FALLBACK ?? '')
+    .trim()
+    .toLowerCase();
+  if (['0', 'false', 'off', 'no'].includes(flag)) return false;
+  if (['1', 'true', 'on', 'yes'].includes(flag)) return true;
+  return process.env.NODE_ENV !== 'production';
+})();
+
+let activeDbMode = 'postgres';
+let fileFallbackReason = null;
+let fileStore = null;
+let fileStoreInitPromise = null;
+let fileStoreWritePromise = Promise.resolve();
+
+const createEmptyFileStore = () => ({
+  meta: {
+    mode: 'file-fallback',
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  users: {},
+  sessions: {},
+  analyticsSnapshots: [],
+});
+
+const normalizeFileUserRecord = (rawUser) => {
+  const safe = asObject(rawUser);
+  const createdAt = toIso(safe.createdAt ?? safe.created_at, nowIso());
+  return {
+    id: firstNullableText(safe.id) || crypto.randomUUID(),
+    email: String(safe.email || '').trim().toLowerCase(),
+    passwordHash: firstText(safe.passwordHash, safe.password_hash),
+    role: firstNullableText(safe.role) || 'user',
+    createdAt,
+    updatedAt: toIso(safe.updatedAt ?? safe.updated_at, createdAt),
+    lastAccessAt: toIso(safe.lastAccessAt ?? safe.last_access_at, createdAt),
+    state: normalizeClientState(safe.state ?? safe.client_state_json),
+  };
+};
+
+const normalizeFileSessionRecord = (rawSession) => {
+  const safe = asObject(rawSession);
+  const createdAt = toIso(safe.createdAt ?? safe.created_at, nowIso());
+  return {
+    id: firstNullableText(safe.id) || crypto.randomUUID(),
+    userId: firstNullableText(safe.userId, safe.user_id),
+    tokenHash: firstNullableText(safe.tokenHash, safe.token_hash),
+    createdAt,
+    lastSeenAt: toIso(safe.lastSeenAt ?? safe.last_seen_at, createdAt),
+    expiresAt: toIso(safe.expiresAt ?? safe.expires_at, createdAt),
+    userAgent: firstNullableText(safe.userAgent, safe.user_agent),
+    ip: firstNullableText(safe.ip),
+  };
+};
+
+const normalizeFileStore = (rawStore) => {
+  const safe = asObject(rawStore);
+  const normalized = createEmptyFileStore();
+
+  const meta = asObject(safe.meta);
+  normalized.meta.createdAt = toIso(meta.createdAt ?? meta.created_at, normalized.meta.createdAt);
+  normalized.meta.updatedAt = toIso(meta.updatedAt ?? meta.updated_at, normalized.meta.updatedAt);
+
+  for (const [key, rawUser] of Object.entries(asObject(safe.users))) {
+    const user = normalizeFileUserRecord(rawUser);
+    if (!user.id || !user.email) continue;
+    normalized.users[String(key || user.id)] = user;
+  }
+
+  for (const [key, rawSession] of Object.entries(asObject(safe.sessions))) {
+    const session = normalizeFileSessionRecord(rawSession);
+    if (!session.userId || !session.tokenHash) continue;
+    normalized.sessions[String(key || session.tokenHash)] = session;
+  }
+
+  normalized.analyticsSnapshots = Array.isArray(safe.analyticsSnapshots)
+    ? safe.analyticsSnapshots.map((snapshot) => safeClone(snapshot)).filter(Boolean)
+    : [];
+
+  return normalized;
+};
+
+const queueFileStoreWrite = async () => {
+  if (!fileStore) return;
+  fileStore.meta.updatedAt = nowIso();
+  const payload = JSON.stringify(fileStore, null, 2);
+  fileStoreWritePromise = fileStoreWritePromise.then(async () => {
+    await fs.mkdir(path.dirname(DEV_FILE_STORE_PATH), { recursive: true });
+    await fs.writeFile(DEV_FILE_STORE_PATH, payload, 'utf8');
+  });
+  return fileStoreWritePromise;
+};
+
+const ensureFileStore = async () => {
+  if (fileStore) return fileStore;
+  if (!fileStoreInitPromise) {
+    fileStoreInitPromise = (async () => {
+      try {
+        const raw = await fs.readFile(DEV_FILE_STORE_PATH, 'utf8');
+        fileStore = normalizeFileStore(JSON.parse(raw));
+      } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+        fileStore = createEmptyFileStore();
+        await queueFileStoreWrite();
+      }
+      return fileStore;
+    })();
+  }
+  return fileStoreInitPromise;
+};
+
+const shouldUseDevFileFallback = (error = null) => {
+  if (!isDevFileFallbackAllowed || activeDbMode === 'file') return false;
+  if (!DATABASE_URL) return true;
+
+  const code = String(error?.code || '').trim().toUpperCase();
+  if (['28P01', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET', '57P03'].includes(code)) {
+    return true;
+  }
+
+  const message = String(error?.message || '').toLowerCase();
+  return [
+    'password authentication failed',
+    'connect econnrefused',
+    'connection terminated unexpectedly',
+    'getaddrinfo',
+    'timeout expired',
+    'the database system is starting up',
+  ].some((token) => message.includes(token));
+};
+
+const activateDevFileFallback = async (reason = null) => {
+  await ensureFileStore();
+  activeDbMode = 'file';
+  fileFallbackReason = reason?.message || (reason ? String(reason) : 'fallback local activado');
+  console.warn(
+    `Postgres no disponible; activando fallback local en ${DEV_FILE_STORE_PATH}. Razón: ${fileFallbackReason}`
+  );
+  return true;
+};
+
+const findFileUserRecordByEmail = (email) => {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  return Object.values(fileStore?.users || {}).find((user) => user.email === normalizedEmail) || null;
+};
+
+const findFileUserRecordById = (userId) => {
+  if (!fileStore) return null;
+  return fileStore.users[String(userId)] || null;
+};
+
+const mapFileUserRecord = (record) => ({
+  id: record.id,
+  email: record.email,
+  passwordHash: record.passwordHash,
+  role: record.role,
+  createdAt: record.createdAt,
+  updatedAt: record.updatedAt,
+  lastAccessAt: record.lastAccessAt,
+  state: normalizeClientState(record.state),
+});
+
+const mapFileSessionRecord = (record) => ({
+  id: record.id,
+  userId: record.userId,
+  tokenHash: record.tokenHash,
+  createdAt: record.createdAt,
+  lastSeenAt: record.lastSeenAt,
+  expiresAt: record.expiresAt,
+  userAgent: record.userAgent,
+  ip: record.ip,
+});
+
+export const getDbRuntimeStatus = () => ({
+  mode: activeDbMode,
+  usingFileFallback: activeDbMode === 'file',
+  fallbackReason: fileFallbackReason,
+});
 
 const migrateLegacyTables = async (client) => {
   await client.query(
@@ -1375,6 +1555,9 @@ const normalizeAnalyticsSnapshotInput = (rawSnapshot) => {
 
 export const initDb = async () => {
   if (!DATABASE_URL) {
+    if (shouldUseDevFileFallback()) {
+      return activateDevFileFallback(new Error('Falta DATABASE_URL en el entorno.'));
+    }
     throw new Error('Falta DATABASE_URL en el entorno.');
   }
 
@@ -1388,13 +1571,39 @@ export const initDb = async () => {
         client.release();
       }
       await maybeImportLegacyStore();
-    })();
+      activeDbMode = 'postgres';
+      fileFallbackReason = null;
+      return true;
+    })().catch(async (error) => {
+      initPromise = null;
+      if (shouldUseDevFileFallback(error)) {
+        return activateDevFileFallback(error);
+      }
+      throw error;
+    });
   }
 
   return initPromise;
 };
 
 export const createUser = async (user) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const normalizedEmail = String(user?.email || '').trim().toLowerCase();
+    if (findFileUserRecordByEmail(normalizedEmail)) {
+      const error = new Error('Ese correo ya está registrado.');
+      error.code = '23505';
+      throw error;
+    }
+    const record = normalizeFileUserRecord({
+      ...safeClone(asObject(user)),
+      email: normalizedEmail,
+    });
+    fileStore.users[record.id] = record;
+    await queueFileStoreWrite();
+    return mapFileUserRecord(record);
+  }
+
   const state = normalizeClientState(user?.state);
   const result = await pool.query(
     `INSERT INTO users (
@@ -1415,6 +1624,29 @@ export const createUser = async (user) => {
 };
 
 export const saveUser = async (user) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const existing = findFileUserRecordById(user?.id);
+    if (!existing) return null;
+    const normalizedEmail = String(user?.email || existing.email || '').trim().toLowerCase();
+    const duplicate = findFileUserRecordByEmail(normalizedEmail);
+    if (duplicate && duplicate.id !== existing.id) {
+      const error = new Error('Ese correo ya está registrado.');
+      error.code = '23505';
+      throw error;
+    }
+    const record = normalizeFileUserRecord({
+      ...existing,
+      ...safeClone(asObject(user)),
+      email: normalizedEmail,
+      createdAt: existing.createdAt,
+      updatedAt: nowIso(),
+    });
+    fileStore.users[record.id] = record;
+    await queueFileStoreWrite();
+    return mapFileUserRecord(record);
+  }
+
   const state = normalizeClientState(user?.state);
   const result = await pool.query(
     `UPDATE users
@@ -1439,6 +1671,12 @@ export const saveUser = async (user) => {
 };
 
 export const findUserByEmail = async (email) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const record = findFileUserRecordByEmail(email);
+    return record ? mapFileUserRecord(record) : null;
+  }
+
   const client = await pool.connect();
   try {
     const result = await client.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [
@@ -1455,11 +1693,34 @@ export const findUserByEmail = async (email) => {
 };
 
 export const getAdminCount = async () => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    return Object.values(fileStore.users).filter((user) => user.role === 'admin').length;
+  }
+
   const result = await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE role = 'admin'");
   return result.rows[0]?.count ?? 0;
 };
 
 export const createSession = async (session) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const tokenHash = hashSessionToken(session.token);
+    const record = normalizeFileSessionRecord({
+      id: crypto.randomUUID(),
+      userId: session.userId,
+      tokenHash,
+      createdAt: toIso(session.createdAt, nowIso()),
+      expiresAt: toIso(session.expiresAt, nowIso()),
+      lastSeenAt: toIso(session.lastSeenAt, toIso(session.createdAt, nowIso())),
+      userAgent: firstNullableText(session.userAgent),
+      ip: firstNullableText(session.ip),
+    });
+    fileStore.sessions[record.tokenHash] = record;
+    await queueFileStoreWrite();
+    return mapFileSessionRecord(record);
+  }
+
   const tokenHash = hashSessionToken(session.token);
   const result = await pool.query(
     `INSERT INTO auth_sessions (
@@ -1481,6 +1742,22 @@ export const createSession = async (session) => {
 };
 
 export const saveSession = async (session) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const existing =
+      Object.values(fileStore.sessions).find((entry) => entry.id === session.id) || null;
+    if (!existing) return null;
+    const record = normalizeFileSessionRecord({
+      ...existing,
+      ...safeClone(asObject(session)),
+      tokenHash: existing.tokenHash,
+      userId: existing.userId,
+    });
+    fileStore.sessions[record.tokenHash] = record;
+    await queueFileStoreWrite();
+    return mapFileSessionRecord(record);
+  }
+
   const result = await pool.query(
     `UPDATE auth_sessions
        SET expires_at = $2::timestamptz,
@@ -1501,14 +1778,53 @@ export const saveSession = async (session) => {
 };
 
 export const deleteSession = async (token) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    delete fileStore.sessions[hashSessionToken(token)];
+    await queueFileStoreWrite();
+    return;
+  }
+
   await pool.query('DELETE FROM auth_sessions WHERE token_hash = $1', [hashSessionToken(token)]);
 };
 
 export const deleteExpiredSessions = async () => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const now = Date.now();
+    let changed = false;
+    for (const [tokenHash, session] of Object.entries(fileStore.sessions)) {
+      if (Date.parse(session.expiresAt) <= now) {
+        delete fileStore.sessions[tokenHash];
+        changed = true;
+      }
+    }
+    if (changed) await queueFileStoreWrite();
+    return;
+  }
+
   await pool.query('DELETE FROM auth_sessions WHERE expires_at <= NOW()');
 };
 
 export const getSessionWithUser = async (token) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const tokenHash = hashSessionToken(token);
+    const session = fileStore.sessions[tokenHash];
+    if (!session) return null;
+    if (Date.parse(session.expiresAt) <= Date.now()) {
+      delete fileStore.sessions[tokenHash];
+      await queueFileStoreWrite();
+      return null;
+    }
+    const user = findFileUserRecordById(session.userId);
+    if (!user) return null;
+    return {
+      session: mapFileSessionRecord(session),
+      user: mapFileUserRecord(user),
+    };
+  }
+
   const client = await pool.connect();
   try {
     const sessionResult = await client.query(
@@ -1531,6 +1847,19 @@ export const getSessionWithUser = async (token) => {
 };
 
 export const syncUserState = async (userId, rawState) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const record = findFileUserRecordById(userId);
+    if (!record) return null;
+    const state = normalizeClientState(rawState);
+    record.state = state;
+    record.updatedAt = nowIso();
+    record.lastAccessAt = state.courseProgress?.lastAccessAt || nowIso();
+    fileStore.users[record.id] = record;
+    await queueFileStoreWrite();
+    return mapFileUserRecord(record);
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1553,6 +1882,12 @@ export const syncUserState = async (userId, rawState) => {
 };
 
 export const buildUserState = async (userId) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const record = findFileUserRecordById(userId);
+    return record ? normalizeClientState(record.state) : createEmptyUserState();
+  }
+
   const client = await pool.connect();
   try {
     return await buildUserStateWithClient(client, userId);
@@ -1562,6 +1897,13 @@ export const buildUserState = async (userId) => {
 };
 
 export const listUsers = async () => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    return Object.values(fileStore.users)
+      .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))
+      .map((record) => mapFileUserRecord(record));
+  }
+
   const client = await pool.connect();
   try {
     const result = await client.query('SELECT * FROM users ORDER BY created_at ASC');
@@ -1581,6 +1923,25 @@ export const importAnalyticsSnapshot = async (
   rawSnapshot,
   { snapshotType = 'manual_import', sourceLabel = null } = {}
 ) => {
+  if (activeDbMode === 'file') {
+    await ensureFileStore();
+    const normalized = normalizeAnalyticsSnapshotInput(rawSnapshot);
+    const snapshot = {
+      id: crypto.randomUUID(),
+      snapshotType,
+      sourceLabel,
+      createdAt: nowIso(),
+      payload: normalized,
+    };
+    fileStore.analyticsSnapshots.push(snapshot);
+    await queueFileStoreWrite();
+    return {
+      snapshotId: snapshot.id,
+      linkedUsers: 0,
+      totalUsers: normalized.overview.totalUsers,
+    };
+  }
+
   const normalized = normalizeAnalyticsSnapshotInput(rawSnapshot);
   const client = await pool.connect();
   try {

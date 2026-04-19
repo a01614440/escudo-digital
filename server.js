@@ -11,6 +11,7 @@ import {
   deleteExpiredSessions,
   deleteSession as deleteDbSession,
   findUserByEmail,
+  getDbRuntimeStatus,
   getAdminCount,
   getSessionWithUser,
   initDb,
@@ -58,6 +59,7 @@ const getDbStatusPayload = () => ({
   initializing: Boolean(dbInitInFlight),
   attempts: dbInitAttempts,
   lastError: dbLastError?.message || null,
+  runtime: getDbRuntimeStatus(),
 });
 
 const initializeDatabase = async () => {
