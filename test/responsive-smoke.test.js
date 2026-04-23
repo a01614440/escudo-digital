@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test, { describe } from 'node:test';
 
 import { getShellFamily, getViewportProfile } from '../frontend/src/hooks/useResponsiveLayout.js';
@@ -16,9 +17,13 @@ describe('responsive and presentation smoke validations', () => {
   test('maps representative widths to the expected viewport profiles', () => {
     assert.equal(getViewportProfile(390), 'phone-small');
     assert.equal(getViewportProfile(540), 'phone');
+    assert.equal(getViewportProfile(767), 'phone');
     assert.equal(getViewportProfile(768), 'tablet-compact');
     assert.equal(getViewportProfile(960), 'tablet');
+    assert.equal(getViewportProfile(1023), 'tablet');
+    assert.equal(getViewportProfile(1024), 'laptop');
     assert.equal(getViewportProfile(1180), 'laptop');
+    assert.equal(getViewportProfile(1280), 'laptop');
     assert.equal(getViewportProfile(1440), 'desktop');
   });
 
@@ -29,6 +34,24 @@ describe('responsive and presentation smoke validations', () => {
     assert.equal(getShellFamily('tablet'), 'tablet');
     assert.equal(getShellFamily('laptop'), 'desktop');
     assert.equal(getShellFamily('desktop'), 'desktop');
+  });
+
+  test('aligns shell family breakpoints with shell spacing media queries', () => {
+    const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+
+    assert.match(css, /@media \(min-width: 48rem\)\s*\{\s*:root\s*\{[^}]*--sd-shell-padding-inline: var\(--sd-shell-tablet-inline\)/s);
+    assert.match(css, /@media \(min-width: 64rem\)\s*\{\s*:root\s*\{[^}]*--sd-shell-padding-inline: var\(--sd-shell-desktop-inline\)/s);
+    assert.doesNotMatch(css, /@media \(min-width: 80rem\)\s*\{\s*:root\s*\{[^}]*--sd-shell-padding-inline: var\(--sd-shell-desktop-inline\)/s);
+  });
+
+  test('keeps only body layout datasets that still have consumers', () => {
+    const source = readFileSync(new URL('../frontend/src/hooks/useResponsiveLayout.js', import.meta.url), 'utf8');
+
+    assert.match(source, /document\.body\.dataset\.theme = theme/);
+    assert.match(source, /document\.body\.dataset\.viewport = profile\.viewport/);
+    assert.match(source, /document\.body\.dataset\.inputMode = profile\.inputMode/);
+    assert.doesNotMatch(source, /document\.body\.dataset\.shell/);
+    assert.doesNotMatch(source, /delete document\.body\.dataset\.shell/);
   });
 
   test('normalizes navigation targets and activates the correct macro item', () => {

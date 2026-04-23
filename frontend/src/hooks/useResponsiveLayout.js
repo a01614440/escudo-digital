@@ -16,9 +16,9 @@ export const VIEWPORT_TO_SHELL = {
 export function getViewportProfile(width) {
   const safeWidth = Number(width) || 0;
   if (safeWidth <= 420) return 'phone-small';
-  if (safeWidth <= 640) return 'phone';
+  if (safeWidth <= 767) return 'phone';
   if (safeWidth <= 820) return 'tablet-compact';
-  if (safeWidth <= 1024) return 'tablet';
+  if (safeWidth <= 1023) return 'tablet';
   if (safeWidth <= 1280) return 'laptop';
   return 'desktop';
 }
@@ -50,13 +50,11 @@ export function buildResponsiveProfile(width) {
 
 function writeBodyLayoutDatasets(profile) {
   document.body.dataset.viewport = profile.viewport;
-  document.body.dataset.shell = profile.shellFamily;
   document.body.dataset.inputMode = profile.inputMode;
 }
 
 function clearBodyLayoutDatasets() {
   delete document.body.dataset.viewport;
-  delete document.body.dataset.shell;
   delete document.body.dataset.inputMode;
 }
 

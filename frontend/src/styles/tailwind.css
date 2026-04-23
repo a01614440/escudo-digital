@@ -269,7 +269,7 @@ body[data-theme='dark'] {
   }
 }
 
-@media (min-width: 80rem) {
+@media (min-width: 64rem) {
   :root {
     --sd-shell-padding-inline: var(--sd-shell-desktop-inline);
     --sd-shell-padding-block: var(--sd-shell-desktop-block);
