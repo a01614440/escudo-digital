@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F5.E
+## Estado actual tras F5.F
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -127,8 +127,16 @@ La tesis obligatoria es:
 - F5.E agrego `test/f5-lesson-shell-smoke.test.js`.
 - F5.E valido `.\npm-local.cmd test` (83/83), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
 - F5.E no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`.
-- El siguiente frente recomendado es F5.F - Activity chrome + instructions + feedback integration.
-- No abrir F5.F/F5.G/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F5.F Activity chrome + instructions + feedback integration quedo cerrada localmente con `docs/rebuild/audit/F5.F-activity-chrome-feedback.md`.
+- F5.F hizo que `LessonActivityStage` delegue el briefing visible a `ActivityChrome` y elimino instrucciones duplicadas dentro del stage guiado.
+- F5.F convirtio el briefing guiado de `ActivityChrome` en una superficie colapsable unica con `data-sd-briefing="activity-chrome"`.
+- F5.F hizo que `SimulationGuide` sea siempre colapsable y secundaria, sin card permanente.
+- F5.F compacto `FeedbackPanel` a una sola superficie con secciones internas ligeras y `data-sd-feedback-panel="true"`.
+- F5.F agrego `test/f5-activity-chrome-smoke.test.js`.
+- F5.F valido `.\npm-local.cmd test` (88/88), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
+- F5.F no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `CoursesView.jsx`, `app.css` ni `legacy.css`.
+- El siguiente frente recomendado es F5.G - Comfort / jugabilidad / responsiveness pass.
+- No abrir F5.G/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

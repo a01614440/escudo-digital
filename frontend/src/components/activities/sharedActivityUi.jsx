@@ -12,7 +12,7 @@ import {
 } from '../../lib/activityFeedback.js';
 import { getActivityInstructionMeta } from '../../lib/journeyGuidance.js';
 import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.js';
-import { ActionCluster, PanelHeader } from '../../patterns/index.js';
+import { ActionCluster } from '../../patterns/index.js';
 import { Badge, SurfaceCard } from '../ui/index.js';
 
 const IMMERSIVE_ACTIVITY_TYPES = new Set(['sim_chat', 'inbox', 'web_lab', 'call_sim', 'scenario_flow']);
@@ -33,41 +33,19 @@ export function Paragraphs({ text, className = 'activity-copy' }) {
 export function SimulationGuide({ activity, compact = false }) {
   const steps = getSimulationGuide(activity?.tipo);
   if (!steps?.length) return null;
-
-  if (compact) {
-    return (
-      <details className="rounded-[22px] border border-sd-border-strong bg-white/76 p-4">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
-          Ver guía rápida
-        </summary>
-        <div className="mt-4 grid gap-3">
-          {steps.map((step, index) => (
-            <div
-              className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[18px] border border-sd-border bg-white p-3"
-              key={step}
-            >
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sd-border bg-sd-surface-subtle text-xs font-semibold text-sd-text">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <p className="m-0 text-sm leading-6 text-sd-text-soft">{step}</p>
-            </div>
-          ))}
-        </div>
-      </details>
-    );
-  }
+  const guideTitle = compact ? 'Ver guia rapida' : 'Guia rapida de resolucion';
 
   return (
-    <SurfaceCard padding="compact" variant="support">
-      <PanelHeader
-        eyebrow="Guía breve"
-        title="Cómo resolver esta actividad"
-        subtitle="Solo dejamos los pasos que sí ayudan a decidir mejor."
-        meta={<Badge tone="neutral">{`${steps.length} pasos`}</Badge>}
-        divider
-      />
+    <details
+      className="sd-simulation-guide rounded-[22px] border border-sd-border-strong bg-white/84 p-4"
+      data-sd-simulation-guide="collapsed"
+    >
+      <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+        <span>{guideTitle}</span>
+        <Badge tone="neutral">{`${steps.length} pasos`}</Badge>
+      </summary>
 
-      <div className="grid gap-3">
+      <div className="mt-4 grid gap-3">
         {steps.map((step, index) => (
           <div
             className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[18px] border border-sd-border bg-white p-3"
@@ -80,7 +58,7 @@ export function SimulationGuide({ activity, compact = false }) {
           </div>
         ))}
       </div>
-    </SurfaceCard>
+    </details>
   );
 }
 
@@ -112,9 +90,18 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
   }
 
   return (
-    <div className="grid gap-4">
-      <SurfaceCard padding="compact" variant="subtle" className="border-sd-border-strong">
-        <div className="grid gap-4">
+    <div className="sd-activity-chrome grid gap-4" data-sd-activity-chrome="guided" data-sd-activity-type={activityType}>
+      <details
+        className="sd-activity-briefing rounded-[22px] border border-sd-border-strong bg-white p-4"
+        data-sd-briefing="activity-chrome"
+        open={!compact}
+      >
+        <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+          <span>Briefing de actividad</span>
+          <Badge tone="accent">{activityLabel}</Badge>
+        </summary>
+
+        <div className="mt-4 grid gap-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="grid gap-1">
               <strong className="text-sm text-sd-text">
@@ -124,25 +111,24 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
             </div>
 
             <ActionCluster collapse="wrap">
-              <Badge tone="accent">{activityLabel}</Badge>
               <Badge tone="soft">{categoryLabel}</Badge>
               <Badge tone="neutral">{levelLabel}</Badge>
             </ActionCluster>
           </div>
 
-          <div className={compact ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
-            <SurfaceCard padding="compact" variant="panel">
-              <strong className="block text-sm text-sd-text">Qué debes observar</strong>
-              <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.whatToDo}</p>
-            </SurfaceCard>
+          <dl className={compact ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
+            <div className="sd-activity-briefing-item">
+              <dt>Que observar</dt>
+              <dd>{instructionMeta.whatToDo}</dd>
+            </div>
 
-            <SurfaceCard padding="compact" variant="panel">
-              <strong className="block text-sm text-sd-text">Qué cuenta como buen resultado</strong>
-              <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.scoring}</p>
-            </SurfaceCard>
-          </div>
+            <div className="sd-activity-briefing-item">
+              <dt>Buen resultado</dt>
+              <dd>{instructionMeta.scoring}</dd>
+            </div>
+          </dl>
         </div>
-      </SurfaceCard>
+      </details>
 
       <SimulationGuide activity={activity} compact={compact} />
       {children}

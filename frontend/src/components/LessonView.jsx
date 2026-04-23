@@ -455,6 +455,7 @@ function LessonActivityStage({
       variant="spotlight"
       className="sd-lesson-stage sd-lesson-stage-guided overflow-hidden border-sd-border-strong"
       data-sd-lesson-stage="guided"
+      data-sd-briefing-source="activity-chrome"
     >
       <PanelHeader
         eyebrow="Actividad actual"
@@ -466,23 +467,6 @@ function LessonActivityStage({
         meta={<Badge tone="accent">{ACTIVITY_LABELS[activity?.tipo] || 'Práctica'}</Badge>}
         divider
       />
-
-      <div
-        className={cn(
-          'grid gap-3',
-          shellFamily === 'desktop' ? 'xl:grid-cols-2' : shellFamily === 'tablet' ? 'md:grid-cols-2' : ''
-        )}
-      >
-        <SurfaceCard padding="compact" variant="subtle">
-          <strong className="block text-sm text-sd-text">Qué debes hacer</strong>
-          <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.whatToDo}</p>
-        </SurfaceCard>
-
-        <SurfaceCard padding="compact" variant="subtle">
-          <strong className="block text-sm text-sd-text">Cómo se evalúa</strong>
-          <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.scoring}</p>
-        </SurfaceCard>
-      </div>
 
       <div className="sd-lesson-renderer-frame mt-4 overflow-hidden rounded-[24px] border border-sd-border-strong bg-white p-3 md:p-4">
         {renderer}

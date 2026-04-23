@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F5.E Lesson shell layout refactor (content-first / fullscreen) cerrada localmente. Siguiente frente recomendado: F5.F Activity chrome + instructions + feedback integration.**
+**F5.F Activity chrome + instructions + feedback integration cerrada localmente. Siguiente frente recomendado: F5.G Comfort / jugabilidad / responsiveness pass.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -199,6 +199,14 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F5.E agrego `test/f5-lesson-shell-smoke.test.js`;
 - F5.E valido `.\npm-local.cmd test` con 83/83, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F5.E no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.F - Activity chrome + instructions + feedback integration.
+- F5.F Activity chrome + instructions + feedback integration quedo cerrada localmente con `docs/rebuild/audit/F5.F-activity-chrome-feedback.md`;
+- F5.F hizo que `LessonActivityStage` delegue el briefing visible a `ActivityChrome` y elimino instrucciones duplicadas dentro del stage guiado;
+- F5.F convirtio el briefing guiado de `ActivityChrome` en una superficie colapsable unica con `data-sd-briefing="activity-chrome"`;
+- F5.F hizo que `SimulationGuide` sea siempre colapsable y secundaria, sin card permanente;
+- F5.F compacto `FeedbackPanel` a una sola superficie con secciones internas ligeras y `data-sd-feedback-panel="true"`;
+- F5.F agrego `test/f5-activity-chrome-smoke.test.js`;
+- F5.F valido `.\npm-local.cmd test` con 88/88, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F5.F no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `CoursesView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.G - Comfort / jugabilidad / responsiveness pass.
 
-No abrir F5.F/F5.G/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F5.G/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

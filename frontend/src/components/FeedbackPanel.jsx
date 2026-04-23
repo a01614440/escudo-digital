@@ -31,14 +31,14 @@ function formatScore(score) {
   return `${Math.round(Math.max(0, Math.min(1, safe)) * 100)}%`;
 }
 
-function FeedbackBlock({ title, body }) {
+function FeedbackItem({ title, body }) {
   if (!body) return null;
 
   return (
-    <SurfaceCard padding="compact" variant="subtle">
-      <strong className="block text-sm text-sd-text">{title}</strong>
-      <p className="mt-2 text-sm leading-6 text-sd-text-soft">{body}</p>
-    </SurfaceCard>
+    <section className="sd-feedback-item">
+      <h4>{title}</h4>
+      <p>{body}</p>
+    </section>
   );
 }
 
@@ -46,14 +46,14 @@ function FeedbackList({ title, items = [] }) {
   if (!items.length) return null;
 
   return (
-    <SurfaceCard padding="compact" variant="subtle">
-      <strong className="block text-sm text-sd-text">{title}</strong>
-      <ul className="mt-3 grid gap-2 pl-5 text-sm leading-6 text-sd-text-soft">
+    <section className="sd-feedback-list">
+      <h4>{title}</h4>
+      <ul>
         {items.map((item) => (
           <li key={item}>{item}</li>
         ))}
       </ul>
-    </SurfaceCard>
+    </section>
   );
 }
 
@@ -67,18 +67,21 @@ export default function FeedbackPanel({ feedback }) {
       .filter(Boolean);
 
     return (
-      <SurfaceCard padding="md" variant="support" className="border-sd-border-strong">
+      <SurfaceCard
+        padding="compact"
+        variant="support"
+        className="sd-feedback-panel border-sd-border-strong"
+        data-sd-feedback-panel="true"
+      >
         <PanelHeader
-          eyebrow="Retroalimentación"
+          eyebrow="Retroalimentacion"
           title="Lo importante de este resultado"
-          subtitle="Un resumen corto para decidir el siguiente paso sin romper el foco."
+          subtitle="Resumen corto para decidir el siguiente paso sin romper el foco."
           divider
         />
-        <div className="grid gap-3">
+        <div className="sd-feedback-copy">
           {lines.map((line, index) => (
-            <p key={`${line}-${index}`} className="m-0 text-sm leading-6 text-sd-text-soft">
-              {line}
-            </p>
+            <p key={`${line}-${index}`}>{line}</p>
           ))}
         </div>
       </SurfaceCard>
@@ -102,41 +105,52 @@ export default function FeedbackPanel({ feedback }) {
 
   return (
     <SurfaceCard
-      padding="md"
+      padding="compact"
       variant={tone === 'good' ? 'spotlight' : tone === 'risk' ? 'editorial' : 'support'}
-      className={cn('border-sd-border-strong', tone === 'risk' ? '[&_.sd-heading-sm]:text-sd-text' : '')}
+      className={cn(
+        'sd-feedback-panel border-sd-border-strong',
+        tone === 'risk' ? '[&_.sd-heading-sm]:text-sd-text' : ''
+      )}
+      data-sd-feedback-panel="true"
     >
       <PanelHeader
-        eyebrow="Retroalimentación"
+        eyebrow="Retroalimentacion"
         title={title || 'Lectura del resultado'}
-        subtitle="Qué hiciste bien, qué conviene revisar y cómo trasladarlo a la vida real."
+        subtitle="Criterio, correccion y siguiente accion sin sacar la practica de foco."
         meta={
           <div className="flex flex-wrap gap-2">
-            {scoreLabel ? <Badge tone={tone === 'risk' ? 'warning' : tone === 'good' ? 'accent' : 'neutral'}>{scoreLabel}</Badge> : null}
+            {scoreLabel ? (
+              <Badge tone={tone === 'risk' ? 'warning' : tone === 'good' ? 'accent' : 'neutral'}>
+                {scoreLabel}
+              </Badge>
+            ) : null}
           </div>
         }
         divider
       />
 
-      <InlineMessage tone={inlineTone} title={tone === 'good' ? 'Buen criterio' : tone === 'risk' ? 'Hay que corregir el criterio' : 'Todavía hay margen de mejora'}>
+      <InlineMessage
+        tone={inlineTone}
+        title={tone === 'good' ? 'Buen criterio' : tone === 'risk' ? 'Corrige el criterio' : 'Hay margen de mejora'}
+      >
         {tone === 'good'
-          ? 'La decisión general fue segura y ahora conviene fijar esa misma rutina.'
+          ? 'La decision general fue segura; conserva esa misma rutina.'
           : tone === 'risk'
-            ? 'La lectura del riesgo todavía quedó corta; esta devolución te dice qué corregir antes de seguir.'
-            : 'La decisión rescató parte del contexto, pero aún conviene afinar la rutina.'}
+            ? 'La lectura del riesgo quedo corta; revisa esta devolucion antes de avanzar.'
+            : 'La decision rescato parte del contexto, pero todavia conviene afinar la rutina.'}
       </InlineMessage>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <FeedbackBlock title="Qué sí viste" body={signal} />
-        <FeedbackBlock title="Qué faltó notar" body={risk} />
-        <FeedbackBlock title="Qué harías en la vida real" body={action} />
-        <FeedbackBlock title="Qué sigue" body={extra} />
+      <div className="sd-feedback-summary-grid">
+        <FeedbackItem title="Que viste" body={signal} />
+        <FeedbackItem title="Que falto" body={risk} />
+        <FeedbackItem title="Accion real" body={action} />
+        <FeedbackItem title="Siguiente paso" body={extra} />
       </div>
 
       {detected.length || missed.length ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <FeedbackList title="Señales detectadas" items={detected} />
-          <FeedbackList title="Te faltó revisar" items={missed} />
+        <div className="sd-feedback-signal-grid">
+          <FeedbackList title="Senales detectadas" items={detected} />
+          <FeedbackList title="Falto revisar" items={missed} />
         </div>
       ) : null}
     </SurfaceCard>
