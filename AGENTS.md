@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F5.D
+## Estado actual tras F5.E
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -117,8 +117,18 @@ La tesis obligatoria es:
 - F5.D agrego `test/f5-lesson-transition-smoke.test.js`.
 - F5.D valido `.\npm-local.cmd test` (79/79), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
 - F5.D no toco `ActivityRenderer`, `activityRegistry`, simulaciones, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`.
-- El siguiente frente recomendado es F5.E - Lesson shell layout refactor (content-first / fullscreen).
-- No abrir F5.E/F5.F/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F5.E Lesson shell layout refactor (content-first / fullscreen) quedo cerrada localmente con `docs/rebuild/audit/F5.E-lesson-shell-fullscreen.md`.
+- F5.E agrego deteccion pasiva `guided`/`immersive` en `LessonView` para `sim_chat`, `inbox`, `web_lab`, `call_sim` y `scenario_flow`.
+- F5.E elimino el uso de `WorkspaceLayout` en el render principal de `LessonView` y lo reemplazo por `data-sd-lesson-layout="immersive-fullscreen"` o `"guided-two-pane"`.
+- F5.E hizo que actividades inmersivas rendericen el `ActivityRenderer` sin `SurfaceCard spotlight` ni panel de lesson anidado.
+- F5.E extendio `ActivityChrome` para bypass del chrome generico en todas las inmersivas, preservando `sd-chat-activity-shell` para `sim_chat`.
+- F5.E movio mapa/contexto de inmersivas debajo de la practica y lo hizo compact/collapsable.
+- F5.E oculta `LessonInsightRail` cuando no hay historial ni ultima reentrada.
+- F5.E agrego `test/f5-lesson-shell-smoke.test.js`.
+- F5.E valido `.\npm-local.cmd test` (83/83), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
+- F5.E no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`.
+- El siguiente frente recomendado es F5.F - Activity chrome + instructions + feedback integration.
+- No abrir F5.F/F5.G/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

@@ -15,6 +15,8 @@ import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.
 import { ActionCluster, PanelHeader } from '../../patterns/index.js';
 import { Badge, SurfaceCard } from '../ui/index.js';
 
+const IMMERSIVE_ACTIVITY_TYPES = new Set(['sim_chat', 'inbox', 'web_lab', 'call_sim', 'scenario_flow']);
+
 export function Paragraphs({ text, className = 'activity-copy' }) {
   const lines = splitParagraphs(repairPossibleMojibake(text));
   if (!lines.length) return null;
@@ -88,11 +90,22 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
   const categoryLabel = CATEGORY_LABELS[theme.category] || theme.badge;
   const levelLabel = LEVEL_LABELS[theme.level] || theme.label;
   const activityLabel = ACTIVITY_LABELS[activity?.tipo] || activity?.tipo || 'Actividad';
-  const isChatSimulation = activity?.tipo === 'sim_chat';
+  const activityType = String(activity?.tipo || '').toLowerCase();
+  const isImmersiveActivity = IMMERSIVE_ACTIVITY_TYPES.has(activityType);
 
-  if (isChatSimulation) {
+  if (isImmersiveActivity) {
+    const immersiveShellClassName =
+      activityType === 'sim_chat'
+        ? 'sd-immersive-activity-shell sd-chat-activity-shell'
+        : 'sd-immersive-activity-shell';
+
     return (
-      <div className="sd-chat-activity-shell" data-sd-container="true">
+      <div
+        className={immersiveShellClassName}
+        data-sd-activity-chrome="immersive"
+        data-sd-activity-type={activityType}
+        data-sd-container="true"
+      >
         {children}
       </div>
     );

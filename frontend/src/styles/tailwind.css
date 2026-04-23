@@ -431,6 +431,40 @@ body[data-theme='dark'] {
       minmax(19rem, var(--sd-shell-detail-width));
   }
 
+  .sd-lesson-layout {
+    align-items: start;
+  }
+
+  .sd-lesson-layout-guided {
+    grid-template-columns: minmax(17.5rem, 20rem) minmax(0, 1fr);
+  }
+
+  .sd-lesson-layout-immersive {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sd-lesson-layout-immersive .sd-lesson-context {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  }
+
+  .sd-lesson-stage,
+  .sd-lesson-primary,
+  .sd-lesson-context,
+  .sd-lesson-renderer-frame,
+  .sd-immersive-activity-shell {
+    min-width: 0;
+  }
+
+  .sd-lesson-stage-immersive {
+    display: grid;
+    gap: var(--sd-region-gap-md);
+    width: 100%;
+  }
+
+  .sd-lesson-stage-immersive .sd-immersive-activity-shell {
+    width: 100%;
+  }
+
   .sd-assessment-layout {
     display: grid;
     gap: var(--sd-region-gap-lg);

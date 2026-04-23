@@ -9,7 +9,7 @@ import {
 import { getActivityInstructionMeta, getModuleObjective } from '../lib/journeyGuidance.js';
 import { cn } from '../lib/ui.js';
 import { getShellFamily } from '../hooks/useResponsiveLayout.js';
-import { SplitHeroLayout, WorkspaceLayout } from '../layouts/index.js';
+import { SplitHeroLayout } from '../layouts/index.js';
 import {
   ActionCluster,
   KeyValueBlock,
@@ -46,6 +46,16 @@ function getActivityTitle(activity, activityIndex = 0) {
 
 function formatPercentLabel(value) {
   return `${Math.round(Number(value) || 0)}%`;
+}
+
+const IMMERSIVE_ACTIVITY_TYPES = new Set(['sim_chat', 'inbox', 'web_lab', 'call_sim', 'scenario_flow']);
+
+function isImmersiveActivityType(type) {
+  return IMMERSIVE_ACTIVITY_TYPES.has(String(type || '').toLowerCase());
+}
+
+function getLessonStageMode(activity) {
+  return isImmersiveActivityType(activity?.tipo) ? 'immersive' : 'guided';
 }
 
 function getCompletedModules(route, courseProgress) {
@@ -307,16 +317,54 @@ function LessonCommandRail({
   courseProgress,
   onBack,
   onRestart,
+  compact = false,
 }) {
   const activities = Array.isArray(module?.actividades) ? module.actividades : [];
   const moduleSummary = buildModuleSummary(module, courseProgress);
   const moduleProgressPct = Math.round((moduleSummary.completedCount / Math.max(activities.length, 1)) * 100);
   const mapContent = <ActivityMapList module={module} activityIndex={activityIndex} courseProgress={courseProgress} />;
 
+  if (compact) {
+    return (
+      <SurfaceCard
+        padding="md"
+        variant="support"
+        className="sd-lesson-context-card border-sd-border-strong"
+        data-sd-lesson-context="compact-map"
+      >
+        <div className="grid gap-4">
+          <PanelHeader
+            eyebrow="Mapa del modulo"
+            title={`${activities.length} actividades`}
+            subtitle="El recorrido queda disponible sin robarle ancho a la practica."
+            meta={<Badge tone="accent">{formatPercentLabel(moduleProgressPct)}</Badge>}
+            divider
+          />
+
+          <details className="sd-lesson-map-toggle rounded-[20px] border border-sd-border-strong bg-white p-4">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+              Ver recorrido del modulo
+            </summary>
+            <div className="mt-4">{mapContent}</div>
+          </details>
+
+          <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+            <Button variant="secondary" type="button" onClick={onBack}>
+              Volver a la ruta
+            </Button>
+            <Button variant="quiet" type="button" onClick={onRestart}>
+              Reiniciar modulo
+            </Button>
+          </ActionCluster>
+        </div>
+      </SurfaceCard>
+    );
+  }
+
   return (
     <SupportRail
       tone={shellFamily === 'desktop' ? 'support' : 'editorial'}
-      sticky={shellFamily === 'desktop'}
+      sticky={false}
       eyebrow="Mapa del módulo"
       title={`${activities.length} actividades en esta práctica`}
       subtitle="El orden ya está resuelto: solo necesitas ver dónde estás y qué sigue."
@@ -362,6 +410,7 @@ function LessonCommandRail({
 
 function LessonActivityStage({
   shellFamily,
+  stageMode = 'guided',
   viewport,
   module,
   activity,
@@ -371,12 +420,41 @@ function LessonActivityStage({
   onCompleteActivity,
 }) {
   const instructionMeta = getActivityInstructionMeta(activity?.tipo, module);
+  const isImmersive = stageMode === 'immersive';
+  const renderer = (
+    <ActivityRenderer
+      key={`${module.id}-${activity.id}`}
+      viewport={viewport}
+      module={module}
+      activity={activity}
+      answers={answers}
+      assessment={assessment}
+      onComplete={onCompleteActivity}
+    />
+  );
+
+  if (isImmersive) {
+    return (
+      <section
+        className="sd-lesson-stage sd-lesson-stage-immersive"
+        data-sd-lesson-stage="immersive"
+        data-sd-activity-type={String(activity?.tipo || '')}
+      >
+        <div className="sr-only">
+          <h2>{getActivityTitle(activity, activityIndex)}</h2>
+          <p>{instructionMeta.quickTip}</p>
+        </div>
+        {renderer}
+      </section>
+    );
+  }
 
   return (
     <SurfaceCard
       padding={shellFamily === 'mobile' ? 'md' : 'lg'}
       variant="spotlight"
-      className="overflow-hidden border-sd-border-strong"
+      className="sd-lesson-stage sd-lesson-stage-guided overflow-hidden border-sd-border-strong"
+      data-sd-lesson-stage="guided"
     >
       <PanelHeader
         eyebrow="Actividad actual"
@@ -406,26 +484,15 @@ function LessonActivityStage({
         </SurfaceCard>
       </div>
 
-      <SurfaceCard
-        padding={shellFamily === 'mobile' ? 'compact' : 'md'}
-        variant="panel"
-        className="mt-4 overflow-hidden border-sd-border-strong bg-white"
-      >
-        <ActivityRenderer
-          key={`${module.id}-${activity.id}`}
-          viewport={viewport}
-          module={module}
-          activity={activity}
-          answers={answers}
-          assessment={assessment}
-          onComplete={onCompleteActivity}
-        />
-      </SurfaceCard>
+      <div className="sd-lesson-renderer-frame mt-4 overflow-hidden rounded-[24px] border border-sd-border-strong bg-white p-3 md:p-4">
+        {renderer}
+      </div>
     </SurfaceCard>
   );
 }
 
 function LessonInsightRail({ shellFamily, module, activity, courseProgress, moduleSummary }) {
+  if (!moduleSummary.completedCount && !courseProgress?.lastAccessAt) return null;
   const instructionMeta = getActivityInstructionMeta(activity?.tipo, module);
   const categoryLabel = CATEGORY_LABELS[module?.categoria] || 'Ruta';
   const levelLabel = LEVEL_LABELS[module?.nivel] || cleanText(module?.nivel, 'Nivel');
@@ -650,7 +717,6 @@ export default function LessonView({
 }) {
   const shellFamily = getShellFamily(viewport);
   const isMobile = shellFamily === 'mobile';
-  const isTablet = shellFamily === 'tablet';
   const route = Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : [];
   const moduleIndex = currentLesson?.moduleIndex || 0;
   const activityIndex = currentLesson?.activityIndex || 0;
@@ -684,6 +750,9 @@ export default function LessonView({
     );
   }
 
+  const stageMode = getLessonStageMode(info.activity);
+  const isImmersive = stageMode === 'immersive';
+
   const hero = (
     <LessonMissionHero
       shellFamily={shellFamily}
@@ -707,12 +776,14 @@ export default function LessonView({
       courseProgress={courseProgress}
       onBack={onBackToCourses}
       onRestart={onRestartModule}
+      compact={isImmersive}
     />
   );
 
   const activityStage = (
     <LessonActivityStage
       shellFamily={shellFamily}
+      stageMode={stageMode}
       viewport={viewport}
       module={module}
       activity={info.activity}
@@ -733,12 +804,27 @@ export default function LessonView({
     />
   );
 
+  const contextRail = (
+    <div className="sd-lesson-context grid gap-[var(--sd-shell-pane-gap)]">
+      {commandRail}
+      {isImmersive ? insightRail : null}
+    </div>
+  );
+
+  const mobileContextRail = (
+    <div className="sd-lesson-context grid gap-[var(--sd-shell-pane-gap)]">
+      {commandRail}
+      {insightRail}
+    </div>
+  );
+
   return (
     <section
       id="lessonView"
       className="sd-page-shell sd-lesson-enter py-[var(--sd-shell-padding-block)]"
       data-sd-container="true"
       data-sd-lesson-source="courses-continuity"
+      data-sd-activity-mode={stageMode}
     >
       <div className="grid gap-[var(--sd-shell-section-gap)]">
         {hero}
@@ -746,25 +832,33 @@ export default function LessonView({
         {isMobile ? (
           <div className="grid gap-[var(--sd-shell-pane-gap)]">
             {activityStage}
-            {commandRail}
-            {insightRail}
-          </div>
-        ) : isTablet ? (
-          <div className="grid gap-[var(--sd-shell-pane-gap)] lg:grid-cols-[minmax(18.75rem,20rem)_minmax(0,1fr)]">
-            {commandRail}
-            <div className="grid gap-[var(--sd-shell-pane-gap)]">
-              {activityStage}
-              {insightRail}
-            </div>
+            {mobileContextRail}
           </div>
         ) : (
-          <WorkspaceLayout
-            shellFamily={shellFamily}
-            className="xl:grid-cols-[minmax(18.25rem,19.5rem)_minmax(0,1.34fr)_minmax(18.5rem,20rem)] 2xl:grid-cols-[minmax(18.5rem,20rem)_minmax(0,1.42fr)_minmax(19rem,20.5rem)]"
-            command={commandRail}
-            main={activityStage}
-            insight={insightRail}
-          />
+          <div
+            className={cn(
+              'sd-lesson-layout grid gap-[var(--sd-shell-pane-gap)]',
+              isImmersive
+                ? 'sd-lesson-layout-immersive'
+                : 'sd-lesson-layout-guided md:grid-cols-[minmax(17.5rem,20rem)_minmax(0,1fr)]'
+            )}
+            data-sd-lesson-layout={isImmersive ? 'immersive-fullscreen' : 'guided-two-pane'}
+          >
+            {isImmersive ? (
+              <>
+                <div className="sd-lesson-primary min-w-0">{activityStage}</div>
+                {contextRail}
+              </>
+            ) : (
+              <>
+                {contextRail}
+                <div className="sd-lesson-primary grid min-w-0 gap-[var(--sd-shell-pane-gap)]">
+                  {activityStage}
+                  {insightRail}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
     </section>
