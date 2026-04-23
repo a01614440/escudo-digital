@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { feedbackToText } from '../../lib/course.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
+import { getSimulationCategoryClass } from './immersive/shared.js';
 import { completeActivity } from './sharedActivityUi.jsx';
 import {
   DEFAULT_CALL_STARTER_CHOICES,
@@ -413,7 +414,11 @@ export default function CallSimulationActivity({
       : 'Sin dato';
 
   return (
-    <div className={`call-immersive-shell difficulty-${difficulty}`}>
+    <div
+      className={`call-immersive-shell difficulty-${difficulty} ${getSimulationCategoryClass('call')}`}
+      data-sd-simulation-category="call"
+      data-sd-simulation-channel="call"
+    >
       {phase === 'incoming' ? (
         <section className="call-immersive-phone incoming">
           <div className="call-immersive-status">

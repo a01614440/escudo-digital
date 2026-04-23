@@ -14,6 +14,7 @@ import { getActivityInstructionMeta } from '../../lib/journeyGuidance.js';
 import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.js';
 import { ActionCluster } from '../../patterns/index.js';
 import { Badge, SurfaceCard } from '../ui/index.js';
+import { getSimulationCategory, getSimulationCategoryClass } from './immersive/shared.js';
 
 const IMMERSIVE_ACTIVITY_TYPES = new Set(['sim_chat', 'inbox', 'web_lab', 'call_sim', 'scenario_flow']);
 
@@ -68,6 +69,8 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
   const activityLabel = ACTIVITY_LABELS[activity?.tipo] || activity?.tipo || 'Actividad';
   const activityType = String(activity?.tipo || '').toLowerCase();
   const isImmersiveActivity = IMMERSIVE_ACTIVITY_TYPES.has(activityType);
+  const simulationCategory = getSimulationCategory(activity);
+  const simulationCategoryClassName = getSimulationCategoryClass(simulationCategory);
 
   if (isImmersiveActivity) {
     const immersiveShellClassName =
@@ -77,9 +80,10 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
 
     return (
       <div
-        className={immersiveShellClassName}
+        className={cn(immersiveShellClassName, simulationCategoryClassName)}
         data-sd-activity-chrome="immersive"
         data-sd-activity-type={activityType}
+        data-sd-simulation-category={simulationCategory}
         data-sd-container="true"
       >
         {children}
@@ -88,7 +92,12 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
   }
 
   return (
-    <div className="sd-activity-chrome grid gap-4" data-sd-activity-chrome="guided" data-sd-activity-type={activityType}>
+    <div
+      className={cn('sd-activity-chrome grid gap-4', simulationCategoryClassName)}
+      data-sd-activity-chrome="guided"
+      data-sd-activity-type={activityType}
+      data-sd-simulation-category={simulationCategory}
+    >
       <details
         className="sd-activity-briefing sd-simulation-readable-surface p-4"
         data-sd-briefing="activity-chrome"

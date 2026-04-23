@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.B Contrast / readability / text-density system pass cerrada localmente. Siguiente frente recomendado: F6.C Category identity / color semantics pass.**
+**F6.C Category identity / color semantics pass cerrada localmente. Siguiente frente recomendado: F6.D Fullscreen / stage-dominance / layout pass.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -235,6 +235,13 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.B agrego hooks `sd-simulation-readable-surface`, `sd-activity-summary-*`, `sd-immersive-progress-*` y `data-sd-text-density="compact"`;
 - F6.B agrego `test/f6-simulation-experience-smoke.test.js`;
 - F6.B no toco simulaciones especificas por canal, `ActivityRenderer.jsx`, `activityRegistry.js`, hooks, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.C - Category identity / color semantics pass.
+- F6.C Category identity / color semantics pass quedo cerrada localmente con `docs/rebuild/audit/F6.C-category-identity-color-semantics.md`;
+- F6.C agrego `SIMULATION_CATEGORY_META`, `getSimulationCategory(activity)` y `getSimulationCategoryClass(category)` en `frontend/src/components/activities/immersive/shared.js`;
+- F6.C conecto `ActivityChrome` y las raices principales de WhatsApp/chat, SMS/Inbox, WebLab, ScenarioFlow y CallSimulation a `sd-simulation-category-*` y `data-sd-simulation-category`;
+- F6.C agrego variables CSS scoped por categoria en `frontend/src/styles/tailwind.css` para `chat`, `sms`, `email`, `web`, `call`, `scenario` y `analysis`, incluyendo adaptacion dark-theme;
+- F6.C agrego `test/f6-category-identity-smoke.test.js`;
+- F6.C valido `.\npm-local.cmd test` con 101/101, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.C no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.D - Fullscreen / stage-dominance / layout pass.
 
-No abrir F6.C/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.D/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

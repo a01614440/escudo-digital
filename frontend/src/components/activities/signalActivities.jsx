@@ -11,6 +11,7 @@ import { requestSimulationTurn } from '../../services/courseService.js';
 import { ActionCluster, PanelHeader } from '../../patterns/index.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
 import { Badge, Button, InlineMessage, Input, SurfaceCard } from '../ui/index.js';
+import { getSimulationCategoryClass } from './immersive/shared.js';
 import {
   ActivitySummaryBar,
   buildActivityFeedback,
@@ -346,7 +347,17 @@ export function WhatsAppSimulation({
   );
 
   return (
-    <div className={cn('sd-chat-sim', `sd-chat-sim-${shellFamily}`, done ? 'is-complete' : '')} data-sd-container="true">
+    <div
+      className={cn(
+        'sd-chat-sim',
+        `sd-chat-sim-${shellFamily}`,
+        getSimulationCategoryClass('chat'),
+        done ? 'is-complete' : ''
+      )}
+      data-sd-container="true"
+      data-sd-simulation-category="chat"
+      data-sd-simulation-channel="whatsapp"
+    >
       <section className="sd-chat-surface">
         <header className="sd-chat-header">
           <div className="sd-chat-header-main">

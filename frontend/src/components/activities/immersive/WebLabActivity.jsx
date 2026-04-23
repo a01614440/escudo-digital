@@ -6,7 +6,7 @@ import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
 import { ActivitySummaryBar, buildActivityFeedback, completeActivity } from '../sharedActivityUi.jsx';
 import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';
-import { cleanText, TARGET_LABELS } from './shared.js';
+import { cleanText, getSimulationCategoryClass, TARGET_LABELS } from './shared.js';
 import { buildWebLabHotspots, buildWebLabPage, scoreHotspots } from './webLabActivityUtils.js';
 
 function formatCountdown(seconds) {
@@ -188,7 +188,11 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
   };
 
   return (
-    <>
+    <div
+      className={cn(getSimulationCategoryClass('web'), 'grid gap-4')}
+      data-sd-simulation-category="web"
+      data-sd-simulation-channel="weblab"
+    >
       <ActivitySummaryBar
         items={[
           {
@@ -499,6 +503,6 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
           </>
         ) : null}
       </div>
-    </>
+    </div>
   );
 }

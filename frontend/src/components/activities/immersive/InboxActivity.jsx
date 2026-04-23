@@ -6,10 +6,11 @@ import Button from '../../ui/Button.jsx';
 import { ActivitySummaryBar, completeActivity } from '../sharedActivityUi.jsx';
 import { ImmersivePanel } from './immersivePrimitives.jsx';
 import { classifyInbox, getAvatarLabel, getInboxStatus, normalizeInboxMessages } from './inboxActivityUtils.js';
-import { cleanText } from './shared.js';
+import { cleanText, getSimulationCategoryClass } from './shared.js';
 
 export default function InboxActivity({ module, activity, startedAtRef, onComplete }) {
   const kind = activity?.kind === 'sms' ? 'sms' : 'correo';
+  const simulationCategory = kind === 'sms' ? 'sms' : 'email';
   const messages = useMemo(() => normalizeInboxMessages(activity), [activity]);
   const [selectedId, setSelectedId] = useState(messages[0]?.id || '');
   const [selections, setSelections] = useState({});
@@ -43,7 +44,11 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
   };
 
   return (
-    <>
+    <div
+      className={cn(getSimulationCategoryClass(simulationCategory), 'grid gap-4')}
+      data-sd-simulation-category={simulationCategory}
+      data-sd-simulation-channel={kind === 'sms' ? 'sms' : 'email'}
+    >
       <ActivitySummaryBar
         items={[
           {
@@ -349,6 +354,6 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

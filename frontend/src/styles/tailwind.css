@@ -495,6 +495,129 @@ body[data-theme='dark'] {
     min-height: clamp(34rem, 72vh, 58rem);
   }
 
+  .sd-simulation-category {
+    --sd-simulation-category-accent: var(--sd-accent);
+    --sd-simulation-category-accent-strong: var(--sd-accent-strong);
+    --sd-simulation-category-soft: color-mix(in srgb, var(--sd-accent) 12%, var(--sd-surface));
+    --sd-simulation-category-surface: color-mix(in srgb, var(--sd-accent) 8%, var(--sd-surface));
+    --sd-simulation-category-border: color-mix(in srgb, var(--sd-accent) 34%, var(--sd-border-strong));
+    --sd-simulation-category-glow: color-mix(in srgb, var(--sd-accent) 24%, transparent);
+  }
+
+  .sd-simulation-category-chat {
+    --sd-simulation-category-accent: #16876a;
+    --sd-simulation-category-accent-strong: #0d664f;
+    --sd-simulation-category-soft: #e8f8f2;
+    --sd-simulation-category-surface: #f3fbf8;
+    --sd-simulation-category-border: rgba(22, 135, 106, 0.34);
+    --sd-simulation-category-glow: rgba(22, 135, 106, 0.22);
+  }
+
+  .sd-simulation-category-sms {
+    --sd-simulation-category-accent: #475569;
+    --sd-simulation-category-accent-strong: #334155;
+    --sd-simulation-category-soft: #eef2f7;
+    --sd-simulation-category-surface: #f8fafc;
+    --sd-simulation-category-border: rgba(71, 85, 105, 0.34);
+    --sd-simulation-category-glow: rgba(71, 85, 105, 0.2);
+  }
+
+  .sd-simulation-category-email {
+    --sd-simulation-category-accent: #2563eb;
+    --sd-simulation-category-accent-strong: #1d4ed8;
+    --sd-simulation-category-soft: #eaf1ff;
+    --sd-simulation-category-surface: #f4f7ff;
+    --sd-simulation-category-border: rgba(37, 99, 235, 0.32);
+    --sd-simulation-category-glow: rgba(37, 99, 235, 0.2);
+  }
+
+  .sd-simulation-category-web {
+    --sd-simulation-category-accent: #b45309;
+    --sd-simulation-category-accent-strong: #92400e;
+    --sd-simulation-category-soft: #fff4df;
+    --sd-simulation-category-surface: #fffaf0;
+    --sd-simulation-category-border: rgba(180, 83, 9, 0.34);
+    --sd-simulation-category-glow: rgba(180, 83, 9, 0.22);
+  }
+
+  .sd-simulation-category-call {
+    --sd-simulation-category-accent: #cf4c67;
+    --sd-simulation-category-accent-strong: #a93450;
+    --sd-simulation-category-soft: #fff0f4;
+    --sd-simulation-category-surface: #fff7f9;
+    --sd-simulation-category-border: rgba(207, 76, 103, 0.36);
+    --sd-simulation-category-glow: rgba(207, 76, 103, 0.24);
+  }
+
+  .sd-simulation-category-scenario {
+    --sd-simulation-category-accent: #6d56d8;
+    --sd-simulation-category-accent-strong: #5743bb;
+    --sd-simulation-category-soft: #f1efff;
+    --sd-simulation-category-surface: #f8f6ff;
+    --sd-simulation-category-border: rgba(109, 86, 216, 0.34);
+    --sd-simulation-category-glow: rgba(109, 86, 216, 0.22);
+  }
+
+  .sd-simulation-category-analysis {
+    --sd-simulation-category-accent: #2d7898;
+    --sd-simulation-category-accent-strong: #1f5f7c;
+    --sd-simulation-category-soft: #eaf8fc;
+    --sd-simulation-category-surface: #f4fbff;
+    --sd-simulation-category-border: rgba(45, 120, 152, 0.34);
+    --sd-simulation-category-glow: rgba(45, 120, 152, 0.22);
+  }
+
+  body[data-theme='dark'] .sd-simulation-category {
+    --sd-simulation-category-soft: color-mix(
+      in srgb,
+      var(--sd-simulation-category-accent) 22%,
+      var(--sd-surface)
+    );
+    --sd-simulation-category-surface: color-mix(
+      in srgb,
+      var(--sd-simulation-category-accent) 14%,
+      var(--sd-surface)
+    );
+    --sd-simulation-category-border: color-mix(
+      in srgb,
+      var(--sd-simulation-category-accent) 46%,
+      var(--sd-border-strong)
+    );
+    --sd-simulation-category-glow: color-mix(
+      in srgb,
+      var(--sd-simulation-category-accent) 30%,
+      transparent
+    );
+  }
+
+  .sd-simulation-category .eyebrow,
+  .sd-simulation-category .sd-activity-summary-label,
+  .sd-simulation-category .sd-immersive-progress-label {
+    color: var(--sd-simulation-category-accent-strong);
+  }
+
+  .sd-simulation-category .sd-badge-accent,
+  .sd-simulation-category .sd-badge-soft {
+    border-color: var(--sd-simulation-category-border);
+    background: var(--sd-simulation-category-soft);
+    color: var(--sd-simulation-category-accent-strong);
+  }
+
+  .sd-simulation-category .sd-activity-summary-card,
+  .sd-simulation-category .sd-simulation-readable-surface,
+  .sd-simulation-category .sd-immersive-panel,
+  .sd-simulation-category .sd-immersive-aside-panel,
+  .sd-simulation-category .sd-immersive-progress-pill {
+    border-color: var(--sd-simulation-category-border);
+    box-shadow: 0 18px 44px -34px var(--sd-simulation-category-glow);
+  }
+
+  .sd-simulation-category .sd-activity-summary-card,
+  .sd-simulation-category .sd-immersive-aside-panel,
+  .sd-simulation-category .sd-immersive-progress-pill {
+    background: linear-gradient(180deg, var(--sd-simulation-category-surface), var(--sd-surface));
+  }
+
   .sd-dashboard-stepper-toggle summary,
   .sd-lesson-map-toggle summary {
     @apply flex items-center justify-between gap-3;

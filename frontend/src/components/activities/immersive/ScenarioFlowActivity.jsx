@@ -10,7 +10,7 @@ import {
   formatPercent,
 } from '../sharedActivityUi.jsx';
 import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';
-import { cleanText } from './shared.js';
+import { cleanText, getSimulationCategoryClass } from './shared.js';
 import { countSafeChoices, resolveScenarioNextStepIndex } from './scenarioFlowUtils.js';
 
 export default function ScenarioFlowActivity({ activity, startedAtRef, onComplete }) {
@@ -79,7 +79,11 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
   };
 
   return (
-    <>
+    <div
+      className={`${getSimulationCategoryClass('scenario')} grid gap-4`}
+      data-sd-simulation-category="scenario"
+      data-sd-simulation-channel="scenario-flow"
+    >
       <ActivitySummaryBar
         items={[
           {
@@ -237,6 +241,6 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
           </Button>
         ) : null}
       </div>
-    </>
+    </div>
   );
 }
