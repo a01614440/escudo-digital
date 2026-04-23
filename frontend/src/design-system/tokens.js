@@ -64,6 +64,92 @@ export const spacingTokens = {
   },
 };
 
+export const typographyTokens = {
+  fontFamily: {
+    sans: '"Sora", ui-sans-serif, system-ui, sans-serif',
+    display: '"Unbounded", "Sora", ui-sans-serif, system-ui, sans-serif',
+  },
+  size: {
+    eyebrow: '0.72rem',
+    caption: '0.75rem',
+    bodySm: '0.875rem',
+    body: '1rem',
+    headingSm: '1.125rem',
+    headingSmWide: '1.25rem',
+    headingMd: '1.25rem',
+    headingMdWide: '1.5rem',
+    title: '1.5rem',
+    titleWide: '1.875rem',
+    titleLarge: '2.45rem',
+    display: '2rem',
+    displayWide: '2.5rem',
+    displayLarge: '3.25rem',
+  },
+  weight: {
+    regular: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+  },
+  leading: {
+    display: '0.98',
+    title: '1.03',
+    heading: '1.08',
+    compact: '1.25',
+    normal: '1.5',
+    body: '1.75',
+  },
+  tracking: {
+    none: '0em',
+    ui: '0em',
+    display: '0em',
+    title: '0em',
+    heading: '0em',
+    label: '0em',
+    overline: '0em',
+  },
+  roles: {
+    display: {
+      family: 'display',
+      size: 'display',
+      leading: 'display',
+      tracking: 'display',
+    },
+    title: {
+      family: 'display',
+      size: 'title',
+      leading: 'title',
+      tracking: 'title',
+    },
+    headingMd: {
+      family: 'display',
+      size: 'headingMd',
+      leading: 'heading',
+      tracking: 'heading',
+    },
+    headingSm: {
+      family: 'sans',
+      size: 'headingSm',
+      weight: 'semibold',
+      leading: 'compact',
+      tracking: 'heading',
+    },
+    body: {
+      family: 'sans',
+      size: 'body',
+      leading: 'body',
+      tracking: 'none',
+    },
+    caption: {
+      family: 'sans',
+      size: 'caption',
+      weight: 'medium',
+      leading: 'normal',
+      tracking: 'none',
+    },
+  },
+};
+
 export const shellSpacingTokens = {
   mobile: {
     inline: '1rem',
