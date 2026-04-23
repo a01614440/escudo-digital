@@ -128,8 +128,8 @@ describe('F4.F Courses shell layout comfort guards', () => {
     assert.match(block, /'tablet-two-pane'/);
     assert.match(block, /'desktop-two-pane'/);
     assert.match(block, /data-sd-route-layout=\{routeLayoutMode\}/);
-    assert.match(block, /lg:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.18fr\)\]/);
-    assert.match(block, /xl:grid-cols-\[minmax\(19rem,21rem\)_minmax\(0,1\.5fr\)\]/);
+    assert.match(block, /lg:grid-cols-\[minmax\(17rem,19rem\)_minmax\(0,1fr\)\]/);
+    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1fr\)\]/);
     assert.doesNotMatch(block, /<WorkspaceLayout/);
     assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.55fr\)_minmax\(16\.5rem,18\.5rem\)\]/);
     assert.doesNotMatch(block, /<RouteInsightRail/);
@@ -305,7 +305,8 @@ describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
   test('CoursesView ruta body uses a single two-pane grid and no permanent insight column', () => {
     const block = coursesViewBlock();
 
-    assert.match(block, /xl:grid-cols-\[minmax\(19rem,21rem\)_minmax\(0,1\.5fr\)\]/);
+    assert.match(block, /data-sd-route-comfort="balanced-two-pane"/);
+    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1fr\)\]/);
     assert.doesNotMatch(block, /<WorkspaceLayout/);
     assert.doesNotMatch(block, /<RouteInsightRail/);
     assert.doesNotMatch(block, /function RouteInsightRail/);

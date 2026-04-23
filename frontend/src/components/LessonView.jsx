@@ -201,7 +201,7 @@ function LessonMissionHero({
   const routeProgressPct = Math.round((completedModules / Math.max(routeLength, 1)) * 100);
   const subtitle = cleanText(
     activity?.intro || activity?.escenario || activity?.prompt,
-    'Esta práctica vive en una cabina dedicada: tarea principal, contexto breve y renderer al centro.'
+    'Practica en una pantalla dedicada: tarea principal primero, contexto breve despues.'
   );
   const progressHint = moduleSummary.completedCount
     ? `${moduleSummary.completedCount} completada(s) en este módulo`
@@ -225,7 +225,7 @@ function LessonMissionHero({
 
         <div className="grid gap-3">
           <h1 className="sd-title-display m-0">{activityTitle}</h1>
-          <p className="sd-copy m-0 max-w-[60ch]">{subtitle}</p>
+          <p className="sd-copy m-0 max-w-[54ch]">{subtitle}</p>
           <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-inverse-soft">
             {`${categoryLabel} · ${levelLabel} · ${getModuleObjective(module)}`}
           </p>
@@ -341,7 +341,10 @@ function LessonCommandRail({
             divider
           />
 
-          <details className="sd-lesson-map-toggle rounded-[20px] border border-sd-border-strong bg-white p-4">
+          <details
+            className="sd-lesson-map-toggle rounded-[20px] border border-sd-border-strong bg-white p-4"
+            data-sd-lesson-map="secondary"
+          >
             <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
               Ver recorrido del modulo
             </summary>
@@ -393,16 +396,15 @@ function LessonCommandRail({
           variant="support"
         />
 
-        {shellFamily === 'mobile' ? (
-          <details className="rounded-[24px] border border-sd-border-strong bg-white/78 p-4">
-            <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
-              Ver mapa completo
-            </summary>
-            <div className="mt-4">{mapContent}</div>
-          </details>
-        ) : (
-          mapContent
-        )}
+        <details
+          className="sd-lesson-map-toggle rounded-[24px] border border-sd-border-strong bg-white/84 p-4"
+          data-sd-lesson-map="secondary"
+        >
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+            Ver mapa completo
+          </summary>
+          <div className="mt-4">{mapContent}</div>
+        </details>
       </div>
     </SupportRail>
   );
@@ -451,11 +453,12 @@ function LessonActivityStage({
 
   return (
     <SurfaceCard
-      padding={shellFamily === 'mobile' ? 'md' : 'lg'}
+      padding="md"
       variant="spotlight"
       className="sd-lesson-stage sd-lesson-stage-guided overflow-hidden border-sd-border-strong"
       data-sd-lesson-stage="guided"
       data-sd-briefing-source="activity-chrome"
+      data-sd-stage-comfort="compact"
     >
       <PanelHeader
         eyebrow="Actividad actual"
@@ -468,7 +471,7 @@ function LessonActivityStage({
         divider
       />
 
-      <div className="sd-lesson-renderer-frame mt-4 overflow-hidden rounded-[24px] border border-sd-border-strong bg-white p-3 md:p-4">
+      <div className="sd-lesson-renderer-frame mt-4 overflow-hidden rounded-[22px] border border-sd-border-strong bg-white p-2 md:p-3">
         {renderer}
       </div>
     </SurfaceCard>
@@ -824,9 +827,10 @@ export default function LessonView({
               'sd-lesson-layout grid gap-[var(--sd-shell-pane-gap)]',
               isImmersive
                 ? 'sd-lesson-layout-immersive'
-                : 'sd-lesson-layout-guided md:grid-cols-[minmax(17.5rem,20rem)_minmax(0,1fr)]'
+                : 'sd-lesson-layout-guided md:grid-cols-[minmax(15.5rem,18rem)_minmax(0,1fr)]'
             )}
             data-sd-lesson-layout={isImmersive ? 'immersive-fullscreen' : 'guided-two-pane'}
+            data-sd-lesson-comfort="content-first"
           >
             {isImmersive ? (
               <>

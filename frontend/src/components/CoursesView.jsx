@@ -227,7 +227,7 @@ function RouteBriefing({
           <h1 className="sd-title-display m-0">
             {hasTarget ? moduleTitle : 'Tu ruta ya esta lista para continuar.'}
           </h1>
-          <p className="sd-copy m-0 max-w-[60ch]">
+          <p className="sd-copy m-0 max-w-[56ch]">
             {hasTarget ? `Siguiente actividad: ${nextActivityTitle}.` : prioritySummary}
           </p>
         </div>
@@ -313,16 +313,21 @@ function DashboardSceneBar({
       </div>
 
       {hasJourneySteps ? (
-        <div
-          className="mt-5 border-t border-sd-border pt-4"
+        <details
+          className="sd-dashboard-stepper-toggle mt-5 border-t border-sd-border pt-4"
           data-sd-journey-stepper="courses-route"
         >
-          <JourneyStepper
-            steps={journeySteps}
-            compact={shellFamily !== 'desktop'}
-            label="Progreso de encuesta a modulo"
-          />
-        </div>
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+            Ver progreso de la ruta
+          </summary>
+          <div className="mt-4">
+            <JourneyStepper
+              steps={journeySteps}
+              compact={shellFamily !== 'desktop'}
+              label="Progreso de encuesta a modulo"
+            />
+          </div>
+        </details>
       ) : null}
     </SurfaceCard>
   );
@@ -1072,12 +1077,13 @@ export default function CoursesView({
             className={cn(
               'grid min-w-0 gap-[var(--sd-shell-pane-gap)]',
               shellFamily === 'tablet'
-                ? 'lg:grid-cols-[minmax(18rem,20rem)_minmax(0,1.18fr)]'
+                ? 'lg:grid-cols-[minmax(17rem,19rem)_minmax(0,1fr)]'
                 : shellFamily === 'desktop'
-                  ? 'xl:grid-cols-[minmax(19rem,21rem)_minmax(0,1.5fr)] 2xl:grid-cols-[minmax(20rem,22rem)_minmax(0,1.6fr)]'
+                  ? 'xl:grid-cols-[minmax(18rem,20rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(18.5rem,20.5rem)_minmax(0,1fr)]'
                   : ''
             )}
             data-sd-route-layout={routeLayoutMode}
+            data-sd-route-comfort="balanced-two-pane"
           >
             <RouteNavigatorRail
               shellFamily={shellFamily}

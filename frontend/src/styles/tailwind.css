@@ -431,12 +431,26 @@ body[data-theme='dark'] {
       minmax(19rem, var(--sd-shell-detail-width));
   }
 
+  .sd-route-briefing .sd-title-display,
+  .sd-lesson-briefing .sd-title-display {
+    max-width: 18ch;
+  }
+
+  .sd-route-pill[aria-current='true'] {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 1), color-mix(in srgb, var(--sd-accent-soft) 46%, white 54%));
+    box-shadow: 0 18px 42px -32px color-mix(in srgb, var(--sd-accent) 58%, transparent);
+  }
+
+  .sd-route-pill[data-route-module-state='recommended']:not([aria-current='true']) {
+    border-color: color-mix(in srgb, var(--sd-accent) 42%, var(--sd-border));
+  }
+
   .sd-lesson-layout {
     align-items: start;
   }
 
   .sd-lesson-layout-guided {
-    grid-template-columns: minmax(17.5rem, 20rem) minmax(0, 1fr);
+    grid-template-columns: minmax(15.5rem, 18rem) minmax(0, 1fr);
   }
 
   .sd-lesson-layout-immersive {
@@ -463,6 +477,27 @@ body[data-theme='dark'] {
 
   .sd-lesson-stage-immersive .sd-immersive-activity-shell {
     width: 100%;
+  }
+
+  .sd-lesson-stage-guided[data-sd-stage-comfort='compact'] {
+    box-shadow: 0 28px 72px -52px rgba(15, 27, 51, 0.42);
+  }
+
+  .sd-lesson-stage-guided[data-sd-stage-comfort='compact'] .sd-lesson-renderer-frame {
+    background: color-mix(in srgb, var(--sd-surface) 94%, white 6%);
+  }
+
+  .sd-lesson-layout-immersive .sd-lesson-primary {
+    width: 100%;
+  }
+
+  .sd-immersive-activity-shell {
+    min-height: clamp(34rem, 72vh, 58rem);
+  }
+
+  .sd-dashboard-stepper-toggle summary,
+  .sd-lesson-map-toggle summary {
+    @apply flex items-center justify-between gap-3;
   }
 
   .sd-activity-briefing summary,

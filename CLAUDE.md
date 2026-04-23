@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F5.F Activity chrome + instructions + feedback integration cerrada localmente. Siguiente frente recomendado: F5.G Comfort / jugabilidad / responsiveness pass.**
+**F5.G Comfort / jugabilidad / responsiveness pass cerrada localmente. Siguiente frente recomendado: F5.H F5 closeout validation.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -207,6 +207,15 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F5.F agrego `test/f5-activity-chrome-smoke.test.js`;
 - F5.F valido `.\npm-local.cmd test` con 88/88, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F5.F no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `CoursesView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.G - Comfort / jugabilidad / responsiveness pass.
+- F5.G Comfort / jugabilidad / responsiveness pass quedo cerrada localmente con `docs/rebuild/audit/F5.G-comfort-jugabilidad-responsiveness.md`;
+- F5.G ajusto proporciones de ruta a `data-sd-route-comfort="balanced-two-pane"` con ratios menos agresivos en tablet/desktop;
+- F5.G hizo que `JourneyStepper` viva en `details.sd-dashboard-stepper-toggle` como contexto secundario;
+- F5.G compacto el `LessonActivityStage` guiado con `padding="md"`, `data-sd-stage-comfort="compact"` y menor padding del renderer frame;
+- F5.G hizo que el mapa del modulo en `LessonCommandRail` sea secundario/collapsable en todos los shells con `data-sd-lesson-map="secondary"`;
+- F5.G reforzo hooks CSS de contraste para pills seleccionadas/recomendadas y dio min-height fullscreen a `.sd-immersive-activity-shell`;
+- F5.G agrego `test/f5-comfort-responsive-smoke.test.js` y actualizo ratios esperados en `test/f4-courses-dashboard-smoke.test.js`;
+- F5.G valido `.\npm-local.cmd test` con 91/91, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F5.G no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.H - F5 closeout validation.
 
-No abrir F5.G/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F5.H/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
