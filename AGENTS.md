@@ -37,6 +37,13 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
+## Estado actual tras Fase 0
+- F0.1-F0.9 está cerrada, commiteada y pusheada.
+- El cierre F0.9 identifica la fase real del rebuild como **F1.9**: hay trabajo acumulado de F1 a F6A, pero la foundation visual no está cerrada.
+- Próximo paso recomendado: **F1 closeout** antes de continuar F6A/F6B/F7.
+- No iniciar F1 closeout ni cambios de código sin autorización explícita del usuario.
+- Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuración en `.storybook/`.
+
 ## Núcleo funcional preservado por defecto
 No tocar como eje del rebuild:
 
@@ -142,7 +149,7 @@ Y además:
 - `app.css` y `legacy.css` sostienen layout y apariencia al mismo tiempo; retirar esto sin ownership claro sería riesgoso.
 - `CoursesView.jsx` y `LessonView.jsx` no deben tocarse a la vez en una sola tarea.
 - `CallSimulation` y `WebLab` deben entrar tarde, con base visual madura.
-- No hay aún Storybook, MSW, Playwright ni skills locales formalizados para este rebuild; Fase 1 tendrá que decidir su incorporación mínima.
+- Storybook ya existe; MSW, Playwright y skills locales aún no están formalizados para este rebuild. Fase 1 debe decidir si incorpora algo más.
 
 ## Índice de outputs de Fase 0
 - `docs/rebuild/00-no-tocar-matrix.md`
@@ -153,3 +160,12 @@ Y además:
 - `docs/rebuild/05-shell-contract.md`
 - `docs/rebuild/06-simulation-order-and-rules.md`
 - `docs/rebuild/07-skills-usage-plan.md`
+- `docs/rebuild/audit/F0.1-inventory.md`
+- `docs/rebuild/audit/F0.2-design-system-audit.md`
+- `docs/rebuild/audit/F0.3-primitives-audit.md`
+- `docs/rebuild/audit/F0.4-shells-audit.md`
+- `docs/rebuild/audit/F0.5-patterns-audit.md`
+- `docs/rebuild/audit/F0.6-views-audit.md`
+- `docs/rebuild/audit/F0.7-functional-check.md`
+- `docs/rebuild/audit/F0.8-legacy-inventory.md`
+- `docs/rebuild/audit/F0.9-synthesis-and-next-steps.md`
