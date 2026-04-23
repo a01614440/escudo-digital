@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { readThemePreference, writeThemePreference } from '../lib/storage.js';
 
-const TOUCH_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact', 'tablet']);
-const COMPACT_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact']);
+export const TOUCH_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact', 'tablet']);
+export const COMPACT_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact']);
+
+export const VIEWPORT_TO_SHELL = {
+  'phone-small': 'mobile',
+  phone: 'mobile',
+  'tablet-compact': 'tablet',
+  tablet: 'tablet',
+  laptop: 'desktop',
+  desktop: 'desktop',
+};
 
 export function getViewportProfile(width) {
   const safeWidth = Number(width) || 0;
@@ -14,10 +23,47 @@ export function getViewportProfile(width) {
   return 'desktop';
 }
 
+export function getShellFamily(viewport) {
+  return VIEWPORT_TO_SHELL[String(viewport || '').toLowerCase()] || 'desktop';
+}
+
+export function getInputMode(viewport) {
+  return TOUCH_VIEWPORTS.has(viewport) ? 'touch' : 'pointer';
+}
+
+export function buildResponsiveProfile(width) {
+  const viewport = getViewportProfile(width);
+  const shellFamily = getShellFamily(viewport);
+  const inputMode = getInputMode(viewport);
+
+  return {
+    viewport,
+    shellFamily,
+    inputMode,
+    isTouchViewport: TOUCH_VIEWPORTS.has(viewport),
+    isCompactViewport: COMPACT_VIEWPORTS.has(viewport),
+    isMobileShell: shellFamily === 'mobile',
+    isTabletShell: shellFamily === 'tablet',
+    isDesktopShell: shellFamily === 'desktop',
+  };
+}
+
+function writeBodyLayoutDatasets(profile) {
+  document.body.dataset.viewport = profile.viewport;
+  document.body.dataset.shell = profile.shellFamily;
+  document.body.dataset.inputMode = profile.inputMode;
+}
+
+function clearBodyLayoutDatasets() {
+  delete document.body.dataset.viewport;
+  delete document.body.dataset.shell;
+  delete document.body.dataset.inputMode;
+}
+
 export function useResponsiveLayout() {
   const [theme, setTheme] = useState(readThemePreference());
-  const [viewport, setViewport] = useState(() =>
-    typeof window === 'undefined' ? 'desktop' : getViewportProfile(window.innerWidth)
+  const [profile, setProfile] = useState(() =>
+    typeof window === 'undefined' ? buildResponsiveProfile(1440) : buildResponsiveProfile(window.innerWidth)
   );
 
   useEffect(() => {
@@ -28,10 +74,9 @@ export function useResponsiveLayout() {
 
   useEffect(() => {
     const applyViewportProfile = () => {
-      const nextViewport = getViewportProfile(window.innerWidth);
-      setViewport(nextViewport);
-      document.body.dataset.viewport = nextViewport;
-      document.body.dataset.inputMode = TOUCH_VIEWPORTS.has(nextViewport) ? 'touch' : 'pointer';
+      const nextProfile = buildResponsiveProfile(window.innerWidth);
+      setProfile(nextProfile);
+      writeBodyLayoutDatasets(nextProfile);
     };
 
     applyViewportProfile();
@@ -39,19 +84,23 @@ export function useResponsiveLayout() {
 
     return () => {
       window.removeEventListener('resize', applyViewportProfile);
-      delete document.body.dataset.viewport;
-      delete document.body.dataset.inputMode;
+      clearBodyLayoutDatasets();
     };
   }, []);
 
-  return {
-    theme,
-    setTheme,
-    toggleTheme() {
-      setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
-    },
-    viewport,
-    isTouchViewport: TOUCH_VIEWPORTS.has(viewport),
-    isCompactViewport: COMPACT_VIEWPORTS.has(viewport),
-  };
+  return useMemo(
+    () => ({
+      theme,
+      setTheme,
+      toggleTheme() {
+        setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+      },
+      ...profile,
+      compatViewport: profile.viewport,
+      compatViewportDataset: 'body[data-viewport]',
+      macroLayoutSource: 'shellFamily',
+      legacyLayoutCompatSource: 'viewport',
+    }),
+    [profile, theme]
+  );
 }

@@ -8,3 +8,8 @@ server-log.txt
 server-check-*.txt
 tmp-white.png
 .DS_Store
+.codex-temp/
+storybook-static/
+edge-profile*/
+*.err
+*.log

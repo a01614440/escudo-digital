@@ -12,6 +12,8 @@ import {
 } from '../../lib/activityFeedback.js';
 import { getActivityInstructionMeta } from '../../lib/journeyGuidance.js';
 import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.js';
+import { ActionCluster, PanelHeader } from '../../patterns/index.js';
+import { Badge, SurfaceCard } from '../ui/index.js';
 
 export function Paragraphs({ text, className = 'activity-copy' }) {
   const lines = splitParagraphs(repairPossibleMojibake(text));
@@ -32,16 +34,20 @@ export function SimulationGuide({ activity, compact = false }) {
 
   if (compact) {
     return (
-      <details className="activity-guide compact-guide activity-guide-disclosure">
-        <summary>
-          <span>Cómo resolver esta actividad</span>
-          <span>{`${steps.length} pasos`}</span>
+      <details className="rounded-[22px] border border-sd-border-strong bg-white/76 p-4">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+          Ver guía rápida
         </summary>
-        <div className="summary-list">
+        <div className="mt-4 grid gap-3">
           {steps.map((step, index) => (
-            <div className="summary-item activity-guide-item" key={step}>
-              <span className="activity-guide-index">{String(index + 1).padStart(2, '0')}</span>
-              <p>{step}</p>
+            <div
+              className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[18px] border border-sd-border bg-white p-3"
+              key={step}
+            >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sd-border bg-sd-surface-subtle text-xs font-semibold text-sd-text">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <p className="m-0 text-sm leading-6 text-sd-text-soft">{step}</p>
             </div>
           ))}
         </div>
@@ -50,62 +56,80 @@ export function SimulationGuide({ activity, compact = false }) {
   }
 
   return (
-    <section className="activity-guide compact-guide">
-      <div className="activity-guide-head">
-        <p className="eyebrow">Cómo resolver esta actividad</p>
-        <span className="activity-guide-count">{`${steps.length} pasos`}</span>
-      </div>
-      <div className="summary-list">
+    <SurfaceCard padding="compact" variant="support">
+      <PanelHeader
+        eyebrow="Guía breve"
+        title="Cómo resolver esta actividad"
+        subtitle="Solo dejamos los pasos que sí ayudan a decidir mejor."
+        meta={<Badge tone="neutral">{`${steps.length} pasos`}</Badge>}
+        divider
+      />
+
+      <div className="grid gap-3">
         {steps.map((step, index) => (
-          <div className="summary-item activity-guide-item" key={step}>
-            <span className="activity-guide-index">{String(index + 1).padStart(2, '0')}</span>
-            <p>{step}</p>
+          <div
+            className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[18px] border border-sd-border bg-white p-3"
+            key={step}
+          >
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sd-border bg-sd-surface-subtle text-xs font-semibold text-sd-text">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <p className="m-0 text-sm leading-6 text-sd-text-soft">{step}</p>
           </div>
         ))}
       </div>
-    </section>
+    </SurfaceCard>
   );
 }
 
 export function ActivityChrome({ module, activity, compact = false, children }) {
   const theme = moduleThemeMeta(module);
   const instructionMeta = getActivityInstructionMeta(activity?.tipo, module);
+  const categoryLabel = CATEGORY_LABELS[theme.category] || theme.badge;
+  const levelLabel = LEVEL_LABELS[theme.level] || theme.label;
+  const activityLabel = ACTIVITY_LABELS[activity?.tipo] || activity?.tipo || 'Actividad';
+  const isChatSimulation = activity?.tipo === 'sim_chat';
+
+  if (isChatSimulation) {
+    return (
+      <div className="sd-chat-activity-shell" data-sd-container="true">
+        {children}
+      </div>
+    );
+  }
 
   return (
-    <div className={`activity-shell activity-shell-${theme.category} activity-shell-${theme.level}`.trim()}>
-      <div className={`activity-head activity-head-rich bg-gradient-to-br ${theme.heroClass}`}>
-        <div className="activity-head-copy">
-          <p className="eyebrow">{theme.eyebrow}</p>
-          <p className="activity-title">{repairPossibleMojibake(activity.titulo || 'Actividad')}</p>
-          <p className="activity-head-blurb">
-            {repairPossibleMojibake(activity.intro || activity.escenario || activity.prompt || theme.blurb)}
-          </p>
-        </div>
-        <div className="activity-head-badges">
-          <span className="activity-type">{ACTIVITY_LABELS[activity.tipo] || activity.tipo || 'Actividad'}</span>
-          <span className={`activity-kicker-pill ${theme.accentClass}`}>{CATEGORY_LABELS[theme.category] || theme.badge}</span>
-          <span className="activity-kicker-pill subtle">{LEVEL_LABELS[theme.level] || theme.label}</span>
-          <span className="activity-kicker-pill subtle">{theme.brief}</span>
-        </div>
-      </div>
+    <div className="grid gap-4">
+      <SurfaceCard padding="compact" variant="subtle" className="border-sd-border-strong">
+        <div className="grid gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid gap-1">
+              <strong className="text-sm text-sd-text">
+                {repairPossibleMojibake(activity?.titulo || 'Actividad')}
+              </strong>
+              <p className="m-0 text-sm leading-6 text-sd-text-soft">{instructionMeta.quickTip}</p>
+            </div>
 
-      <div className="activity-summary-bar">
-        <article className="activity-summary-stat">
-          <span>Objetivo</span>
-          <strong>{instructionMeta.objective}</strong>
-          <p>{instructionMeta.quickTip}</p>
-        </article>
-        <article className="activity-summary-stat">
-          <span>Qué hacer</span>
-          <strong>{instructionMeta.whatToDo}</strong>
-          <p>Concéntrate en la señal que sí cambia la decisión.</p>
-        </article>
-        <article className="activity-summary-stat">
-          <span>Cómo se califica</span>
-          <strong>{instructionMeta.scoring}</strong>
-          <p>La meta es aprender mejor, no castigarte por detalles mínimos.</p>
-        </article>
-      </div>
+            <ActionCluster collapse="wrap">
+              <Badge tone="accent">{activityLabel}</Badge>
+              <Badge tone="soft">{categoryLabel}</Badge>
+              <Badge tone="neutral">{levelLabel}</Badge>
+            </ActionCluster>
+          </div>
+
+          <div className={compact ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
+            <SurfaceCard padding="compact" variant="panel">
+              <strong className="block text-sm text-sd-text">Qué debes observar</strong>
+              <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.whatToDo}</p>
+            </SurfaceCard>
+
+            <SurfaceCard padding="compact" variant="panel">
+              <strong className="block text-sm text-sd-text">Qué cuenta como buen resultado</strong>
+              <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.scoring}</p>
+            </SurfaceCard>
+          </div>
+        </div>
+      </SurfaceCard>
 
       <SimulationGuide activity={activity} compact={compact} />
       {children}
@@ -139,13 +163,15 @@ export function ActivitySummaryBar({ items = [] }) {
   if (!visibleItems.length) return null;
 
   return (
-    <div className="activity-summary-bar">
+    <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
       {visibleItems.map((item) => (
-        <article className="activity-summary-stat" key={item.label}>
-          <span>{item.label}</span>
-          <strong>{item.value}</strong>
-          {item.caption ? <p>{item.caption}</p> : null}
-        </article>
+        <SurfaceCard key={item.label} padding="compact" variant="subtle">
+          <strong className="block text-xs font-semibold uppercase tracking-[0.14em] text-sd-text-soft">
+            {item.label}
+          </strong>
+          <p className="mt-2 text-base font-semibold leading-6 text-sd-text">{item.value}</p>
+          {item.caption ? <p className="mt-2 text-sm leading-6 text-sd-text-soft">{item.caption}</p> : null}
+        </SurfaceCard>
       ))}
     </div>
   );

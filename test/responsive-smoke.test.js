@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
-import { getViewportProfile } from '../frontend/src/hooks/useResponsiveLayout.js';
+import { getShellFamily, getViewportProfile } from '../frontend/src/hooks/useResponsiveLayout.js';
 import { buildAdminOverviewCards } from '../frontend/src/lib/adminAnalytics.js';
 import {
   DEFAULT_CHAT_SUGGESTIONS,
   formatChatMessage,
 } from '../frontend/src/lib/chatFormatting.js';
+import {
+  getNavigationItems,
+  normalizeRequestedView,
+} from '../frontend/src/shells/navigationPolicy.js';
 
 describe('responsive and presentation smoke validations', () => {
   test('maps representative widths to the expected viewport profiles', () => {
@@ -16,6 +20,26 @@ describe('responsive and presentation smoke validations', () => {
     assert.equal(getViewportProfile(960), 'tablet');
     assert.equal(getViewportProfile(1180), 'laptop');
     assert.equal(getViewportProfile(1440), 'desktop');
+  });
+
+  test('groups viewport profiles into the expected shell families', () => {
+    assert.equal(getShellFamily('phone-small'), 'mobile');
+    assert.equal(getShellFamily('phone'), 'mobile');
+    assert.equal(getShellFamily('tablet-compact'), 'tablet');
+    assert.equal(getShellFamily('tablet'), 'tablet');
+    assert.equal(getShellFamily('laptop'), 'desktop');
+    assert.equal(getShellFamily('desktop'), 'desktop');
+  });
+
+  test('normalizes navigation targets and activates the correct macro item', () => {
+    assert.equal(normalizeRequestedView('lesson'), 'courses');
+    assert.equal(normalizeRequestedView('admin', { isAdmin: false }), null);
+    assert.equal(normalizeRequestedView('admin', { isAdmin: true }), 'admin');
+
+    const items = getNavigationItems({ currentView: 'lesson', isAdmin: true });
+    assert.equal(items.length, 3);
+    assert.equal(items.find((item) => item.id === 'courses')?.active, true);
+    assert.equal(items.find((item) => item.id === 'admin')?.active, false);
   });
 
   test('formats admin overview cards with readable analytics values', () => {

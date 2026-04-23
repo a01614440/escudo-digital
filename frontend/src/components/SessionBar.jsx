@@ -1,152 +1,163 @@
 import { useState } from 'react';
 import { formatDate } from '../lib/format.js';
+import { cn } from '../lib/ui.js';
+import { KeyValueBlock } from '../patterns/index.js';
 import Badge from './ui/Badge.jsx';
 import Button from './ui/Button.jsx';
 import SurfaceCard from './ui/SurfaceCard.jsx';
 
-const VIEW_LABELS = {
-  survey: 'Encuesta',
-  courses: 'Cursos',
-  lesson: 'Curso en progreso',
-  admin: 'Panel interno',
-};
+function UtilityBar({
+  isAdmin,
+  adminPreviewAsUser,
+  detailsOpen,
+  theme,
+  onThemeToggle,
+  onToggleAdminPreview,
+  onToggleDetails,
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {isAdmin ? (
+        <Button
+          variant={adminPreviewAsUser ? 'soft' : 'quiet'}
+          size="compact"
+          type="button"
+          onClick={onToggleAdminPreview}
+        >
+          {adminPreviewAsUser ? 'Volver a admin' : 'Ver como usuario'}
+        </Button>
+      ) : null}
+      <Button variant="quiet" size="compact" type="button" onClick={onThemeToggle}>
+        {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+      </Button>
+      <Button
+        variant={detailsOpen ? 'soft' : 'quiet'}
+        size="compact"
+        type="button"
+        onClick={onToggleDetails}
+      >
+        {detailsOpen ? 'Ocultar cuenta' : 'Mi cuenta'}
+      </Button>
+    </div>
+  );
+}
 
 export default function SessionBar({
-  viewport = 'desktop',
+  shellFamily = 'desktop',
   user,
-  currentView,
+  navigation,
   theme,
   adminPreviewAsUser = false,
-  onViewChange,
+  onNavigate,
   onThemeToggle,
   onToggleAdminPreview,
   onLogout,
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const activeViewLabel = VIEW_LABELS[currentView] || 'Escudo Digital';
   const isAdmin = user?.role === 'admin';
-  const isCompact = ['phone-small', 'phone', 'tablet-compact'].includes(viewport);
-
-  const navButtons = (
-    <>
-      <Button
-        variant="ghost"
-        active={currentView === 'survey'}
-        type="button"
-        onClick={() => onViewChange('survey')}
-      >
-        Encuesta
-      </Button>
-      <Button
-        variant="ghost"
-        active={currentView === 'courses' || currentView === 'lesson'}
-        type="button"
-        onClick={() => onViewChange('courses')}
-      >
-        Cursos
-      </Button>
-      {isAdmin ? (
-        <Button
-          variant="ghost"
-          active={currentView === 'admin'}
-          type="button"
-          onClick={() => onViewChange('admin')}
-        >
-          Panel interno
-        </Button>
-      ) : null}
-    </>
-  );
-
-  const utilityButtons = (
-    <>
-      {isAdmin ? (
-        <Button
-          variant="ghost"
-          size="compact"
-          active={adminPreviewAsUser}
-          type="button"
-          onClick={onToggleAdminPreview}
-        >
-          {adminPreviewAsUser ? 'Volver a modo admin' : 'Ver como usuario normal'}
-        </Button>
-      ) : null}
-      <Button variant="ghost" size="compact" type="button" onClick={onThemeToggle}>
-        {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-      </Button>
-      <Button
-        variant="ghost"
-        size="compact"
-        type="button"
-        onClick={() => setDetailsOpen((value) => !value)}
-      >
-        {detailsOpen ? 'Ocultar cuenta' : 'Mi cuenta'}
-      </Button>
-    </>
-  );
+  const activeViewLabel = navigation?.activeViewLabel || 'Escudo Digital';
+  const showNavigation = Boolean(navigation?.showNavigation && navigation?.items?.length);
 
   return (
-    <SurfaceCard
-      padding="md"
-      className={`session-bar session-bar-compact viewport-${viewport} sd-page-shell`}
-    >
-      <div className="session-main">
-        <div className="session-identity">
-          <p className="eyebrow">Cuenta</p>
-          <h2 className="sd-title text-[1.7rem] sm:text-[2rem]">
-            {user?.email || 'usuario@correo.com'}
-          </h2>
-          <p className="hint">{`Vista actual: ${activeViewLabel}`}</p>
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="accent">{activeViewLabel}</Badge>
-            {isAdmin ? (
-              <Badge tone={adminPreviewAsUser ? 'soft' : 'neutral'}>
-                {adminPreviewAsUser ? 'Preview usuario' : 'Admin'}
-              </Badge>
-            ) : null}
-          </div>
-        </div>
-
-        {isCompact ? (
-          <div className="session-main-actions">
-            <div className="session-utility-row">{utilityButtons}</div>
-            <div className="row inline nav-responsive session-nav-pills">{navButtons}</div>
-          </div>
-        ) : (
-          <div className="row inline nav-responsive">
-            {navButtons}
-            {utilityButtons}
-          </div>
-        )}
-      </div>
-
-      {detailsOpen ? (
-        <div className="session-details">
-          <div className="session-detail-card">
-            <span>Último acceso</span>
-            <strong>{formatDate(user?.lastAccessAt)}</strong>
-          </div>
-          <div className="session-detail-card">
-            <span>Guardado</span>
-            <strong>Tu avance se sincroniza automáticamente</strong>
-          </div>
-          {isAdmin ? (
-            <div className="session-detail-card">
-              <span>Modo admin</span>
-              <strong>
-                {adminPreviewAsUser
-                  ? 'Vista de usuario normal'
-                  : 'Acceso libre a todos los módulos'}
-              </strong>
+    <SurfaceCard padding="compact" variant="raised" className="w-full">
+      <div className="grid gap-3">
+        <div
+          className={cn(
+            'grid gap-3',
+            shellFamily === 'desktop'
+              ? 'xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center'
+              : shellFamily === 'tablet'
+                ? 'lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center'
+                : ''
+          )}
+        >
+          <div className="grid min-w-0 gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="accent">{activeViewLabel}</Badge>
+              {isAdmin ? (
+                <Badge tone={adminPreviewAsUser ? 'soft' : 'neutral'}>
+                  {adminPreviewAsUser ? 'Preview usuario' : 'Admin'}
+                </Badge>
+              ) : null}
             </div>
-          ) : null}
-          <div className="session-detail-actions">
-            <Button variant="primary" type="button" onClick={onLogout}>
-              Cerrar sesión
-            </Button>
+
+            <div className="grid min-w-0 gap-1">
+              <strong className="text-base leading-6 text-sd-text-strong sm:text-lg">
+                Escudo Digital
+              </strong>
+              <p className="m-0 truncate text-sm leading-6 text-sd-text-soft">{user?.email}</p>
+            </div>
           </div>
+
+          <UtilityBar
+            isAdmin={isAdmin}
+            adminPreviewAsUser={adminPreviewAsUser}
+            detailsOpen={detailsOpen}
+            theme={theme}
+            onThemeToggle={onThemeToggle}
+            onToggleAdminPreview={onToggleAdminPreview}
+            onToggleDetails={() => setDetailsOpen((value) => !value)}
+          />
         </div>
-      ) : null}
+
+        {showNavigation ? (
+          <div className="flex flex-wrap gap-2 border-t border-sd-border-soft pt-3">
+            {navigation.items.map((item) => (
+              <Button
+                key={item.id}
+                variant={item.active ? 'primary' : 'quiet'}
+                size="compact"
+                active={item.active}
+                type="button"
+                onClick={() => onNavigate(item.id)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
+        {detailsOpen ? (
+          <div
+            className={cn(
+              'grid gap-4 rounded-[24px] border border-sd-border bg-sd-surface-subtle px-4 py-4',
+              shellFamily === 'desktop' ? 'lg:grid-cols-[minmax(0,1fr)_auto]' : ''
+            )}
+          >
+            <KeyValueBlock
+              items={[
+                {
+                  key: 'last-access',
+                  label: 'Ultimo acceso',
+                  value: formatDate(user?.lastAccessAt),
+                },
+                {
+                  key: 'session',
+                  label: 'Sesion',
+                  value: 'Tu avance, ruta y modulo siguen ligados a esta cuenta.',
+                },
+                ...(isAdmin
+                  ? [
+                      {
+                        key: 'admin-mode',
+                        label: 'Modo admin',
+                        value: adminPreviewAsUser
+                          ? 'Ahora miras la app como usuario.'
+                          : 'Mantienes acceso libre para revisar el flujo completo.',
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+
+            <div className="flex items-start">
+              <Button variant="secondary" type="button" onClick={onLogout}>
+                Cerrar sesion
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </SurfaceCard>
   );
 }

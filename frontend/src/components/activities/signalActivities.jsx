@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { feedbackToText, repairPossibleMojibake } from '../../lib/course.js';
+import { getShellFamily } from '../../hooks/useResponsiveLayout.js';
 import {
   getDecisionRatingLabel,
   scoreChoiceDecision,
   scoreSelectionAccuracy,
 } from '../../lib/activityScoring.js';
+import { cn } from '../../lib/ui.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
+import { ActionCluster, PanelHeader } from '../../patterns/index.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
+import { Badge, Button, InlineMessage, Input, SurfaceCard } from '../ui/index.js';
 import {
   ActivitySummaryBar,
   buildActivityFeedback,
@@ -15,13 +19,166 @@ import {
   Paragraphs,
 } from './sharedActivityUi.jsx';
 
+function getChatFeedbackTone(feedback) {
+  const score = Number(feedback?.score);
+  if (!Number.isFinite(score)) return 'info';
+  if (score >= 0.82) return 'success';
+  if (score >= 0.56) return 'warning';
+  return 'danger';
+}
+
+function getChatSignals(activity) {
+  const text = repairPossibleMojibake(`${activity?.escenario || ''} ${activity?.inicio || ''}`).toLowerCase();
+  const signals = [];
+
+  if (/(transfer|dep[oó]sit|pago|dinero|hotel|cobro)/.test(text)) {
+    signals.push({
+      title: 'Dinero urgente',
+      body: 'La conversación intenta llevarte a una transferencia o pago antes de verificar.',
+    });
+  }
+
+  if (/(c[oó]digo|sms|clave|token)/.test(text)) {
+    signals.push({
+      title: 'Código o acceso',
+      body: 'El objetivo puede ser sacar un código o un segundo factor bajo presión.',
+    });
+  }
+
+  if (/(cambi[eé] de n[uú]mero|otro celular|otro n[uú]mero|soporte|cuenta|prima|mam[aá]|daniel)/.test(text)) {
+    signals.push({
+      title: 'Identidad sin prueba',
+      body: 'Quiere usar confianza o autoridad sin una verificación que tú controles.',
+    });
+  }
+
+  if (/(urgente|hoy|ahora|bloque|recepci[oó]n|de inmediato|ya)/.test(text)) {
+    signals.push({
+      title: 'Presión de tiempo',
+      body: 'Busca que decidas rápido para que no salgas del chat a verificar.',
+    });
+  }
+
+  if (!signals.length) {
+    signals.push({
+      title: 'Canal bajo control del atacante',
+      body: 'Aunque el mensaje parezca plausible, la regla segura sigue siendo frenar y verificar por fuera.',
+    });
+  }
+
+  return signals.slice(0, 3);
+}
+
+function getThreatNote(userTurns, done) {
+  if (done) {
+    return 'La conversación ya quedó cerrada. Ahora toca leer el resultado y dejar claro el siguiente paso.';
+  }
+
+  if (userTurns > 0) {
+    return 'Ya respondiste dentro del canal. La meta ahora es salir con una respuesta corta y verificable.';
+  }
+
+  return 'La presión empieza desde el primer mensaje. No necesitas agradar al contacto; necesitas cortar el riesgo.';
+}
+
+function ChatFeedbackCard({
+  feedback,
+  done = false,
+  className,
+  startedAtRef,
+  onComplete,
+  bestScore,
+  history,
+  turns,
+}) {
+  if (!feedback) return null;
+
+  const tone = getChatFeedbackTone(feedback);
+  const scoreLabel = Number.isFinite(Number(feedback?.score)) ? formatPercent(feedback.score) : '';
+
+  return (
+    <SurfaceCard
+      padding="compact"
+      variant={done ? 'spotlight' : tone === 'danger' ? 'editorial' : 'insight'}
+      className={cn('sd-chat-feedback-card border-sd-border-strong', className)}
+    >
+      <PanelHeader
+        eyebrow={done ? 'Cierre del intercambio' : 'Lectura del intento'}
+        title={repairPossibleMojibake(feedback.title || 'Lectura del resultado')}
+        subtitle={
+          done
+            ? 'La conversación ya cerró. Quédate con la señal principal y registra el cierre sin volver a abrir el chat.'
+            : 'Usa esta lectura antes de mandar el siguiente mensaje para no seguirle el ritmo al atacante.'
+        }
+        meta={scoreLabel ? <Badge tone={tone === 'danger' ? 'warning' : tone === 'success' ? 'accent' : 'neutral'}>{scoreLabel}</Badge> : null}
+        divider
+      />
+
+      <InlineMessage
+        tone={tone}
+        title={
+          tone === 'success'
+            ? 'Ya estás defendiendo bien el canal'
+            : tone === 'danger'
+              ? 'Todavía estás dándole demasiado control'
+              : 'Vas mejor, pero aún conviene ajustar'
+        }
+      >
+        {repairPossibleMojibake(feedback.signal || 'La señal principal ya quedó visible.')}
+      </InlineMessage>
+
+      <div className="mt-4 grid gap-3">
+        {feedback.risk ? (
+          <SurfaceCard padding="compact" variant="subtle">
+            <strong className="block text-sm text-sd-text">Qué sigue siendo riesgoso</strong>
+            <p className="mt-2 text-sm leading-6 text-sd-text-soft">{repairPossibleMojibake(feedback.risk)}</p>
+          </SurfaceCard>
+        ) : null}
+
+        {feedback.action ? (
+          <SurfaceCard padding="compact" variant="subtle">
+            <strong className="block text-sm text-sd-text">Siguiente movimiento seguro</strong>
+            <p className="mt-2 text-sm leading-6 text-sd-text-soft">{repairPossibleMojibake(feedback.action)}</p>
+          </SurfaceCard>
+        ) : null}
+
+        {feedback.extra ? (
+          <p className="m-0 text-sm leading-6 text-sd-text-soft">{repairPossibleMojibake(feedback.extra)}</p>
+        ) : null}
+      </div>
+
+      {done ? (
+        <ActionCluster align="start" collapse="wrap" className="mt-4">
+          <Button
+            variant="hero"
+            type="button"
+            onClick={() =>
+              completeActivity(
+                startedAtRef,
+                onComplete,
+                bestScore || Number(feedback?.score) || 0.68,
+                feedbackToText(feedback || 'Simulación completada.'),
+                { history, turns }
+              )
+            }
+          >
+            Continuar
+          </Button>
+        </ActionCluster>
+      ) : null}
+    </SurfaceCard>
+  );
+}
+
 export function WhatsAppSimulation({
+  viewport = 'desktop',
   activity,
   answers,
   assessment,
   startedAtRef,
   onComplete,
 }) {
+  const threadRef = useRef(null);
   const [history, setHistory] = useState(() =>
     activity.inicio ? [{ role: 'scammer', content: activity.inicio }] : []
   );
@@ -31,15 +188,29 @@ export function WhatsAppSimulation({
   const [bestScore, setBestScore] = useState(0);
   const [done, setDone] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const shellFamily = getShellFamily(viewport);
+  const isMobile = shellFamily === 'mobile';
+  const isTablet = shellFamily === 'tablet';
+  const isDesktop = shellFamily === 'desktop';
   const quickReplies = Array.isArray(activity.quickReplies) ? activity.quickReplies : [];
   const userTurns = history.filter((message) => message.role === 'user').length;
   const contactName = repairPossibleMojibake(activity.contactName || 'Contacto desconocido');
   const contactStatus = repairPossibleMojibake(activity.contactStatus || 'en línea');
   const avatarLabel = repairPossibleMojibake(activity.avatarLabel || contactName.slice(0, 2).toUpperCase() || 'WA');
-  const threatNote =
+  const legacyThreatNote =
     userTurns > 0
       ? 'El atacante ya logró mantenerte en el chat. Tu meta ahora es cerrar el canal sin justificarte de más.'
       : 'La presión empieza desde el primer mensaje. Responde como si fuera un chat real, pero sin darle control a la conversación.';
+
+  const threatNote = getThreatNote(userTurns, done);
+  const scenarioText = repairPossibleMojibake(
+    activity.escenario || 'Corta el canal con una respuesta firme y verifica por un medio que tÃº controles.'
+  );
+  const signals = useMemo(() => getChatSignals(activity), [activity]);
+  const turnsAllowed = Math.max(1, Number(activity.turnos_max) || 6);
+  const turnsRemaining = Math.max(0, turnsAllowed - turns);
+  const dominantSignal = signals[0]?.title || 'Canal no verificado';
+  const contactPresence = busy && !done ? 'escribiendoâ€¦' : done ? 'chat cerrado' : contactStatus;
 
   const chatTimestamp = (index) => {
     const baseMinutes = 22;
@@ -48,6 +219,11 @@ export function WhatsAppSimulation({
     const minutes = String(totalMinutes % 60).padStart(2, '0');
     return `${hour}:${minutes}`;
   };
+
+  useEffect(() => {
+    if (!threadRef.current) return;
+    threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [history, busy, feedback, done]);
 
   const finishSimulation = () => {
     const score = bestScore || (userTurns ? 0.76 : 0.52);
@@ -80,7 +256,7 @@ export function WhatsAppSimulation({
         history: nextHistory,
         userMessage: message,
         turn: turns + 1,
-        turnos_max: activity.turnos_max || 6,
+        turnos_max: turnsAllowed,
         user: { answers, assessment },
       });
 
@@ -108,7 +284,7 @@ export function WhatsAppSimulation({
           extra: response?.coach_feedback || '',
         })
       );
-      setDone(Boolean(response?.done) || turns + 1 >= (activity.turnos_max || 6));
+      setDone(Boolean(response?.done) || turns + 1 >= turnsAllowed);
     } catch (error) {
       setFeedback(
         buildActivityFeedback({
@@ -125,6 +301,205 @@ export function WhatsAppSimulation({
       setBusy(false);
     }
   };
+
+  const handleInputKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const supportContent = (
+    <>
+      <SurfaceCard
+        padding="compact"
+        variant={isDesktop ? 'insight' : 'subtle'}
+        className="sd-chat-support-card border-sd-border-strong"
+      >
+        <PanelHeader
+          eyebrow="QuÃ© estÃ¡ en juego"
+          title="No sigas resolviendo dentro del chat"
+          subtitle={threatNote}
+          meta={<Badge tone="warning">{dominantSignal}</Badge>}
+          divider
+        />
+        <div className="grid gap-3">
+          {signals.map((signal) => (
+            <div className="sd-chat-support-row" key={signal.title}>
+              <strong>{signal.title}</strong>
+              <p>{signal.body}</p>
+            </div>
+          ))}
+        </div>
+      </SurfaceCard>
+
+      <ChatFeedbackCard
+        feedback={feedback}
+        done={done}
+        startedAtRef={startedAtRef}
+        onComplete={onComplete}
+        bestScore={bestScore}
+        history={history}
+        turns={turns}
+      />
+    </>
+  );
+
+  return (
+    <div className={cn('sd-chat-sim', `sd-chat-sim-${shellFamily}`, done ? 'is-complete' : '')} data-sd-container="true">
+      <section className="sd-chat-surface">
+        <header className="sd-chat-header">
+          <div className="sd-chat-header-main">
+            <div className="sd-chat-avatar" aria-hidden="true">
+              {avatarLabel}
+            </div>
+            <div className="sd-chat-contact">
+              <strong>{contactName}</strong>
+              <p>{contactPresence}</p>
+            </div>
+          </div>
+
+          <div className="sd-chat-header-meta">
+            <Badge tone={done ? 'neutral' : 'warning'}>{dominantSignal}</Badge>
+            <span>{done ? 'Cierre listo' : `${turnsRemaining} turnos restantes`}</span>
+          </div>
+        </header>
+
+        <div className="sd-chat-scene-note">
+          <div>
+            <strong>{done ? 'Conversacion cerrada' : 'Decide dentro del hilo'}</strong>
+            <p>{scenarioText}</p>
+          </div>
+          {!isMobile ? <p className="sd-chat-threat-note">{threatNote}</p> : null}
+        </div>
+
+        <div className="sd-chat-thread-shell">
+          {isMobile ? (
+            <InlineMessage tone="warning" className="sd-chat-mobile-note" title="Clave del momento">
+              {threatNote}
+            </InlineMessage>
+          ) : null}
+
+          <div className="sd-chat-thread" ref={threadRef} aria-live="polite">
+            <div className="sd-chat-thread-divider">Hoy · 11:22</div>
+            {history.map((message, index) => (
+              <div
+                className={cn('sd-chat-row', message.role === 'user' ? 'is-user' : 'is-scammer')}
+                key={`${message.role}-${index}`}
+              >
+                <article className={cn('sd-chat-bubble', message.role === 'user' ? 'is-user' : 'is-scammer')}>
+                  <p>{repairPossibleMojibake(message.content)}</p>
+                  <span>{chatTimestamp(index)}</span>
+                </article>
+              </div>
+            ))}
+
+            {busy ? (
+              <div className="sd-chat-row is-scammer">
+                <div className="sd-chat-bubble is-scammer is-typing" aria-label="El contacto estÃ¡ escribiendo">
+                  <span className="sd-chat-typing-dot" />
+                  <span className="sd-chat-typing-dot" />
+                  <span className="sd-chat-typing-dot" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {!done && quickReplies.length ? (
+            <div className="sd-chat-suggestions" aria-label="Respuestas sugeridas">
+              {quickReplies.map((reply) => (
+                <Button
+                  key={reply}
+                  variant="soft"
+                  size="compact"
+                  type="button"
+                  disabled={busy}
+                  className="justify-start"
+                  onClick={() => sendMessage(reply)}
+                >
+                  {repairPossibleMojibake(reply)}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+
+          {!isDesktop && feedback ? (
+            <ChatFeedbackCard
+              feedback={feedback}
+              done={done}
+              className="sd-chat-inline-feedback"
+              startedAtRef={startedAtRef}
+              onComplete={onComplete}
+              bestScore={bestScore}
+              history={history}
+              turns={turns}
+            />
+          ) : null}
+
+          {!done ? (
+            <div className="sd-chat-composer">
+              <div className="sd-chat-composer-field">
+                <Input
+                  type="text"
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Escribe una respuesta breve, firme y segura"
+                  disabled={busy}
+                  aria-label="Escribe tu respuesta segura"
+                />
+              </div>
+
+              <ActionCluster
+                align="start"
+                collapse={isMobile ? 'stack' : 'wrap'}
+                className="sd-chat-composer-actions"
+              >
+                {userTurns > 0 ? (
+                  <Button variant="quiet" type="button" onClick={finishSimulation} disabled={busy}>
+                    Cerrar y verificar por fuera
+                  </Button>
+                ) : null}
+                <Button variant="primary" type="button" loading={busy} onClick={() => sendMessage()}>
+                  Responder
+                </Button>
+              </ActionCluster>
+            </div>
+          ) : (
+            <InlineMessage tone="success" title="La conversacion ya quedo cerrada" className="sd-chat-complete-note">
+              Sal del chat con esta lectura y registra el cierre sin volver a abrir la conversacion.
+            </InlineMessage>
+          )}
+        </div>
+      </section>
+
+      {isDesktop ? <aside className="sd-chat-insight">{supportContent}</aside> : null}
+
+      {!isDesktop && !feedback ? (
+        <SurfaceCard
+          padding="compact"
+          variant={isTablet ? 'insight' : 'subtle'}
+          className="sd-chat-compact-support border-sd-border-strong"
+        >
+          <PanelHeader
+            eyebrow="QuÃ© mirar"
+            title="SeÃ±ales que sÃ­ deben mover la decisiÃ³n"
+            subtitle="Solo dejamos lo mÃ­nimo para no romper el foco del hilo."
+            meta={<Badge tone="warning">{dominantSignal}</Badge>}
+            divider
+          />
+          <div className="grid gap-3">
+            {signals.map((signal) => (
+              <div className="sd-chat-support-row" key={signal.title}>
+                <strong>{signal.title}</strong>
+                <p>{signal.body}</p>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+      ) : null}
+    </div>
+  );
 
   return (
     <>

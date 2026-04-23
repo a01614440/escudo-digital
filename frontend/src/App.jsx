@@ -1,40 +1,24 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import AdminView from './components/AdminView.jsx';
-import AuthView from './components/AuthView.jsx';
-import ChatDrawer from './components/ChatDrawer.jsx';
-import CoursesView from './components/CoursesView.jsx';
-import LessonView from './components/LessonView.jsx';
-import SessionBar from './components/SessionBar.jsx';
-import SurveyView from './components/SurveyView.jsx';
-import SurfaceCard from './components/ui/SurfaceCard.jsx';
-import { createInitialLearningState, createRemoteStatePayload } from './lib/courseRules.js';
-import { clearLocalState, writeLocalState } from './lib/storage.js';
+import { useEffect, useMemo, useState } from 'react';
 import { useAssessmentFlow } from './hooks/useAssessmentFlow.js';
 import { useAuthSession } from './hooks/useAuthSession.js';
 import { useChatSession } from './hooks/useChatSession.js';
 import { useCourseProgress } from './hooks/useCourseProgress.js';
 import { useRemoteProgressSync } from './hooks/useRemoteProgressSync.js';
-import { useResponsiveLayout } from './hooks/useResponsiveLayout.js';
+import { createInitialLearningState, createRemoteStatePayload } from './lib/courseRules.js';
+import { clearLocalState, writeLocalState } from './lib/storage.js';
+import { useDeviceProfile } from './providers/DeviceProfileProvider.jsx';
+import resolveActiveRoute from './route-containers/resolveActiveRoute.jsx';
+import DeviceShell from './shells/DeviceShell.jsx';
+import buildShellSlots from './shells/buildShellSlots.jsx';
+import { buildNavigationModel, normalizeRequestedView } from './shells/navigationPolicy.js';
 import {
   downloadAnalyticsSnapshot,
   fetchAdminAnalytics,
 } from './services/progressService.js';
 
-function SessionLoadingView() {
-  return (
-    <main className="page sd-page-shell">
-      <SurfaceCard padding="lg" className="mx-auto max-w-3xl">
-        <p className="eyebrow">Cargando</p>
-        <h1 className="sd-title max-w-[12ch]">Restaurando sesión</h1>
-        <p className="lead sd-subtitle">Estamos recuperando tu información guardada.</p>
-      </SurfaceCard>
-    </main>
-  );
-}
-
 export default function App() {
   const initial = useMemo(() => createInitialLearningState(), []);
-  const responsive = useResponsiveLayout();
+  const device = useDeviceProfile();
   const chat = useChatSession();
   const course = useCourseProgress({
     initialCoursePlan: initial.coursePlan,
@@ -122,10 +106,11 @@ export default function App() {
     onUserRefresh: auth.setCurrentUser,
   });
 
-  const wantsAdminCourseAccess = auth.currentUser?.role === 'admin' && !adminPreviewAsUser;
+  const isAdmin = auth.currentUser?.role === 'admin';
+  const wantsAdminCourseAccess = isAdmin && !adminPreviewAsUser;
 
   const loadAdminAnalytics = async () => {
-    if (auth.currentUser?.role !== 'admin' || !auth.authToken) return;
+    if (!isAdmin || !auth.authToken) return;
 
     setAnalyticsLoading(true);
     setAnalyticsError('');
@@ -134,21 +119,16 @@ export default function App() {
       const response = await fetchAdminAnalytics(auth.authToken);
       setAnalytics(response);
     } catch (error) {
-      setAnalyticsError(error.message || 'No se pudieron cargar las métricas.');
+      setAnalyticsError(error.message || 'No se pudieron cargar las metricas.');
     } finally {
       setAnalyticsLoading(false);
     }
   };
 
   const handleViewChange = (view) => {
-    if (view === 'admin') {
-      if (auth.currentUser?.role === 'admin') {
-        course.setCurrentView('admin');
-      }
-      return;
-    }
-
-    course.setCurrentView(view === 'lesson' ? 'courses' : view);
+    const nextView = normalizeRequestedView(view, { isAdmin });
+    if (!nextView) return;
+    course.setCurrentView(nextView);
   };
 
   useEffect(() => {
@@ -161,10 +141,10 @@ export default function App() {
   }, [assessment.answers, assessment.assessment, course.coursePlan, course.courseProgress]);
 
   useEffect(() => {
-    if (auth.currentUser?.role !== 'admin' && adminPreviewAsUser) {
+    if (!isAdmin && adminPreviewAsUser) {
       setAdminPreviewAsUser(false);
     }
-  }, [adminPreviewAsUser, auth.currentUser?.role]);
+  }, [adminPreviewAsUser, isAdmin]);
 
   useEffect(() => {
     if (adminPreviewAsUser && course.currentView === 'admin') {
@@ -173,10 +153,10 @@ export default function App() {
   }, [adminPreviewAsUser, course.coursePlan, course.courseProgress, course.currentView]);
 
   useEffect(() => {
-    if (course.currentView === 'admin' && auth.currentUser?.role === 'admin') {
+    if (course.currentView === 'admin' && isAdmin) {
       loadAdminAnalytics();
     }
-  }, [auth.currentUser?.role, course.currentView]);
+  }, [isAdmin, course.currentView]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -221,152 +201,73 @@ export default function App() {
     wantsAdminCourseAccess,
   ]);
 
-  if (auth.sessionLoading) {
-    return <SessionLoadingView />;
-  }
+  const routeDefinition = useMemo(
+    () =>
+      resolveActiveRoute({
+        shellFamily: device.shellFamily,
+        viewport: device.viewport,
+        auth,
+        assessment,
+        course,
+        isAdmin,
+        wantsAdminCourseAccess,
+        analytics,
+        analyticsLoading,
+        analyticsError,
+        onLoadAdminAnalytics: loadAdminAnalytics,
+        onExportAnalytics: () => downloadAnalyticsSnapshot(analytics),
+      }),
+    [
+      analytics,
+      analyticsError,
+      analyticsLoading,
+      assessment,
+      auth,
+      course,
+      device.shellFamily,
+      device.viewport,
+      isAdmin,
+      wantsAdminCourseAccess,
+    ]
+  );
 
-  if (!auth.currentUser) {
-    return (
-      <AuthView
-        viewport={responsive.viewport}
-        mode={auth.authMode}
-        email={auth.authEmail}
-        password={auth.authPassword}
-        error={auth.authError}
-        submitting={auth.authSubmitting}
-        onModeChange={auth.setAuthMode}
-        onEmailChange={auth.setAuthEmail}
-        onPasswordChange={auth.setAuthPassword}
-        onSubmit={auth.handleAuthSubmit}
-      />
-    );
-  }
+  const navigation = useMemo(
+    () =>
+      buildNavigationModel({
+        currentView: routeDefinition.routeKey,
+        isAdmin,
+        currentUser: auth.currentUser,
+      }),
+    [auth.currentUser, isAdmin, routeDefinition.routeKey]
+  );
+
+  const shellSlots = useMemo(
+    () =>
+      buildShellSlots({
+        device,
+        auth,
+        chat,
+        navigation,
+        routeDefinition,
+        adminPreviewAsUser,
+        onNavigate: handleViewChange,
+        onThemeToggle: device.toggleTheme,
+        onToggleAdminPreview: () => setAdminPreviewAsUser((current) => !current),
+        onLogout: auth.handleLogout,
+      }),
+    [adminPreviewAsUser, auth, chat, device, navigation, routeDefinition]
+  );
 
   return (
-    <>
-      <main
-        className={`page app-shell app-shell-${responsive.viewport} app-view-${course.currentView}`}
-      >
-        <SessionBar
-          viewport={responsive.viewport}
-          user={auth.currentUser}
-          currentView={course.currentView}
-          theme={responsive.theme}
-          adminPreviewAsUser={adminPreviewAsUser}
-          onViewChange={handleViewChange}
-          onThemeToggle={responsive.toggleTheme}
-          onToggleAdminPreview={() => setAdminPreviewAsUser((current) => !current)}
-          onLogout={auth.handleLogout}
-        />
-
-        {course.currentView === 'survey' ? (
-          <SurveyView
-            viewport={responsive.viewport}
-            currentView={course.currentView}
-            answers={assessment.answers}
-            visibleQuestions={assessment.visibleQuestions}
-            surveyIndex={assessment.surveyIndex}
-            surveyStage={assessment.surveyStage}
-            assessment={assessment.assessment}
-            courseError={course.courseError}
-            resultLead={
-              assessment.assessment?.resumen ||
-              'Te mostraremos un resumen claro de tu riesgo y de la ruta que mejor encaja contigo.'
-            }
-            validationError={assessment.validationError}
-            flowError={assessment.flowError}
-            onAnswerChange={assessment.handleAnswerChange}
-            onPrev={assessment.handleSurveyPrevious}
-            onNext={assessment.handleSurveyNext}
-            onRestart={assessment.handleSurveyRestart}
-            onTakeCourses={() =>
-              course.openCourses({
-                answers: assessment.answers,
-                assessment: assessment.assessment,
-                authToken: auth.authToken,
-                adminAccess: wantsAdminCourseAccess,
-              })
-            }
-          />
-        ) : null}
-
-        {course.currentView === 'courses' ? (
-          <CoursesView
-            viewport={responsive.viewport}
-            currentView={course.currentView}
-            answers={assessment.answers}
-            assessment={assessment.assessment}
-            coursePlan={course.coursePlan}
-            courseProgress={course.courseProgress}
-            coursePrefs={course.coursePrefs}
-            adminAccess={wantsAdminCourseAccess}
-            generating={course.generatingCourse}
-            error={course.courseError}
-            onCoursePrefsChange={course.setCoursePrefs}
-            onGenerateCourse={() =>
-              course.generateCourse({
-                answers: assessment.answers,
-                assessment: assessment.assessment,
-                authToken: auth.authToken,
-                adminAccess: wantsAdminCourseAccess,
-                reset: Boolean(course.coursePlan),
-              })
-            }
-            onOpenModule={course.openModule}
-          />
-        ) : null}
-
-        {course.currentView === 'lesson' ? (
-          <LessonView
-            viewport={responsive.viewport}
-            coursePlan={course.coursePlan}
-            courseProgress={course.courseProgress}
-            currentLesson={course.currentLesson}
-            answers={assessment.answers}
-            assessment={assessment.assessment}
-            onBackToCourses={() => course.setCurrentView('courses')}
-            onRestartModule={course.restartModule}
-            onCompleteActivity={course.completeActivity}
-          />
-        ) : null}
-
-        {course.currentView === 'admin' && auth.currentUser.role === 'admin' ? (
-          <AdminView
-            viewport={responsive.viewport}
-            analytics={analytics}
-            loading={analyticsLoading}
-            error={analyticsError}
-            onBack={() =>
-              course.setCurrentView(course.coursePlan && course.courseProgress ? 'courses' : 'survey')
-            }
-            onRefresh={loadAdminAnalytics}
-            onExport={() => downloadAnalyticsSnapshot(analytics)}
-          />
-        ) : null}
-      </main>
-
-      {course.currentView !== 'admin' ? (
-        <>
-          <button
-            className={`chat-fab ${chat.chatOpen ? 'hidden' : ''}`}
-            type="button"
-            onClick={() => chat.setChatOpen(true)}
-          >
-            Chat
-          </button>
-          <ChatDrawer
-            viewport={responsive.viewport}
-            open={chat.chatOpen}
-            messages={chat.chatMessages}
-            input={chat.chatInput}
-            busy={chat.chatBusy}
-            onInputChange={chat.setChatInput}
-            onClose={chat.closeChat}
-            onSubmit={chat.handleChatSubmit}
-          />
-        </>
-      ) : null}
-    </>
+    <DeviceShell
+      shellFamily={device.shellFamily}
+      routeKey={routeDefinition.routeKey}
+      routeIntent={routeDefinition.routeMeta.shellIntent}
+      header={shellSlots.header}
+      primary={shellSlots.primary}
+      secondary={shellSlots.secondary}
+      floating={shellSlots.floating}
+      overlay={shellSlots.overlay}
+    />
   );
 }
-

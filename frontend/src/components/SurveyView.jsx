@@ -1,24 +1,258 @@
 import { useEffect, useMemo, useState } from 'react';
 import { normalizeRiskLevel } from '../lib/course.js';
 import { buildJourneyProgress } from '../lib/journeyGuidance.js';
-import Badge from './ui/Badge.jsx';
-import Button from './ui/Button.jsx';
-import SurfaceCard from './ui/SurfaceCard.jsx';
+import { getShellFamily } from '../hooks/useResponsiveLayout.js';
+import { SplitHeroLayout, WorkspaceLayout } from '../layouts/index.js';
+import {
+  ActionCluster,
+  EmptyState,
+  JourneyStepper,
+  KeyValueBlock,
+  PanelHeader,
+  ProgressSummary,
+  StageHero,
+  StatStrip,
+  SupportRail,
+} from '../patterns/index.js';
+import {
+  Badge,
+  Button,
+  Field,
+  InlineMessage,
+  ProgressBar,
+  Select,
+  Spinner,
+  SurfaceCard,
+  TextArea,
+} from './ui/index.js';
 
-function renderInput(question, value, onChange) {
+const TRAINING_CHANNELS = ['WhatsApp', 'SMS', 'Paginas clonadas', 'Llamadas', 'Correo'];
+
+const SURVEY_RULES = [
+  'Responde segun tu comportamiento real.',
+  'Si dudas, elige lo que harias en una situacion cotidiana.',
+];
+
+const LOADING_PIPELINE = [
+  'Leemos tus respuestas.',
+  'Calculamos tu perfil.',
+  'Preparamos tu ruta.',
+];
+
+function getStageHeroModel({ showIntro, surveyStage, surveyIndex, total, assessment, progress }) {
+  if (showIntro) {
+    return {
+      tone: 'editorial',
+      eyebrow: 'Diagnostico inicial',
+      title: 'Primero entiendes el recorrido.',
+      subtitle:
+        'Ves que vas a contestar, que recibes al final y como se abre tu ruta.',
+      meta: 'Encuesta breve, perfil claro, handoff directo a ruta',
+      stripItems: [
+        {
+          key: 'duration',
+          eyebrow: 'Duracion',
+          value: '2-3 min',
+          label: 'Breve y directa',
+          hint: 'Una tarea principal a la vez.',
+          tone: 'accent',
+        },
+        {
+          key: 'handoff',
+          eyebrow: 'Salida',
+          value: 'Ruta',
+          label: 'Perfil + siguiente paso',
+          hint: 'No hay corte brusco al terminar.',
+          tone: 'neutral',
+        },
+      ],
+    };
+  }
+
+  if (surveyStage === 'loading') {
+    return {
+      tone: 'editorial',
+      eyebrow: 'Procesando',
+      title: 'Tus respuestas ya se convierten en perfil.',
+      subtitle:
+        'Esta transicion deja claro que despues viene tu perfil y la apertura de tu ruta.',
+      meta: 'Analisis visible con continuidad intacta',
+      stripItems: [
+        {
+          key: 'read',
+          eyebrow: 'Lectura',
+          value: 'Activa',
+          label: 'Procesando respuestas',
+          hint: 'Sin perder el hilo del recorrido.',
+          tone: 'accent',
+        },
+        {
+          key: 'next',
+          eyebrow: 'Siguiente',
+          value: 'Perfil',
+          label: 'Despues se abre tu ruta',
+          hint: 'La salida ya esta preparada.',
+          tone: 'neutral',
+        },
+      ],
+    };
+  }
+
+  if (surveyStage === 'results') {
+    return {
+      tone: 'spotlight',
+      eyebrow: 'Perfil listo',
+      title: 'Tu diagnostico ya tiene lectura clara.',
+      subtitle:
+        'El resultado se siente como puente hacia la ruta, no como cierre aislado.',
+      meta: 'Perfil visible, recomendaciones claras y CTA fuerte',
+      stripItems: [
+        {
+          key: 'level',
+          eyebrow: 'Nivel',
+          value: normalizeRiskLevel(assessment?.nivel || 'Medio'),
+          label: 'Lectura actual',
+          hint: 'Perfil directo y entendible.',
+          tone: 'accent',
+        },
+        {
+          key: 'next',
+          eyebrow: 'Salida',
+          value: 'Ruta',
+          label: 'Siguiente paso visible',
+          hint: 'Tu handoff ya no queda escondido.',
+          tone: 'neutral',
+        },
+      ],
+    };
+  }
+
+  return {
+    tone: 'spotlight',
+    eyebrow: `Paso ${surveyIndex + 1} de ${total}`,
+    title: 'Una pregunta clara. Un siguiente paso.',
+    subtitle:
+      'Responde, avanza y sigue sin ruido ni bloques compitiendo.',
+    meta: `${progress}% completado`,
+    stripItems: [
+      {
+        key: 'step',
+        eyebrow: 'Paso',
+        value: String(surveyIndex + 1).padStart(2, '0'),
+        label: `De ${total}`,
+        hint: 'Una sola pregunta protagonista.',
+        tone: 'accent',
+      },
+      {
+        key: 'progress',
+        eyebrow: 'Avance',
+        value: `${progress}%`,
+        label: 'Progreso visible',
+        hint: 'El siguiente hito siempre esta claro.',
+        tone: 'neutral',
+      },
+    ],
+  };
+}
+
+function SurveyStageHero({
+  shellFamily,
+  showIntro,
+  surveyStage,
+  surveyIndex,
+  total,
+  progress,
+  assessment,
+  journeySteps,
+  showJourney = false,
+}) {
+  const model = getStageHeroModel({
+    showIntro,
+    surveyStage,
+    surveyIndex,
+    total,
+    assessment,
+    progress,
+  });
+
+  const badgeText =
+    surveyStage === 'loading'
+      ? 'Analizando'
+      : surveyStage === 'results'
+        ? 'Perfil accionable'
+        : showIntro
+          ? 'Inicio guiado'
+          : 'Encuesta guiada';
+
+  const aside =
+    surveyStage === 'results' ? (
+      <div className="grid gap-2 rounded-[28px] border border-sd-border/70 bg-white/84 px-5 py-5">
+        <p className="sd-eyebrow m-0">Nivel estimado</p>
+        <strong className="font-display text-5xl leading-[0.92] tracking-[-0.06em] text-sd-text">
+          {normalizeRiskLevel(assessment?.nivel || 'Medio')}
+        </strong>
+      </div>
+    ) : null;
+
+  return (
+    <StageHero
+      tone={model.tone}
+      eyebrow={model.eyebrow}
+      title={model.title}
+      subtitle={model.subtitle}
+      actions={<Badge tone={model.tone === 'command' ? 'soft' : 'accent'}>{badgeText}</Badge>}
+      meta={model.meta}
+      aside={aside}
+      footer={
+        <StatStrip
+          items={model.stripItems}
+          compact={shellFamily === 'mobile'}
+          variant={model.tone === 'command' ? 'support' : 'insight'}
+        />
+      }
+    >
+      {showJourney ? <JourneyStepper steps={journeySteps} compact={shellFamily === 'mobile'} /> : null}
+    </StageHero>
+  );
+}
+
+function SurveyChoiceCard({ type = 'radio', name, checked, label, helper, onChange }) {
+  return (
+    <label className="block cursor-pointer">
+      <input className="sr-only" type={type} name={name} checked={checked} onChange={onChange} />
+      <SurfaceCard
+        padding="compact"
+        variant={checked ? 'raised' : 'subtle'}
+        interactive
+        selected={checked}
+        className={checked ? 'border-sd-accent shadow-[0_24px_50px_-28px_rgba(47,99,255,0.3)]' : ''}
+      >
+        <div className="grid gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <strong className="text-sm leading-6 text-sd-text">{label}</strong>
+            {checked ? <span className="text-sm font-medium text-sd-accent">Elegida</span> : null}
+          </div>
+          {helper ? <p className="m-0 text-sm leading-6 text-sd-muted">{helper}</p> : null}
+        </div>
+      </SurfaceCard>
+    </label>
+  );
+}
+
+function renderInput(question, value, onChange, shellFamily) {
   if (question.type === 'single') {
     return (
-      <div className="question-body">
+      <div className="grid gap-3">
         {question.options.map((option) => (
-          <label key={option.value} className="option">
-            <input
-              type="radio"
-              name={question.id}
-              checked={value === option.value}
-              onChange={() => onChange(question.id, option.value)}
-            />
-            <span>{option.label}</span>
-          </label>
+          <SurveyChoiceCard
+            key={option.value}
+            type="radio"
+            name={question.id}
+            checked={value === option.value}
+            label={option.label}
+            helper={option.helper}
+            onChange={() => onChange(question.id, option.value)}
+          />
         ))}
       </div>
     );
@@ -26,22 +260,24 @@ function renderInput(question, value, onChange) {
 
   if (question.type === 'multi') {
     const selected = Array.isArray(value) ? value : [];
+
     return (
-      <div className="question-body">
+      <div className={shellFamily === 'mobile' ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
         {question.options.map((option) => (
-          <label key={option.value} className="option">
-            <input
-              type="checkbox"
-              checked={selected.includes(option.value)}
-              onChange={(event) => {
-                const next = event.target.checked
-                  ? [...selected, option.value]
-                  : selected.filter((item) => item !== option.value);
-                onChange(question.id, next);
-              }}
-            />
-            <span>{option.label}</span>
-          </label>
+          <SurveyChoiceCard
+            key={option.value}
+            type="checkbox"
+            name={`${question.id}-${option.value}`}
+            checked={selected.includes(option.value)}
+            label={option.label}
+            helper={option.helper}
+            onChange={(event) => {
+              const next = event.target.checked
+                ? [...selected, option.value]
+                : selected.filter((item) => item !== option.value);
+              onChange(question.id, next);
+            }}
+          />
         ))}
       </div>
     );
@@ -49,171 +285,573 @@ function renderInput(question, value, onChange) {
 
   if (question.type === 'select') {
     return (
-      <div className="question-body">
-        <select
-          className="sd-input"
-          value={value || ''}
-          onChange={(event) => onChange(question.id, event.target.value)}
-        >
-          <option value="">Selecciona una opción</option>
+      <Field label="Tu respuesta">
+        <Select value={value || ''} onChange={(event) => onChange(question.id, event.target.value)}>
+          <option value="">Selecciona una opcion</option>
           {question.options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
     );
   }
 
   return (
-    <div className="question-body">
-      <textarea
-        className="sd-input min-h-[152px]"
-        placeholder={question.placeholder || 'Escribe aquí...'}
+    <Field label="Tu respuesta">
+      <TextArea
+        placeholder={question.placeholder || 'Escribe aqui...'}
         value={value || ''}
         onChange={(event) => onChange(question.id, event.target.value)}
       />
-    </div>
+    </Field>
   );
 }
 
-function JourneyStepper({ steps }) {
+function IntroActionPanel({ shellFamily, onStart }) {
   return (
-    <div className="grid gap-3 md:grid-cols-4">
-      {steps.map((step, index) => (
-        <article
-          key={step.id}
-          className={[
-            'rounded-[22px] border px-4 py-4 transition',
-            step.state === 'current'
-              ? 'border-sd-accent bg-sd-accent-soft'
-              : step.state === 'done'
-                ? 'border-emerald-200 bg-emerald-50/80'
-                : 'border-sd-border bg-white/68',
-          ].join(' ')}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                {`Paso ${index + 1}`}
-              </p>
-              <strong className="mt-2 block text-base text-sd-text">{step.label}</strong>
-            </div>
-            <span
-              className={[
-                'flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold uppercase tracking-[0.14em]',
-                step.state === 'current'
-                  ? 'bg-sd-accent text-white'
-                  : step.state === 'done'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-slate-100 text-slate-600',
-              ].join(' ')}
-            >
-              {step.state === 'done' ? 'OK' : String(index + 1).padStart(2, '0')}
-            </span>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-sd-muted">{step.description}</p>
-        </article>
-      ))}
-    </div>
+    <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
+      <div className="grid gap-6">
+        <PanelHeader
+          eyebrow="Antes de empezar"
+          title="Sabes que va a pasar y hacia donde te va a llevar"
+          subtitle="El diagnostico se usa para ordenar la ruta, no para dejarte con una conclusion suelta."
+          divider
+        />
+
+        <KeyValueBlock
+          items={[
+            { key: 'questions', label: 'Preguntas', value: 'Breves, centradas en habitos y exposicion' },
+            { key: 'result', label: 'Resultado', value: 'Perfil legible con recomendaciones claras' },
+            { key: 'route', label: 'Despues', value: 'CTA directo hacia tu ruta' },
+          ]}
+        />
+
+        <ActionCluster collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+          <Button variant="primary" size="lg" type="button" onClick={onStart}>
+            Comenzar diagnostico
+          </Button>
+          <Button variant="secondary" type="button" onClick={onStart}>
+            Ir a la primera pregunta
+          </Button>
+        </ActionCluster>
+      </div>
+    </SurfaceCard>
   );
 }
 
-function IntroStage({ onStart }) {
+function IntroSupportBand() {
   return (
-    <SurfaceCard padding="lg" className="min-w-0 overflow-hidden">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
-        <div>
-          <p className="eyebrow">Antes de empezar</p>
-          <h2 className="sd-title text-[1.9rem] sm:text-[2.25rem]">
-            Te vamos a guiar paso a paso
-          </h2>
-          <p className="mt-4 text-base leading-7 text-sd-muted">
-            Primero respondes una encuesta corta, luego te mostramos tu diagnóstico y al final
-            recibes una ruta personalizada con módulos prácticos para tu nivel.
+    <SupportRail
+      tone="editorial"
+      eyebrow="Que vas a cubrir"
+      title="Canales y riesgos que despues se traducen en tu ruta"
+      subtitle="Mostramos solo el contexto necesario para empezar con criterio."
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        {TRAINING_CHANNELS.slice(0, 3).map((item) => (
+          <Badge key={item} tone="neutral">
+            {item}
+          </Badge>
+        ))}
+        <span className="text-sm text-sd-text-soft">y otros escenarios cotidianos</span>
+      </div>
+    </SupportRail>
+  );
+}
+
+function IntroScene({ shellFamily, journeySteps, onStart }) {
+  return (
+    <SplitHeroLayout
+      shellFamily={shellFamily}
+      className={
+        shellFamily === 'tablet'
+          ? 'md:grid-cols-[minmax(0,1.08fr)_minmax(23rem,0.92fr)]'
+          : shellFamily === 'desktop'
+            ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(26rem,0.88fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(27rem,0.84fr)]'
+            : ''
+      }
+      hero={
+        <SurveyStageHero
+          shellFamily={shellFamily}
+          showIntro
+          surveyStage="survey"
+          surveyIndex={0}
+          total={journeySteps.length}
+          progress={0}
+          assessment={null}
+          journeySteps={journeySteps}
+          showJourney
+        />
+      }
+      primary={<IntroActionPanel shellFamily={shellFamily} onStart={onStart} />}
+      secondary={<IntroSupportBand />}
+    />
+  );
+}
+
+function SurveyCommandDeck({ shellFamily, surveyIndex, total, progress, journeySteps }) {
+  return (
+    <SupportRail
+      tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
+      sticky={shellFamily === 'desktop'}
+      eyebrow="Control"
+      title="Progreso claro"
+      subtitle="Ves donde vas y cuanto falta, sin ruido extra."
+      footer={
+        <InlineMessage tone="info" title="Continuidad">
+          Puedes volver atras sin perder respuestas.
+        </InlineMessage>
+      }
+    >
+      <div className="grid gap-4">
+        <ProgressSummary
+          eyebrow="Paso actual"
+          title={`Pregunta ${surveyIndex + 1} de ${total}`}
+          value={`${progress}%`}
+          hint="El progreso acompana, no compite."
+          progressValue={progress}
+          className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
+        />
+        <JourneyStepper
+          steps={journeySteps}
+          compact
+          className={shellFamily === 'desktop' ? '!grid-cols-1 sm:!grid-cols-1' : ''}
+        />
+      </div>
+    </SupportRail>
+  );
+}
+
+function SurveyInsightDeck({ shellFamily, question }) {
+  const content = (
+    <SupportRail
+      tone="insight"
+      sticky={shellFamily === 'desktop'}
+      eyebrow="Ayuda"
+      title="Responde con criterio"
+      subtitle="Esta guia acompana la pregunta sin invadirla."
+    >
+      <div className="grid gap-3">
+        {SURVEY_RULES.map((item) => (
+          <p key={item} className="m-0 text-sm leading-6 text-sd-muted">
+            {item}
           </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[22px] border border-sd-border bg-white/76 p-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                Qué harás
-              </span>
-              <strong className="mt-2 block text-base text-sd-text">
-                Responder y practicar
-              </strong>
-            </div>
-            <div className="rounded-[22px] border border-sd-border bg-white/76 p-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                Cuánto tarda
-              </span>
-              <strong className="mt-2 block text-base text-sd-text">
-                Menos de 3 minutos
-              </strong>
-            </div>
-            <div className="rounded-[22px] border border-sd-border bg-white/76 p-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">
-                Qué obtienes
-              </span>
-              <strong className="mt-2 block text-base text-sd-text">
-                Diagnóstico y ruta
-              </strong>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button variant="primary" type="button" onClick={onStart}>
-              Comenzar encuesta
-            </Button>
-          </div>
-        </div>
+        ))}
+      </div>
+      <div className="sd-divider" />
+      <KeyValueBlock items={[{ key: 'format', label: 'Formato actual', value: question?.type || 'single' }]} />
+    </SupportRail>
+  );
 
-        <div className="rounded-[28px] border border-sd-border bg-gradient-to-br from-white via-sky-50/70 to-sd-accent-soft p-5">
-          <p className="eyebrow">Qué vas a entrenar</p>
-          <div className="mt-4 grid gap-3">
-            {[
-              'WhatsApp y suplantación',
-              'SMS con enlaces falsos',
-              'Páginas clonadas',
-              'Llamadas fraudulentas',
-              'Correo y phishing',
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-[20px] border border-white/80 bg-white/78 px-4 py-3 text-sm font-medium text-sd-text"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
+  if (shellFamily === 'mobile') {
+    return (
+      <details className="rounded-[24px] border border-sd-border bg-white/88 p-4">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+          Ver ayuda de esta pregunta
+        </summary>
+        <div className="mt-4">{content}</div>
+      </details>
+    );
+  }
+
+  return content;
+}
+
+function QuestionBoard({
+  question,
+  shellFamily,
+  answers,
+  surveyIndex,
+  total,
+  flowError,
+  validationError,
+  onAnswerChange,
+  onPrev,
+  onNext,
+  onRestart,
+}) {
+  if (!question) {
+    return (
+      <EmptyState
+        eyebrow="Encuesta"
+        title="No encontramos la pregunta actual"
+        body="Puedes reiniciar la encuesta y volver a tomar el flujo desde el principio."
+        primaryActionLabel="Reiniciar encuesta"
+        onPrimaryAction={onRestart}
+      />
+    );
+  }
+
+  return (
+    <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
+      <div className="grid gap-6">
+        <PanelHeader
+          eyebrow={`Pregunta ${String(surveyIndex + 1).padStart(2, '0')}`}
+          title={question.title}
+          subtitle={question.helper}
+          divider
+        />
+
+        {flowError ? (
+          <InlineMessage tone="danger" title="Hay un problema en el flujo actual.">
+            {flowError}
+          </InlineMessage>
+        ) : null}
+
+        <div className="grid gap-4">{renderInput(question, answers[question.id], onAnswerChange, shellFamily)}</div>
+
+        {validationError ? (
+          <InlineMessage tone="warning" title="Falta completar esta pregunta.">
+            {validationError}
+          </InlineMessage>
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sd-border-soft pt-5">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onPrev}
+            disabled={surveyIndex === 0}
+          >
+            Atras
+          </Button>
+          <Button variant="primary" type="button" onClick={onNext}>
+            {surveyIndex === total - 1 ? 'Finalizar y ver perfil' : 'Guardar y seguir'}
+          </Button>
         </div>
       </div>
     </SurfaceCard>
   );
 }
 
-function InfoPanel() {
+function SurveyStageScene({
+  shellFamily,
+  answers,
+  visibleQuestions,
+  surveyIndex,
+  progress,
+  flowError,
+  validationError,
+  journeySteps,
+  onAnswerChange,
+  onPrev,
+  onNext,
+  onRestart,
+}) {
+  const question = visibleQuestions[surveyIndex];
+  const total = visibleQuestions.length || 1;
+
   return (
-    <div className="grid gap-6">
-      <div>
-        <h3 className="text-lg font-semibold text-sd-text">Qué hace la plataforma</h3>
-        <p className="hint mt-3">
-          Combina una encuesta corta con actividades prácticas para enseñarte a frenar, verificar y
-          decidir mejor frente a mensajes, enlaces, llamadas y páginas sospechosas.
-        </p>
+    <div className="grid gap-[var(--sd-shell-section-gap)]">
+      <SurveyStageHero
+        shellFamily={shellFamily}
+        showIntro={false}
+        surveyStage="survey"
+        surveyIndex={surveyIndex}
+        total={total}
+        progress={progress}
+        assessment={null}
+        journeySteps={journeySteps}
+      />
+
+      <WorkspaceLayout
+        shellFamily={shellFamily}
+        className={
+          shellFamily === 'desktop'
+            ? 'xl:grid-cols-[minmax(16.5rem,17.5rem)_minmax(0,1.28fr)_minmax(18.5rem,19.5rem)] 2xl:grid-cols-[minmax(17rem,18rem)_minmax(0,1.35fr)_minmax(19rem,20rem)]'
+            : ''
+        }
+        command={
+          <SurveyCommandDeck
+            shellFamily={shellFamily}
+            surveyIndex={surveyIndex}
+            total={total}
+            progress={progress}
+            journeySteps={journeySteps}
+          />
+        }
+        main={
+          <QuestionBoard
+            question={question}
+            shellFamily={shellFamily}
+            answers={answers}
+            surveyIndex={surveyIndex}
+            total={total}
+            flowError={flowError}
+            validationError={validationError}
+            onAnswerChange={onAnswerChange}
+            onPrev={onPrev}
+            onNext={onNext}
+            onRestart={onRestart}
+          />
+        }
+        insight={<SurveyInsightDeck shellFamily={shellFamily} question={question} />}
+      />
+    </div>
+  );
+}
+
+function LoadingPrimaryPanel() {
+  return (
+    <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
+      <div className="grid gap-6">
+        <PanelHeader
+          eyebrow="Procesamiento visible"
+          title="El sistema esta convirtiendo respuestas en perfil y ruta"
+          subtitle="Mostramos el paso para que la espera se sienta intencional y clara."
+          divider
+        />
+
+        <SurfaceCard
+          padding="md"
+          variant="command"
+          className="shadow-[0_30px_80px_-42px_rgba(16,33,61,0.9)] [&_.text-sd-text]:text-white [&_.text-sd-muted]:text-white/76"
+        >
+          <div className="flex items-start gap-4">
+            <Spinner size="lg" />
+            <div className="grid gap-2">
+              <strong className="text-base text-white">Analizando respuestas</strong>
+              <p className="m-0 text-sm leading-6 text-white/76">
+                Conectamos habitos, exposicion y prioridad para abrir tu perfil.
+              </p>
+            </div>
+          </div>
+          <ProgressBar value={72} className="mt-5" />
+        </SurfaceCard>
+
+        <div className="grid gap-3">
+          {LOADING_PIPELINE.map((step, index) => (
+            <div key={step} className="grid grid-cols-[auto_1fr] items-start gap-3 rounded-[22px] border border-sd-border bg-sd-surface-subtle px-4 py-4">
+              <span className="text-sm font-semibold text-sd-text-soft">{String(index + 1).padStart(2, '0')}</span>
+              <p className="m-0 text-sm leading-6 text-sd-text">{step}</p>
+            </div>
+          ))}
+        </div>
       </div>
-      <div>
-        <h3 className="text-lg font-semibold text-sd-text">Qué esperar del resultado</h3>
-        <p className="hint mt-3">
-          Te mostraremos un resumen claro de riesgo, las señales que más conviene reforzar y una
-          ruta de módulos para empezar sin perderte.
-        </p>
+    </SurfaceCard>
+  );
+}
+
+function LoadingSupportBand() {
+  return (
+    <SupportRail
+      tone="support"
+      eyebrow="Continuidad"
+      title="Nada de esto rompe el recorrido"
+      subtitle="Tus respuestas ya estan dentro del flujo y el siguiente paso sigue siendo tu ruta."
+    >
+      <KeyValueBlock
+        items={[
+          { key: 'answers', label: 'Respuestas', value: 'Ya quedaron registradas en este flujo' },
+          { key: 'profile', label: 'Perfil', value: 'Se esta armando ahora mismo' },
+          { key: 'route', label: 'Despues', value: 'Veras tu CTA a ruta en cuanto termine' },
+        ]}
+      />
+    </SupportRail>
+  );
+}
+
+function LoadingScene({ shellFamily, journeySteps }) {
+  return (
+    <SplitHeroLayout
+      shellFamily={shellFamily}
+      className={
+        shellFamily === 'tablet'
+          ? 'md:grid-cols-[minmax(0,1.08fr)_minmax(23rem,0.92fr)]'
+          : shellFamily === 'desktop'
+            ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(26rem,0.88fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(27rem,0.84fr)]'
+            : ''
+      }
+      hero={
+        <SurveyStageHero
+          shellFamily={shellFamily}
+          showIntro={false}
+          surveyStage="loading"
+          surveyIndex={0}
+          total={journeySteps.length}
+          progress={72}
+          assessment={null}
+          journeySteps={journeySteps}
+          showJourney={false}
+        />
+      }
+      primary={<LoadingPrimaryPanel />}
+      secondary={<LoadingSupportBand />}
+    />
+  );
+}
+
+function ResultsCommandDeck({ shellFamily, assessment, resultLead, journeySteps }) {
+  return (
+    <SupportRail
+      tone={shellFamily === 'desktop' ? 'support' : 'editorial'}
+      sticky={shellFamily === 'desktop'}
+      eyebrow="Perfil actual"
+      title={normalizeRiskLevel(assessment?.nivel || 'Medio')}
+      subtitle={assessment?.resumen || resultLead}
+    >
+      <div className="grid gap-4">
+        <ProgressSummary
+          eyebrow="Resultado"
+          title="Perfil accionable"
+          value={normalizeRiskLevel(assessment?.nivel || 'Medio')}
+          hint="Ya no es un cierre ambiguo: ahora empuja a la ruta."
+          progressValue={100}
+          variant="support"
+          tone="accent"
+          className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
+        />
+        <KeyValueBlock
+          items={[
+            {
+              key: 'recorrido',
+              label: 'Recorrido',
+              value: 'Diagnostico cerrado y listo para convertirse en ruta.',
+            },
+            {
+              key: 'salida',
+              label: 'Siguiente',
+              value: 'Abre tu ruta y sigue con el modulo recomendado.',
+            },
+          ]}
+        />
       </div>
-      <div>
-        <h3 className="text-lg font-semibold text-sd-text">Qué no pedimos</h3>
-        <p className="hint mt-3">
-          No necesitas compartir cuentas reales, contraseñas ni información financiera para usar
-          esta experiencia.
-        </p>
+    </SupportRail>
+  );
+}
+
+function ResultsMainDeck({ assessment, resultLead }) {
+  const recommendations = Array.isArray(assessment?.recomendaciones) ? assessment.recomendaciones : [];
+
+  return (
+    <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
+      <div className="grid gap-6">
+        <PanelHeader
+          eyebrow="Diagnostico"
+          title="Lo que vimos en tus respuestas"
+          subtitle={resultLead}
+          divider
+        />
+
+        {recommendations.length ? (
+          <div className="grid gap-3">
+            {recommendations.map((item, index) => (
+              <div key={`${item}-${index}`} className="grid grid-cols-[auto_1fr] items-start gap-3 rounded-[22px] border border-sd-border bg-sd-surface-subtle px-4 py-4">
+                <span className="text-sm font-semibold text-sd-text-soft">{String(index + 1).padStart(2, '0')}</span>
+                <p className="m-0 text-sm leading-6 text-sd-text">{item}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <InlineMessage tone="info" title="Todavia no hay recomendaciones visibles.">
+            El perfil sigue listo para continuar a la ruta.
+          </InlineMessage>
+        )}
       </div>
+    </SurfaceCard>
+  );
+}
+
+function ResultsRouteRail({ shellFamily, assessment, courseError, onTakeCourses, onRestart }) {
+  const nextSteps = Array.isArray(assessment?.proximos_pasos) ? assessment.proximos_pasos : [];
+
+  return (
+    <SupportRail
+      tone={shellFamily === 'desktop' ? 'support' : 'editorial'}
+      sticky={shellFamily === 'desktop'}
+      eyebrow="Siguiente paso"
+      title="Tu ruta ya esta lista para abrirse"
+      subtitle="El handoff final vive aqui con claridad y prioridad."
+      footer={
+        <ActionCluster collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+          <Button variant="primary" type="button" onClick={onTakeCourses}>
+            {courseError ? 'Intentar de nuevo' : 'Ver mi ruta'}
+          </Button>
+          <Button variant="secondary" type="button" onClick={onRestart}>
+            Reiniciar encuesta
+          </Button>
+        </ActionCluster>
+      }
+    >
+      {courseError ? (
+        <InlineMessage tone="danger" title="No pudimos abrir tu ruta todavia.">
+          {courseError}
+        </InlineMessage>
+      ) : null}
+
+      {nextSteps.length ? (
+        <div className="grid gap-3">
+          {nextSteps.slice(0, 2).map((step, index) => (
+            <SurfaceCard key={`${step.titulo || step.title || 'step'}-${index}`} padding="compact" variant="subtle">
+              <strong className="block text-sm text-sd-text">
+                {step.titulo || step.title || `Paso ${index + 1}`}
+              </strong>
+              <p className="mt-2 mb-0 text-sm leading-6 text-sd-muted">
+                {step.descripcion || step.description || 'Seguimos con el siguiente bloque recomendado.'}
+              </p>
+            </SurfaceCard>
+          ))}
+        </div>
+      ) : (
+        <InlineMessage tone="info" title="La ruta sigue lista para abrirse.">
+          Puedes continuar al modulo recomendado sin perder contexto.
+        </InlineMessage>
+      )}
+    </SupportRail>
+  );
+}
+
+function ResultsScene({
+  shellFamily,
+  assessment,
+  resultLead,
+  courseError,
+  journeySteps,
+  onTakeCourses,
+  onRestart,
+}) {
+  return (
+    <div className="grid gap-[var(--sd-shell-section-gap)]">
+      <SurveyStageHero
+        shellFamily={shellFamily}
+        showIntro={false}
+        surveyStage="results"
+        surveyIndex={0}
+        total={journeySteps.length}
+        progress={100}
+        assessment={assessment}
+        journeySteps={journeySteps}
+        showJourney={false}
+      />
+
+      <WorkspaceLayout
+        shellFamily={shellFamily}
+        className={
+          shellFamily === 'desktop'
+            ? 'xl:grid-cols-[minmax(16.5rem,17.5rem)_minmax(0,1.22fr)_minmax(19rem,20rem)] 2xl:grid-cols-[minmax(17rem,18rem)_minmax(0,1.3fr)_minmax(19.5rem,20.5rem)]'
+            : ''
+        }
+        command={
+          <ResultsCommandDeck
+            shellFamily={shellFamily}
+            assessment={assessment}
+            resultLead={resultLead}
+            journeySteps={journeySteps}
+          />
+        }
+        main={<ResultsMainDeck assessment={assessment} resultLead={resultLead} />}
+        insight={
+          <ResultsRouteRail
+            shellFamily={shellFamily}
+            assessment={assessment}
+            courseError={courseError}
+            onTakeCourses={onTakeCourses}
+            onRestart={onRestart}
+          />
+        }
+      />
     </div>
   );
 }
@@ -236,10 +874,9 @@ export default function SurveyView({
   onRestart,
   onTakeCourses,
 }) {
-  const question = visibleQuestions[surveyIndex];
+  const shellFamily = getShellFamily(viewport);
   const total = visibleQuestions.length || 1;
   const progress = Math.round(((surveyIndex + 1) / total) * 100);
-  const isCompact = ['phone-small', 'phone', 'tablet-compact'].includes(viewport);
   const hasAnswers = useMemo(
     () =>
       Object.values(answers || {}).some((value) =>
@@ -247,6 +884,7 @@ export default function SurveyView({
       ),
     [answers]
   );
+
   const [showIntro, setShowIntro] = useState(
     !assessment && surveyStage === 'survey' && surveyIndex === 0 && !hasAnswers
   );
@@ -279,210 +917,45 @@ export default function SurveyView({
   }, [showIntro, surveyIndex, surveyStage]);
 
   return (
-    <div
+    <section
       id="surveyView"
-      className={`survey-layout survey-layout-${viewport} sd-page-shell grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_360px] xl:items-start`}
+      className="sd-page-shell py-[var(--sd-shell-padding-block)]"
+      data-sd-container="true"
     >
-      <SurfaceCard
-        as="header"
-        padding="lg"
-        id="hero"
-        className="hero survey-hero overflow-hidden xl:col-span-2"
-      >
-        <p className="eyebrow">México | Prevención de estafas digitales</p>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-[760px]">
-            <h1 className="sd-title max-w-[12ch]">Escudo Digital</h1>
-            <p className="lead sd-subtitle">
-              Una ruta guiada para entender tu riesgo, practicar con claridad y seguir el siguiente
-              paso sin perderte.
-            </p>
-          </div>
+      {showIntro ? (
+        <IntroScene shellFamily={shellFamily} journeySteps={journeySteps} onStart={() => setShowIntro(false)} />
+      ) : null}
 
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="accent" className="activity-pill">
-              Encuesta guiada
-            </Badge>
-            <Badge tone="soft" className="activity-pill">
-              Diagnóstico con IA
-            </Badge>
-            <Badge tone="neutral" className="activity-pill">
-              Ruta personalizada
-            </Badge>
-          </div>
-        </div>
+      {surveyStage === 'survey' && !showIntro ? (
+        <SurveyStageScene
+          shellFamily={shellFamily}
+          answers={answers}
+          visibleQuestions={visibleQuestions}
+          surveyIndex={surveyIndex}
+          progress={progress}
+          flowError={flowError}
+          validationError={validationError}
+          journeySteps={journeySteps}
+          onAnswerChange={onAnswerChange}
+          onPrev={onPrev}
+          onNext={onNext}
+          onRestart={onRestart}
+        />
+      ) : null}
 
-        <div className="mt-6">
-          <JourneyStepper steps={journeySteps} />
-        </div>
-      </SurfaceCard>
+      {surveyStage === 'loading' ? <LoadingScene shellFamily={shellFamily} journeySteps={journeySteps} /> : null}
 
-      <div className="grid gap-4 xl:min-w-0">
-        {showIntro ? <IntroStage onStart={() => setShowIntro(false)} /> : null}
-
-        <SurfaceCard
-          padding="lg"
-          className={`${surveyStage === 'survey' && !showIntro ? '' : 'hidden'} min-w-0`}
-          id="surveySection"
-        >
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="eyebrow">Encuesta inicial</p>
-              <h2 className="sd-title text-[1.9rem] sm:text-[2.2rem]">Conozcamos tu situación</h2>
-              <p className="hint sd-subtitle">
-                Responde con honestidad. Al terminar te diremos qué señales te conviene reforzar y
-                qué módulo abrir primero.
-              </p>
-            </div>
-            <div className="min-w-[220px] rounded-[22px] border border-sd-border bg-white/72 px-4 py-4">
-              <span className="text-sm font-medium text-sd-text">{`Paso ${surveyIndex + 1} de ${total}`}</span>
-              <div className="mt-3 h-2 rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-sd-accent" style={{ width: `${progress}%` }} />
-              </div>
-              <p className="mt-3 text-xs leading-5 text-sd-muted">
-                Vas bien. Solo faltan unas cuantas preguntas para generar tu diagnóstico.
-              </p>
-            </div>
-          </div>
-
-          {flowError ? <div className="alert mt-5">{flowError}</div> : null}
-
-          {question ? (
-            <div className="mt-6 rounded-[28px] border border-sd-border bg-white/72 p-5 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="question-eyebrow">{`Pregunta ${surveyIndex + 1}`}</p>
-                  <h3>{question.title}</h3>
-                  <p className="hint">{question.helper}</p>
-                </div>
-                <Badge tone="soft">{surveyIndex === total - 1 ? 'Última pregunta' : 'Siguiente: diagnóstico'}</Badge>
-              </div>
-
-              {renderInput(question, answers[question.id], onAnswerChange)}
-
-              {validationError ? <div className="alert">{validationError}</div> : null}
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm leading-6 text-sd-muted">
-                  Si necesitas cambiar algo, puedes volver atrás sin perder tus respuestas.
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button
-                    variant="ghost"
-                    type="button"
-                    onClick={onPrev}
-                    disabled={surveyIndex === 0}
-                  >
-                    Atrás
-                  </Button>
-                  <Button variant="primary" type="button" onClick={onNext}>
-                    {surveyIndex === total - 1 ? 'Finalizar y ver diagnóstico' : 'Siguiente'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </SurfaceCard>
-
-        <SurfaceCard
-          padding="lg"
-          id="loadingSection"
-          className={`${surveyStage === 'loading' ? '' : 'hidden'}`}
-        >
-          <p className="eyebrow">Diagnóstico en proceso</p>
-          <h2 className="sd-title text-[2rem] sm:text-[2.2rem]">Estamos armando tu diagnóstico</h2>
-          <p className="lead sd-subtitle">
-            La IA está revisando tu perfil para recomendarte una ruta clara y útil. Esto tarda solo
-            unos segundos.
-          </p>
-          <div className="loader">
-            <div className="loader-bar" />
-          </div>
-          <p className="hint">Qué sigue: verás un resumen de riesgo y después podrás abrir tu ruta.</p>
-        </SurfaceCard>
-
-        <SurfaceCard
-          padding="lg"
-          id="resultSection"
-          className={`${surveyStage === 'results' ? '' : 'hidden'}`}
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="eyebrow">Diagnóstico listo</p>
-              <h2 className="sd-title text-[2rem] sm:text-[2.2rem]">Tu perfil de riesgo</h2>
-              <p className="lead sd-subtitle">{resultLead}</p>
-            </div>
-            <Badge tone="accent">Siguiente: abrir tu ruta</Badge>
-          </div>
-
-          {courseError ? <div className="alert mt-5">{courseError}</div> : null}
-
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
-            <div className="result-card">
-              <h3>Nivel estimado</h3>
-              <p className="risk-level">{normalizeRiskLevel(assessment?.nivel || 'Medio')}</p>
-              <p className="hint">
-                {assessment?.resumen || 'Todavía no tenemos un resultado disponible.'}
-              </p>
-              <div className="result-reco">
-                <h4>Qué vimos en tus respuestas</h4>
-                <ul className="result-list">
-                  {(Array.isArray(assessment?.recomendaciones)
-                    ? assessment.recomendaciones
-                    : []
-                  ).map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="result-card">
-              <h3>Qué sigue</h3>
-              <div className="steps-grid">
-                {(Array.isArray(assessment?.proximos_pasos) ? assessment.proximos_pasos : []).map(
-                  (step, index) => (
-                    <div key={step.titulo || step.title || index} className="summary-item">
-                      <strong>{step.titulo || step.title || `Paso ${index + 1}`}</strong>
-                      <p>{step.descripcion || step.description || ''}</p>
-                    </div>
-                  )
-                )}
-              </div>
-              <div className="mt-4 rounded-[22px] border border-sd-border bg-white/76 px-4 py-4 text-sm leading-6 text-sd-muted">
-                Pulsa <strong className="text-sd-text">“Ver mi ruta”</strong> para pasar al módulo
-                recomendado. Si algo falla, aquí mismo verás el mensaje y podrás reintentar.
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button variant="primary" type="button" onClick={onTakeCourses}>
-              {courseError ? 'Intentar de nuevo' : 'Ver mi ruta'}
-            </Button>
-            <Button variant="ghost" type="button" onClick={onRestart}>
-              Reiniciar encuesta
-            </Button>
-          </div>
-        </SurfaceCard>
-      </div>
-
-      <SurfaceCard
-        padding="md"
-        className="info-panel survey-info-panel xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-auto"
-        id="infoSection"
-      >
-        {isCompact ? (
-          <details className="info-disclosure" open>
-            <summary>Ver guía rápida</summary>
-            <div className="mt-4">
-              <InfoPanel />
-            </div>
-          </details>
-        ) : (
-          <InfoPanel />
-        )}
-      </SurfaceCard>
-    </div>
+      {surveyStage === 'results' ? (
+        <ResultsScene
+          shellFamily={shellFamily}
+          assessment={assessment}
+          resultLead={resultLead}
+          courseError={courseError}
+          journeySteps={journeySteps}
+          onTakeCourses={onTakeCourses}
+          onRestart={onRestart}
+        />
+      ) : null}
+    </section>
   );
 }
