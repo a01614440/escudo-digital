@@ -158,13 +158,13 @@ function AccessConsole({
             <SurfaceCard
               padding="compact"
               variant="command"
-              className="shadow-[0_28px_80px_-42px_rgba(16,33,61,0.9)] [&_.text-sd-text]:text-white [&_.text-sd-muted]:text-white/76"
+              tone="inverse"
             >
               <div className="flex items-start gap-4">
                 <Spinner size="lg" />
                 <div className="grid gap-2">
-                  <strong className="text-base text-white">{copy.loadingTitle}</strong>
-                  <p className="m-0 text-sm leading-6 text-white/76">{copy.loadingBody}</p>
+                  <strong className="sd-heading-sm m-0">{copy.loadingTitle}</strong>
+                  <p className="sd-copy-sm m-0">{copy.loadingBody}</p>
                 </div>
               </div>
             </SurfaceCard>
@@ -227,18 +227,10 @@ export default function AuthView({
   return (
     <section
       id="authView"
-      className="sd-page-shell py-[var(--sd-shell-padding-block)]"
-      data-sd-container="true"
+      className={shellFamily === 'mobile' ? 'sd-page-shell' : undefined}
     >
       <SplitHeroLayout
         shellFamily={shellFamily}
-        className={
-          shellFamily === 'tablet'
-            ? 'md:grid-cols-[minmax(0,1.08fr)_minmax(23rem,0.92fr)]'
-            : shellFamily === 'desktop'
-              ? 'xl:grid-cols-[minmax(0,1.2fr)_minmax(26rem,0.88fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(27rem,0.84fr)]'
-              : ''
-        }
         hero={<AccessHero shellFamily={shellFamily} isLogin={isLogin} />}
         primary={
           <AccessConsole

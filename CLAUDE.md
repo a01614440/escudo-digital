@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F3 Auth + Survey refine abierto en modo subfases. F3.A baseline audit cerrada localmente.**
+**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.B cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -82,8 +82,15 @@ F3 debe ejecutarse en subfases pequeñas:
 
 F3.A solo audito y genero `docs/rebuild/audit/F3.A-auth-survey-baseline-audit.md`. No implemento cambios en `AuthView.jsx` ni `SurveyView.jsx`.
 
+F3.B cerro AuthView de forma minima:
+
+- `SurfaceCard tone="inverse"` reemplaza hacks `text-white` / shadow arbitrario en loading.
+- wrapper `sd-page-shell py[...]` retirado fuera de mobile.
+- override local de grid en `SplitHeroLayout` retirado.
+- guard agregado en `test/f3-auth-survey-smoke.test.js`.
+
 Proximo paso recomendado:
 
-- esperar autorizacion explicita del usuario para abrir F3.B - AuthView closeout minimo.
+- esperar autorizacion explicita del usuario para abrir F3.C - Survey primitives + a11y pass.
 
-No abrir F3.B, F3.C, F3.D, F3.E, F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F3.C, F3.D, F3.E, F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
