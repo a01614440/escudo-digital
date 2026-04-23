@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F4 refine cerrada localmente. Siguiente frente recomendado: F5.A Lesson shell / activity chrome baseline audit.**
+**F5.A Lesson shell / activity chrome baseline audit cerrada localmente. Siguiente frente recomendado: F5.B Lesson shell structure + responsive contract.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -171,6 +171,12 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F4.G valido `.\npm-local.cmd test` con 74/74, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F4.G no implemento cambios nuevos en `CoursesView.jsx`; solo documento el cierre y actualizo contexto de agente;
 - F4 refine queda cerrada localmente;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.A - Lesson shell / activity chrome baseline audit.
+- F5.A Lesson shell / activity chrome baseline audit quedo cerrada localmente con `docs/rebuild/audit/F5.A-lesson-shell-activity-chrome-baseline-audit.md`;
+- F5.A audito `LessonView.jsx`, `ActivityRenderer.jsx`, `activityRegistry.js`, `sharedActivityUi.jsx`, `FeedbackPanel.jsx`, actividades basicas y simulaciones en lectura;
+- F5.A confirmo que `LessonView` ya usa foundation/patterns, pero todavia debe cerrar la frontera `LessonActivityStage` -> `ActivityChrome`;
+- F5.A confirmo que `ActivityRenderer` y `activityRegistry` siguen siendo contratos sensibles congelados;
+- F5.A separo F5 de F6: F5 cubre lesson shell, generic activity chrome, feedback, module complete y actividades basicas; F6 cubre WhatsApp/SMS/Inbox/ScenarioFlow/CallSimulation/WebLab;
+- F5.A no implemento cambios en vistas, actividades, renderer, registry, estilos, dominio ni backend;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.B - Lesson shell structure + responsive contract.
 
-No abrir F5.A/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F5.B/F5.C/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

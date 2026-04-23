@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F3.G
+## Estado actual tras F5.A
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -99,8 +99,14 @@ La tesis obligatoria es:
 - F4.G valido `.\npm-local.cmd test` (74/74), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
 - F4.G no implemento cambios nuevos en `CoursesView.jsx`; solo documento el cierre y actualizo contexto de agente.
 - F4 refine queda cerrada localmente.
-- El siguiente frente recomendado es F5.A - Lesson shell / activity chrome baseline audit.
-- No abrir F5.A/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F5.A Lesson shell / activity chrome baseline audit quedo cerrada localmente con `docs/rebuild/audit/F5.A-lesson-shell-activity-chrome-baseline-audit.md`.
+- F5.A audito `LessonView.jsx`, `ActivityRenderer.jsx`, `activityRegistry.js`, `sharedActivityUi.jsx`, `FeedbackPanel.jsx`, actividades basicas y simulaciones en lectura.
+- F5.A confirmo que `LessonView` ya usa foundation/patterns, pero todavia debe cerrar la frontera `LessonActivityStage` -> `ActivityChrome`.
+- F5.A confirmo que `ActivityRenderer` y `activityRegistry` siguen siendo contratos sensibles congelados.
+- F5.A separo F5 de F6: F5 cubre lesson shell, generic activity chrome, feedback, module complete y actividades basicas; F6 cubre WhatsApp/SMS/Inbox/ScenarioFlow/CallSimulation/WebLab.
+- F5.A no implemento cambios en vistas, actividades, renderer, registry, estilos, dominio ni backend.
+- El siguiente frente recomendado es F5.B - Lesson shell structure + responsive contract.
+- No abrir F5.B/F5.C/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
