@@ -139,8 +139,12 @@ F3.G cerro F3 closeout validation:
 - confirmo que F3 solo toco Auth/Survey/patterns/docs/tests permitidos;
 - confirmo que no se tocaron vistas grandes posteriores, simulaciones, dominio, backend, contracts, hooks, `app.css` ni `legacy.css`.
 
-Proximo paso recomendado:
+F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 
-- esperar autorizacion explicita del usuario para abrir F4.A - Dashboard / Courses baseline audit.
+- genero `docs/rebuild/audit/F4.A-dashboard-courses-baseline-audit.md`;
+- audito `CoursesView.jsx` como monolito de 1702 lineas y confirme su red de dependencias, pruebas y deuda visible;
+- confirme que `CoursesView` sigue siendo la unica superficie de F4 por ahora;
+- confirme que no se toco implementacion, solo auditoria y contexto;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.B.
 
-No abrir F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F4.B/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

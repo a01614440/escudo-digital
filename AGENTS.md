@@ -71,8 +71,10 @@ La tesis obligatoria es:
 - F3.G valido `.\npm-local.cmd test` (53/53), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
 - F3.G no implemento cambios nuevos en vistas ni logica; solo documento el cierre y actualizo contexto de agente.
 - F3 Auth + Survey refine queda cerrado localmente.
-- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F4.A - Dashboard / Courses baseline audit**.
-- No abrir F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F4.A Dashboard / Courses baseline audit quedo cerrada localmente con `docs/rebuild/audit/F4.A-dashboard-courses-baseline-audit.md`.
+- F4.A audito `CoursesView.jsx` y su red de dependencias sin tocar implementacion.
+- F4.A confirmo que el siguiente frente de trabajo es F4.B y que no conviene abrir F4/F5/F6/F7 sin autorizacion explicita.
+- No abrir F4.B/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
