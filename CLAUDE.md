@@ -32,8 +32,21 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F0 cerrada. Decisión humana pendiente antes de iniciar F1.**
+**F1 closeout en cierre final (F1.I).**
 
-F0.9 identifica que la fase real del rebuild es **F1.9**: hay trabajo acumulado de F1 a F6A, pero la foundation visual quedó incompleta. El siguiente paso recomendado es **F1 closeout** antes de continuar F6A/F6B/F7.
+F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
-No iniciar F1 closeout, F6A ni ningún cambio de código sin autorización explícita del usuario.
+La regresion disciplinada a F1 closeout ya se ejecuto localmente en bloques F1.A-F1.H:
+
+- F1.A typography tokens
+- F1.B educational tokens
+- F1.C InlineMessage role / aria-live
+- F1.D OverlayFrame focus trap
+- F1.E Checkbox + Radio
+- F1.F IconButton
+- F1.G SurfaceCard `tone="inverse"`
+- F1.H ProgressSummary + JourneyStepper
+
+F1.I debe cerrar solo documentacion minima, validacion final y commit local. No abrir F2, F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario.
+
+Proximo bloque recomendado despues de F1.I, si el usuario lo aprueba: **F1 patterns de dominio** (`QuestionPage`, `InfoPanel`, `AssessmentLayout`). No asumir esa autorizacion.
