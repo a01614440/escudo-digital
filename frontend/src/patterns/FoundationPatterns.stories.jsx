@@ -1,11 +1,15 @@
+import { useState } from 'react';
+
 import { Button, SurfaceCard } from '../components/ui/index.js';
 import {
   ActionCluster,
   EmptyState,
+  InfoPanel,
   JourneyStepper,
   KeyValueBlock,
   PanelHeader,
   ProgressSummary,
+  QuestionPage,
   StageHero,
   StatStrip,
   SupportRail,
@@ -127,6 +131,133 @@ export const JourneyAndProgress = {
           { id: 'patterns', label: 'Patterns', state: 'current' },
           { id: 'closeout', label: 'Closeout', state: 'upcoming' },
         ]}
+      />
+    </div>
+  ),
+};
+
+const signalOptions = [
+  { value: 'domain', label: 'El dominio no coincide', hint: 'La liga usa una marca parecida, pero no exacta.' },
+  { value: 'urgency', label: 'Pide actuar con urgencia', hint: 'Presiona para responder antes de validar.' },
+  { value: 'attachment', label: 'Incluye un archivo inesperado', hint: 'El adjunto no fue solicitado.' },
+  { value: 'tone', label: 'El tono parece normal', hint: 'No todo mensaje amable es seguro.' },
+];
+
+export const QuestionPageSingle = {
+  render: function Render() {
+    const [value, setValue] = useState('domain');
+
+    return (
+      <QuestionPage
+        eyebrow="Pregunta 1 de 4"
+        title="Cual es la senal principal de riesgo?"
+        description="Elige una respuesta para continuar con el diagnostico."
+        type="single"
+        name="single-signal"
+        value={value}
+        onValueChange={setValue}
+        options={signalOptions}
+        actions={<ActionCluster align="end"><Button variant="secondary">Atras</Button><Button variant="primary">Continuar</Button></ActionCluster>}
+      />
+    );
+  },
+};
+
+export const QuestionPageMulti = {
+  render: function Render() {
+    const [values, setValues] = useState(['domain', 'urgency']);
+
+    return (
+      <QuestionPage
+        eyebrow="Pregunta 2 de 4"
+        title="Que senales conviene revisar antes de responder?"
+        description="Puedes marcar mas de una opcion."
+        type="multi"
+        name="multi-signals"
+        values={values}
+        onValueChange={setValues}
+        options={signalOptions}
+        help={<p className="sd-copy-sm m-0">La respuesta puede combinar senales tecnicas y senales de contexto.</p>}
+        actions={<ActionCluster align="between"><Button variant="quiet">Guardar y salir</Button><Button variant="primary">Continuar</Button></ActionCluster>}
+      />
+    );
+  },
+};
+
+export const QuestionPageSelect = {
+  render: function Render() {
+    const [value, setValue] = useState('');
+
+    return (
+      <QuestionPage
+        eyebrow="Pregunta 3 de 4"
+        title="Que canal recibio el mensaje?"
+        description="Este pattern cubre preguntas de seleccion corta sin recrear campos por vista."
+        type="select"
+        name="channel"
+        value={value}
+        onValueChange={setValue}
+        placeholder="Selecciona el canal"
+        options={[
+          { value: 'sms', label: 'SMS' },
+          { value: 'email', label: 'Correo' },
+          { value: 'chat', label: 'Chat' },
+          { value: 'call', label: 'Llamada' },
+        ]}
+        error={!value ? 'Selecciona un canal para avanzar.' : ''}
+        actions={<ActionCluster align="end"><Button variant="primary">Continuar</Button></ActionCluster>}
+      />
+    );
+  },
+};
+
+export const QuestionPageText = {
+  render: function Render() {
+    const [value, setValue] = useState('Verificaria el dominio antes de abrir el enlace.');
+
+    return (
+      <QuestionPage
+        eyebrow="Reflexion guiada"
+        title="Que harias antes de responder?"
+        description="El campo libre queda contenido en el mismo contrato visual que las opciones."
+        type="text"
+        name="reflection"
+        value={value}
+        onValueChange={setValue}
+        textPlaceholder="Escribe tu decision segura..."
+        actions={<ActionCluster align="end"><Button variant="primary">Guardar respuesta</Button></ActionCluster>}
+      />
+    );
+  },
+};
+
+export const InfoPanels = {
+  render: () => (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <InfoPanel
+        tone="evidence"
+        eyebrow="Evidencia"
+        title="Senales detectadas"
+        subtitle="Lista compacta para rails de aprendizaje."
+        items={[
+          { label: 'Dominio', body: 'La liga usa una variante del nombre real.' },
+          { label: 'Presion', body: 'El mensaje pide actuar antes de validar.' },
+        ]}
+      />
+      <InfoPanel
+        tone="coach"
+        eyebrow="Coach"
+        title="Lectura guiada"
+        subtitle="Feedback pedagogico sin bloquear la tarea."
+      >
+        <p className="sd-copy-sm m-0">Observa primero remitente, contexto y destino antes de decidir.</p>
+      </InfoPanel>
+      <InfoPanel
+        tone="safeAction"
+        eyebrow="Accion segura"
+        title="Siguiente paso"
+        subtitle="Recomendacion reusable para rutas y modulos."
+        footer={<Button variant="secondary">Ver guia</Button>}
       />
     </div>
   ),

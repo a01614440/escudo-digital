@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F1 closeout en cierre final (F1.I).**
+**F1 foundation y F1 patterns de dominio cerrados localmente. F2 pendiente de explicacion y autorizacion humana.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -46,7 +46,14 @@ La regresion disciplinada a F1 closeout ya se ejecuto localmente en bloques F1.A
 - F1.F IconButton
 - F1.G SurfaceCard `tone="inverse"`
 - F1.H ProgressSummary + JourneyStepper
+- F1.I closeout final
 
-F1.I debe cerrar solo documentacion minima, validacion final y commit local. No abrir F2, F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario.
+El bloque **F1 patterns de dominio** tambien quedo ejecutado localmente:
 
-Proximo bloque recomendado despues de F1.I, si el usuario lo aprueba: **F1 patterns de dominio** (`QuestionPage`, `InfoPanel`, `AssessmentLayout`). No asumir esa autorizacion.
+- `QuestionPage`
+- `InfoPanel`
+- `AssessmentLayout`
+
+No abrir F2, F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario.
+
+Proximo paso: esperar que el usuario explique el objetivo de Fase 2 y autorice su apertura. No asumir esa autorizacion.

@@ -37,11 +37,13 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F1 closeout
+## Estado actual tras F1 closeout y F1 patterns de dominio
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout se ejecuto localmente en bloques F1.A-F1.H.
-- F1.I es el cierre final: documentacion minima, validacion y commit local.
+- F1.I quedo cerrado con documentacion minima, validacion y commit local.
+- F1 patterns de dominio quedo cerrado localmente con `QuestionPage`, `InfoPanel` y `AssessmentLayout`.
+- F2 queda pendiente de explicacion y autorizacion humana antes de abrirse.
 - No abrir F2/F3/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 

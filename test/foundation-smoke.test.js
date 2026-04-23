@@ -172,6 +172,51 @@ test('JourneyStepper uses tokenized styles and semantic progress markup', () => 
   assert.match(css, /@container \(min-width: 34rem\)\s*\{\s*\.sd-journey-stepper/s);
 });
 
+test('foundation exposes domain assessment patterns', () => {
+  const questionPage = readFileSync(new URL('../frontend/src/patterns/QuestionPage.jsx', import.meta.url), 'utf8');
+  const infoPanel = readFileSync(new URL('../frontend/src/patterns/InfoPanel.jsx', import.meta.url), 'utf8');
+  const patternIndex = readFileSync(new URL('../frontend/src/patterns/index.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+
+  assert.ok(foundationInventory.patterns.includes('QuestionPage'));
+  assert.ok(foundationInventory.patterns.includes('InfoPanel'));
+  assert.ok(containerAwarenessRules.requiredFor.includes('QuestionPage'));
+  assert.ok(containerAwarenessRules.requiredFor.includes('InfoPanel'));
+  assert.match(patternIndex, /export \{ default as QuestionPage \}/);
+  assert.match(patternIndex, /export \{ default as InfoPanel \}/);
+  assert.match(questionPage, /import \{ Checkbox, InlineMessage, Radio, Select, SurfaceCard, TextArea \}/);
+  assert.match(questionPage, /<fieldset/);
+  assert.match(questionPage, /<legend className="sr-only">/);
+  assert.match(questionPage, /aria-labelledby=\{headingId\}/);
+  assert.match(questionPage, /data-sd-container="true"/);
+  assert.match(infoPanel, /const TONE_VARIANTS = \{/);
+  assert.match(infoPanel, /data-tone=\{resolvedTone\}/);
+  assert.match(infoPanel, /sd-info-panel-item/);
+  assert.match(css, /\.sd-question-page\s*\{/);
+  assert.match(css, /\.sd-question-options\[data-type='multi'\]/);
+  assert.match(css, /\.sd-info-panel-evidence\s*\{/);
+  assert.match(css, /var\(--sd-safe-action\)/);
+});
+
+test('foundation exposes AssessmentLayout as a domain layout', () => {
+  const source = readFileSync(new URL('../frontend/src/layouts/AssessmentLayout.jsx', import.meta.url), 'utf8');
+  const index = readFileSync(new URL('../frontend/src/layouts/index.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+  const story = readFileSync(new URL('../frontend/src/layouts/FoundationLayouts.stories.jsx', import.meta.url), 'utf8');
+
+  assert.ok(foundationInventory.layouts.includes('AssessmentLayout'));
+  assert.ok(containerAwarenessRules.requiredFor.includes('AssessmentLayout'));
+  assert.match(index, /export \{ default as AssessmentLayout \}/);
+  assert.match(source, /data-layout="assessment"/);
+  assert.match(source, /data-shell-family=\{shellFamily\}/);
+  assert.match(source, /sd-assessment-question/);
+  assert.match(source, /sd-assessment-insight/);
+  assert.match(source, /data-sd-container="true"/);
+  assert.match(css, /\.sd-assessment-layout\s*\{/);
+  assert.match(css, /\.sd-assessment-layout-desktop\s*\{/);
+  assert.match(story, /<AssessmentLayout/);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);
@@ -186,4 +231,5 @@ test('foundation documents interaction and layout inventory', () => {
   assert.ok(foundationInventory.patterns.includes('PanelHeader'));
   assert.ok(foundationInventory.layouts.includes('SplitHeroLayout'));
   assert.ok(foundationInventory.layouts.includes('WorkspaceLayout'));
+  assert.ok(foundationInventory.layouts.includes('AssessmentLayout'));
 });

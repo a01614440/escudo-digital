@@ -305,7 +305,18 @@ export const a11yRules = {
 
 export const containerAwarenessRules = {
   base: 'Los layouts y patterns macro deben marcarse con data-sd-container=true.',
-  requiredFor: ['SplitHeroLayout', 'WorkspaceLayout', 'StageHero', 'SupportRail', 'StatStrip', 'KeyValueBlock', 'ProgressSummary'],
+  requiredFor: [
+    'SplitHeroLayout',
+    'WorkspaceLayout',
+    'AssessmentLayout',
+    'StageHero',
+    'SupportRail',
+    'InfoPanel',
+    'QuestionPage',
+    'StatStrip',
+    'KeyValueBlock',
+    'ProgressSummary',
+  ],
   policy: 'La composicion interna debe reaccionar al espacio util del contenedor antes que al viewport global.',
 };
 
@@ -335,6 +346,8 @@ export const foundationInventory = {
     'SectionHeader',
     'PanelHeader',
     'EmptyState',
+    'QuestionPage',
+    'InfoPanel',
     'MetricCard',
     'KeyValueBlock',
     'ProgressSummary',
@@ -342,5 +355,5 @@ export const foundationInventory = {
     'SupportRail',
     'StatStrip',
   ],
-  layouts: ['SplitHeroLayout', 'WorkspaceLayout'],
+  layouts: ['SplitHeroLayout', 'WorkspaceLayout', 'AssessmentLayout'],
 };
