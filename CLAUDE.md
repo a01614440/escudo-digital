@@ -32,11 +32,11 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F1 foundation y F1 patterns de dominio cerrados localmente. F2 pendiente de explicacion y autorizacion humana.**
+**F2 closeout / shell hardening en curso. F2.A-F2.E cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
-La regresion disciplinada a F1 closeout ya se ejecuto localmente en bloques F1.A-F1.H:
+La regresion disciplinada a F1 closeout ya se ejecuto localmente:
 
 - F1.A typography tokens
 - F1.B educational tokens
@@ -54,6 +54,23 @@ El bloque **F1 patterns de dominio** tambien quedo ejecutado localmente:
 - `InfoPanel`
 - `AssessmentLayout`
 
-No abrir F2, F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario.
+F2 fue abierta como **closeout tecnico**, no como reconstruccion de shells desde cero. La decision vigente es:
 
-Proximo paso: esperar que el usuario explique el objetivo de Fase 2 y autorice su apertura. No asumir esa autorizacion.
+- no reconstruir `MobileShell`, `TabletShell` ni `DesktopShell`;
+- no redisenar vistas grandes;
+- endurecer dispatcher, breakpoints, datasets, contrato de slots, navigation policy y docs;
+- dejar la capa shell estable para poder abrir F3 despues de F2.F.
+
+Subfases F2 cerradas localmente:
+
+- F2.A Shell baseline audit
+- F2.B DeviceShell dispatcher hardening
+- F2.C Responsive breakpoints + dataset policy
+- F2.D Shell contract + navigation hardening
+- F2.E Ownership map / docs
+
+Proximo paso autorizado recomendado:
+
+- F2.F - F2 closeout validation
+
+No abrir F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.

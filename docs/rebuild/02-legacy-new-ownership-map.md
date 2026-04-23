@@ -1,94 +1,152 @@
-# Fase 0 — Mapa De Ownership Legacy / New UI
+# Fase 2 - Mapa de ownership legacy / new UI
+
+Actualizado en F2.E: 2026-04-23
 
 ## Objetivo
-Evitar híbridos largos y frágiles entre la UI actual y la nueva UI.
+
+Evitar hibridos largos y fragiles entre la UI actual y la nueva UI.
+
+Este mapa no dice que una superficie esta perfecta. Dice quien es su owner visual actual:
+
+- `legacy`: la superficie sigue dependiendo estructuralmente del sistema viejo.
+- `transition`: la superficie esta parcialmente migrada o conserva compatibilidad legacy necesaria.
+- `new-ui`: la superficie ya pertenece visualmente al sistema nuevo, aunque pueda requerir refinamiento en su fase.
+- `frozen-contract`: no se migra como capa visual principal; se protege como contrato.
 
 ## Regla base
-La convivencia temporal correcta no es “una misma pantalla con parches viejos y nuevos”, sino:
 
-- superficie aún owned by legacy
-- superficie ya owned by new UI
+La convivencia temporal correcta no es "una misma pantalla con parches viejos y nuevos", sino:
 
-## Estados posibles
-- `legacy`: la superficie sigue dependiendo estructuralmente del sistema actual
-- `transition`: se permite solo como etapa corta y controlada
-- `new-ui`: la superficie ya es responsabilidad del sistema nuevo
-- `frozen-contract`: no se migra como capa visual principal; se protege como contrato
+- superficie aun owned by legacy;
+- superficie ya owned by new UI;
+- contrato congelado que solo se envuelve visualmente en su fase autorizada.
 
-## Ownership actual al cierre de Fase 0
+`new-ui` no significa "sin deuda". Significa que la deuda pendiente debe resolverse como refinamiento de esa fase, no como retorno a legacy.
 
-| Superficie | Estado actual | Fuente principal |
-|---|---|---|
-| App coordinator / route switch | `legacy` | `frontend/src/App.jsx` |
-| Responsive macro actual | `legacy` | `frontend/src/hooks/useResponsiveLayout.js` |
-| Auth | `legacy` | `frontend/src/components/AuthView.jsx` |
-| Survey | `legacy` | `frontend/src/components/SurveyView.jsx` |
-| Dashboard / ruta | `legacy` | `frontend/src/components/CoursesView.jsx` |
-| Lesson shell | `legacy` | `frontend/src/components/LessonView.jsx` |
-| Activity chrome | `legacy` | `frontend/src/components/activities/ActivityRenderer.jsx`, `sharedActivityUi.jsx` |
-| Activity registry | `frozen-contract` | `frontend/src/components/activities/activityRegistry.js` |
-| Simulaciones | `legacy` | `frontend/src/components/activities/*` |
-| Chat global | `legacy` | `frontend/src/components/ChatDrawer.jsx` |
-| Admin | `legacy` | `frontend/src/components/AdminView.jsx` |
-| CSS global nuevo/transicional | `legacy` | `frontend/src/styles/app.css` |
-| CSS heredado | `legacy` | `frontend/src/styles/legacy.css` |
+## Ownership actual despues de F2.E
 
-## Ownership especial por archivo crítico
+| Superficie | Estado actual | Fuente principal | Owner / siguiente fase | Nota |
+|---|---|---|---|---|
+| Foundation visual | `new-ui` | `frontend/src/design-system/*`, `frontend/src/components/ui/*`, `frontend/src/patterns/*`, `frontend/src/layouts/*` | F1 cerrada | Tokens, primitives, patterns de dominio y layouts base ya son fuente visual nueva. |
+| Shells | `new-ui` | `frontend/src/shells/DeviceShell.jsx`, `MobileShell.jsx`, `TabletShell.jsx`, `DesktopShell.jsx` | F2 closeout | No reconstruir; solo hardening/validacion. |
+| Shell policies / navigation | `new-ui` | `frontend/src/shells/navigationPolicy.js`, `shellPolicies.js`, `buildShellSlots.jsx` | F2 closeout | Politicas declarativas y testeadas; F2.D expone contrato como `data-*`. |
+| Route containers | `new-ui` | `frontend/src/route-containers/*` | F2 closeout | `SessionLoadingRouteContainer` ya no usa `<main>` anidado ni clase `page`. |
+| App coordinator / route switch | `transition` | `frontend/src/App.jsx` | F2 / fases posteriores | Usa `DeviceShell` y slots, pero sigue concentrando orquestacion de estado y route switch manual. No abrir fuera de fase autorizada. |
+| Responsive macro | `transition` | `frontend/src/hooks/useResponsiveLayout.js` | F2 / F8 | Breakpoints macro alineados en F2.C; `dataset.shell` retirado. `viewport` e `inputMode` siguen por compatibilidad con `app.css`. |
+| Auth | `new-ui` | `frontend/src/components/AuthView.jsx` | F3 si se refina | F0.6: 0 clases legacy, uso fuerte de foundation. No tratar como legacy. |
+| Survey | `new-ui` | `frontend/src/components/SurveyView.jsx` | F3 refine | F0.6: 0 clases legacy. Requiere refinamiento con `QuestionPage`, `AssessmentLayout`, `Checkbox` y `Radio`, pero no es legacy. |
+| Dashboard / ruta | `new-ui` | `frontend/src/components/CoursesView.jsx` | F4 refine | F0.6: 0 clases legacy. Esta al limite arquitectonico por tamano/branching, pero la logica no se rehace y no se toca en F2. |
+| Lesson shell | `new-ui` | `frontend/src/components/LessonView.jsx` | F5 refine | F0.6: 0 clases legacy. Debe refinarse con `LessonLayout` en F5, no antes. |
+| Feedback panel | `new-ui` | `frontend/src/components/FeedbackPanel.jsx` | F5 | F0.6: compacto y sin legacy. Se beneficia del fix F1.C de `InlineMessage`. |
+| Session bar | `new-ui` | `frontend/src/components/SessionBar.jsx` | F2/F7 segun uso | F0.6: 0 legacy. No redisenar en F2.E. |
+| Activity renderer | `frozen-contract` | `frontend/src/components/activities/ActivityRenderer.jsx` | F5 minimo aprobado | Dispatcher/chrome base sensible. No tocar salvo adaptacion minima aprobada. |
+| Activity registry | `frozen-contract` | `frontend/src/components/activities/activityRegistry.js` | Contrato central | Congelado por defecto. No tocar por conveniencia visual. |
+| Basic activities | `legacy` | `frontend/src/components/activities/basicActivities.jsx` | F5 | Conservan clases legacy y deben migrarse dentro de lesson/activity chrome. |
+| WhatsApp / signal activities | `transition` | `frontend/src/components/activities/signalActivities.jsx` | F6A | Hibrido confirmado: thread `sd-chat-*` nuevo, panel lateral/senales legacy. |
+| SMS / Inbox / Scenario / Call / WebLab | `legacy` | `frontend/src/components/activities/immersive/*`, actividades relacionadas | F6B-F6F | No abrir antes de F6 correspondiente. |
+| Chat global | `legacy` | `frontend/src/components/ChatDrawer.jsx` | F7 | No redisenar antes de F7. F2 solo puede preservar su slot/mount. |
+| Admin | `legacy` | `frontend/src/components/AdminView.jsx` | F7 | Sigue owned by legacy hasta su fase. |
+| App error boundary | `legacy` | `frontend/src/components/AppErrorBoundary.jsx` | F8 o fix puntual autorizado | Migracion trivial posible, pero no pertenece a F2.E. |
+| CSS nuevo / foundation | `new-ui` | `frontend/src/styles/tailwind.css` | F1/F2/F8 | Contiene tokens, utilities `sd-*`, shells y primitives nuevas. |
+| CSS transicional | `transition` | `frontend/src/styles/app.css` | F8 progresivo | Aun sostiene actividades, admin, chat y reglas `body[data-viewport]`. No cleanup masivo antes de F8. |
+| CSS heredado | `legacy` | `frontend/src/styles/legacy.css` | F8 final | Retiro completo solo despues de cerrar F5+F6+F7. |
+
+## Ownership especial por archivo critico
 
 ### `frontend/src/App.jsx`
-- Estado: `legacy`
-- Regla: no reestructurarlo todavía en Fase 0
-- Futuro owner: Fase 2
+
+- Estado: `transition`.
+- Regla: no reestructurarlo como parte de F2.E.
+- Evidencia: F0.6 lo marco como 0 clases legacy y renderizando `DeviceShell`; F0.9 aun lo conserva como coordinador con dependencias largas.
+- Futuro: solo abrir si una subfase autorizada necesita orquestacion shell minima.
 
 ### `frontend/src/hooks/useResponsiveLayout.js`
-- Estado: `legacy`
-- Regla: fuente de verdad del responsive actual; no convertirlo aún
-- Futuro owner: Fase 2
+
+- Estado: `transition`.
+- Regla: mantener `viewport` e `inputMode` mientras `app.css` los consuma.
+- F2.C cerrado: breakpoints alineados con shells y `dataset.shell` retirado.
+- Futuro: retirar compatibilidad restante en F8, no en F2.E.
+
+### `frontend/src/components/AuthView.jsx`
+
+- Estado: `new-ui`.
+- Regla: no tratar como legacy.
+- Evidencia: F0.6 reporto 0 clases legacy y alta adherencia a foundation.
+- Futuro: F3 solo si requiere refinamiento junto con Survey.
+
+### `frontend/src/components/SurveyView.jsx`
+
+- Estado: `new-ui`.
+- Regla: no tocar hasta F3 refine.
+- Evidencia: F0.6 reporto 0 clases legacy, pero tambien deuda por branching, state derivado y necesidad de primitives/patterns.
+- Futuro: usar `QuestionPage`, `AssessmentLayout`, `Checkbox` y `Radio` creados en F1.
 
 ### `frontend/src/components/CoursesView.jsx`
-- Estado: `legacy`
-- Regla: no abrir cambios visuales todavía
-- Futuro owner: Fase 4
+
+- Estado: `new-ui`.
+- Regla: no tocar hasta F4.
+- Evidencia: F0.6 reporto 0 clases legacy, pero CoursesView esta al limite arquitectonico.
+- Futuro: rehacer bloque visual con patterns/layouts de dominio, preservando dominio y progreso.
 
 ### `frontend/src/components/LessonView.jsx`
-- Estado: `legacy`
-- Regla: no tocar hasta Fase 5
-- Futuro owner: Fase 5
+
+- Estado: `new-ui`.
+- Regla: no tocar hasta F5.
+- Evidencia: F0.6 reporto 0 clases legacy y uso correcto de `ActivityRenderer`.
+- Futuro: introducir `LessonLayout` y reducir branching por shellFamily.
 
 ### `frontend/src/components/activities/ActivityRenderer.jsx`
-- Estado: `frozen-contract`
-- Regla: no tocar salvo lectura hasta su fase
-- Futuro owner visual: Fase 5
+
+- Estado: `frozen-contract`.
+- Regla: no tocar salvo adaptacion minima aprobada.
+- Futuro owner visual: F5, como wrapper/chrome, no como reescritura de dominio.
 
 ### `frontend/src/components/activities/activityRegistry.js`
-- Estado: `frozen-contract`
-- Regla: contrato central congelado por defecto
-- Futuro owner: sigue siendo contrato central; cualquier ajuste debe ser mínimo
+
+- Estado: `frozen-contract`.
+- Regla: contrato central congelado.
+- Futuro: cualquier ajuste debe ser minimo, justificado y aprobado.
 
 ### `frontend/src/components/ChatDrawer.jsx`
-- Estado: `legacy`
-- Regla: no rehacerlo antes de Fase 7
-- En Fase 2 solo se admite definir su slot/mount dentro de shells nuevos
+
+- Estado: `legacy`.
+- Regla: no rehacer antes de F7.
+- En F2 solo se permite preservar su slot/mount dentro de shells.
 
 ### `frontend/src/styles/app.css`
-- Estado: `legacy`
-- Regla: capa transicional actual, no cleanup todavía
-- Futuro owner: retiro progresivo por superficie y limpieza fuerte en Fase 8
+
+- Estado: `transition`.
+- Regla: no cleanup masivo antes de F8.
+- Nota: contiene reglas aun activas para actividades, admin, chat y compatibilidad responsive legacy.
 
 ### `frontend/src/styles/legacy.css`
-- Estado: `legacy`
-- Regla: read-only durante Fase 0
-- Futuro owner: retiro ordenado en Fase 8
+
+- Estado: `legacy`.
+- Regla: no retirar hasta F8 final.
+- Nota: su retiro depende de cerrar F5+F6+F7.
 
 ## Regla de corte por superficie
+
 Una superficie solo puede pasar a `new-ui` cuando cumpla:
 
-1. paridad funcional,
-2. ownership visual nuevo casi total,
-3. ausencia de dependencia estructural de `legacy.css`,
-4. gates de validación aprobados.
+1. paridad funcional;
+2. ownership visual nuevo casi total;
+3. ausencia de dependencia estructural de `legacy.css`;
+4. gates de validacion aprobados.
 
-## Ambigüedades todavía abiertas antes de Fase 1
-- Qué tanto de `app.css` se conserva como capa transicional durante varias fases.
-- Qué primitives actuales se marcan como `transition` versus `new-ui`.
-- Cómo etiquetar ownership de patterns que todavía no existen en el repo.
+Las vistas `AuthView`, `SurveyView`, `CoursesView` y `LessonView` ya cumplen el criterio de ownership visual `new-ui` segun F0.6/F0.8/F0.9, aunque sus refinamientos de fase sigan pendientes.
+
+## Deuda que sigue viva fuera de F2.E
+
+- Survey refine pertenece a F3.
+- Courses refine pertenece a F4.
+- Lesson/activity chrome pertenece a F5.
+- Simulaciones pertenecen a F6A-F6F.
+- Chat/Admin pertenecen a F7.
+- Cleanup masivo de `app.css` / `legacy.css` pertenece a F8.
+
+## Veredicto F2.E
+
+El mapa anterior de F0 quedaba desactualizado porque marcaba como `legacy` varias vistas que la auditoria F0.6/F0.8/F0.9 ya habia confirmado como visualmente migradas.
+
+Este mapa queda alineado con el estado real: F1 foundation cerrada, F2 shell closeout avanzado, vistas principales owned by `new-ui`, y legacy real limitado a actividades, simulaciones, chat/admin, error boundary y CSS transicional/heredado.
