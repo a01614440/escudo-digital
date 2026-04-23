@@ -111,6 +111,23 @@ test('foundation exposes native Checkbox and Radio primitives', () => {
   assert.match(css, /\.sd-choice-input\[aria-invalid='true'\] \+ \.sd-choice-control/);
 });
 
+test('foundation exposes an accessible IconButton primitive', () => {
+  const source = readFileSync(new URL('../frontend/src/components/ui/IconButton.jsx', import.meta.url), 'utf8');
+  const index = readFileSync(new URL('../frontend/src/components/ui/index.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+
+  assert.ok(foundationInventory.primitives.includes('IconButton'));
+  assert.match(index, /export \{ default as IconButton \}/);
+  assert.match(source, /const accessibleLabel = ariaLabel \|\| label/);
+  assert.match(source, /aria-label=\{ariaLabel\}/);
+  assert.match(source, /aria-busy=\{loading \? 'true' : undefined\}/);
+  assert.match(source, /disabled=\{disabled \|\| loading\}/);
+  assert.match(source, /<span className="sr-only">\{label\}<\/span>/);
+  assert.match(css, /\.sd-icon-button\s*\{/);
+  assert.match(css, /\.sd-icon-button-md\s*\{[^}]*height: 2\.75rem/s);
+  assert.match(css, /\.sd-icon-button-glyph\s*\{/);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);

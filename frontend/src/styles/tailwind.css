@@ -866,6 +866,52 @@ body[data-theme='dark'] {
     padding: 0;
   }
 
+  .sd-icon-button {
+    position: relative;
+    flex: none;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .sd-icon-button-sm {
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+
+  .sd-icon-button-md {
+    height: 2.75rem;
+    width: 2.75rem;
+  }
+
+  .sd-icon-button-lg {
+    height: 3.25rem;
+    width: 3.25rem;
+  }
+
+  .sd-icon-button-glyph {
+    display: inline-flex;
+    height: 1.15rem;
+    width: 1.15rem;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--sd-type-size-body);
+    font-weight: var(--sd-type-weight-bold);
+    line-height: 1;
+  }
+
+  .sd-icon-button-sm .sd-icon-button-glyph {
+    height: 1rem;
+    width: 1rem;
+    font-size: var(--sd-type-size-body-sm);
+  }
+
+  .sd-icon-button-lg .sd-icon-button-glyph {
+    height: 1.35rem;
+    width: 1.35rem;
+    font-size: var(--sd-type-size-heading-sm);
+  }
+
   .sd-button-spinner {
     @apply inline-block h-4 w-4 rounded-full border-2 border-current border-r-transparent;
     animation: sd-spin 0.75s linear infinite;

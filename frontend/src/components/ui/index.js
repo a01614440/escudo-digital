@@ -4,6 +4,7 @@ export { default as Checkbox } from './Checkbox.jsx';
 export { default as Dialog } from './Dialog.jsx';
 export { default as Drawer } from './Drawer.jsx';
 export { default as Field } from './Field.jsx';
+export { default as IconButton } from './IconButton.jsx';
 export { default as InlineMessage } from './InlineMessage.jsx';
 export { default as Input } from './Input.jsx';
 export { default as OverlayFrame } from './OverlayFrame.jsx';

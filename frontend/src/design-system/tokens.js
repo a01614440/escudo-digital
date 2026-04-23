@@ -312,6 +312,7 @@ export const containerAwarenessRules = {
 export const foundationInventory = {
   primitives: [
     'Button',
+    'IconButton',
     'Badge',
     'SurfaceCard',
     'Input',

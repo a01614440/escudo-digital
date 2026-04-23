@@ -1,4 +1,4 @@
-import Button from './Button.jsx';
+import { Button, IconButton } from './index.js';
 
 const meta = {
   title: 'Foundation/Primitives/Button',
@@ -33,4 +33,26 @@ export const Loading = {
     loading: true,
     children: 'Guardando',
   },
+};
+
+export const IconButtons = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <IconButton label="Abrir ayuda" variant="secondary">
+        ?
+      </IconButton>
+      <IconButton label="Agregar elemento" variant="primary">
+        +
+      </IconButton>
+      <IconButton label="Marcar como importante" variant="soft" active>
+        !
+      </IconButton>
+      <IconButton label="Cerrar" variant="ghost">
+        x
+      </IconButton>
+      <IconButton label="Guardando" variant="primary" loading>
+        +
+      </IconButton>
+    </div>
+  ),
 };
