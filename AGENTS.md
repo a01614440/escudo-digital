@@ -95,8 +95,12 @@ La tesis obligatoria es:
 - F4.F renderizo `JourneyStepper` desde `DashboardSceneBar`, marco `data-sd-route-layout`, balanceo columnas por shell y retiro el sticky interno incomodo de `ModuleMissionBoard`.
 - F4.F hizo que `SettingsScene` use `md:grid-cols-2 xl:grid-cols-3` para evitar tres selects apretados en tablet.
 - F4.F amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (74/74).
-- El siguiente frente recomendado es F4.G - F4 closeout validation.
-- No abrir F4.G/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F4.G F4 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F4.G-f4-closeout-validation.md`.
+- F4.G valido `.\npm-local.cmd test` (74/74), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
+- F4.G no implemento cambios nuevos en `CoursesView.jsx`; solo documento el cierre y actualizo contexto de agente.
+- F4 refine queda cerrada localmente.
+- El siguiente frente recomendado es F5.A - Lesson shell / activity chrome baseline audit.
+- No abrir F5.A/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

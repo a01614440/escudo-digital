@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F4 refine en curso. F4.A refinada, F4.B, F4.C, F4.D, F4.E y F4.F cerradas localmente.**
+**F4 refine cerrada localmente. Siguiente frente recomendado: F5.A Lesson shell / activity chrome baseline audit.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -167,6 +167,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F4.F renderizo `JourneyStepper` desde `DashboardSceneBar`, marco `data-sd-route-layout`, balanceo columnas por shell y retiro el sticky interno incomodo de `ModuleMissionBoard`;
 - F4.F hizo que `SettingsScene` use `md:grid-cols-2 xl:grid-cols-3` para evitar tres selects apretados en tablet;
 - F4.F amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` con 74/74;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.G - F4 closeout validation.
+- F4.G F4 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F4.G-f4-closeout-validation.md`;
+- F4.G valido `.\npm-local.cmd test` con 74/74, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F4.G no implemento cambios nuevos en `CoursesView.jsx`; solo documento el cierre y actualizo contexto de agente;
+- F4 refine queda cerrada localmente;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.A - Lesson shell / activity chrome baseline audit.
 
-No abrir F4.G/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F5.A/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
