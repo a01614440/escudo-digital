@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeRiskLevel } from '../lib/course.js';
 import { buildJourneyProgress } from '../lib/journeyGuidance.js';
 import { getShellFamily } from '../hooks/useResponsiveLayout.js';
-import { AssessmentLayout, SplitHeroLayout, WorkspaceLayout } from '../layouts/index.js';
+import { AssessmentLayout, SplitHeroLayout } from '../layouts/index.js';
 import {
   ActionCluster,
   EmptyState,
@@ -196,9 +196,9 @@ function SurveyStageHero({
 
   const aside =
     surveyStage === 'results' ? (
-      <div className="grid gap-2 rounded-[28px] border border-sd-border/70 bg-white/84 px-5 py-5">
+      <div className="grid gap-2 rounded-[var(--sd-radius-lg)] border border-sd-border/70 bg-white/84 px-5 py-5">
         <p className="sd-eyebrow m-0">Nivel estimado</p>
-        <strong className="font-display text-5xl leading-[0.92] tracking-[-0.06em] text-sd-text">
+        <strong className="sd-title m-0">
           {normalizeRiskLevel(assessment?.nivel || 'Medio')}
         </strong>
       </div>
@@ -601,37 +601,39 @@ function LoadingScene({ shellFamily, journeySteps }) {
   );
 }
 
-function ResultsCommandDeck({ shellFamily, assessment, resultLead, journeySteps }) {
+function ResultsCommandDeck({ shellFamily, assessment, resultLead }) {
+  const resultLevel = normalizeRiskLevel(assessment?.nivel || 'Medio');
+  const resultSummary = assessment?.resumen || resultLead;
+
   return (
     <SupportRail
       tone={shellFamily === 'desktop' ? 'support' : 'editorial'}
       sticky={shellFamily === 'desktop'}
       eyebrow="Perfil actual"
-      title={normalizeRiskLevel(assessment?.nivel || 'Medio')}
-      subtitle={assessment?.resumen || resultLead}
+      title={resultLevel}
+      subtitle={resultSummary}
     >
       <div className="grid gap-4">
         <ProgressSummary
           eyebrow="Resultado"
           title="Perfil accionable"
-          value={normalizeRiskLevel(assessment?.nivel || 'Medio')}
+          value={resultLevel}
           hint="Ya no es un cierre ambiguo: ahora empuja a la ruta."
           progressValue={100}
           variant="support"
           tone="accent"
-          className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
         />
         <KeyValueBlock
           items={[
             {
-              key: 'recorrido',
-              label: 'Recorrido',
-              value: 'Diagnostico cerrado y listo para convertirse en ruta.',
+              key: 'perfil',
+              label: 'Perfil',
+              value: resultLevel,
             },
             {
               key: 'salida',
-              label: 'Siguiente',
-              value: 'Abre tu ruta y sigue con el modulo recomendado.',
+              label: 'Siguiente paso',
+              value: 'Abrir tu ruta personalizada.',
             },
           ]}
         />
@@ -654,14 +656,14 @@ function ResultsMainDeck({ assessment, resultLead }) {
         />
 
         {recommendations.length ? (
-          <div className="grid gap-3">
+          <ol className="m-0 grid list-none gap-3 p-0">
             {recommendations.map((item, index) => (
-              <div key={`${item}-${index}`} className="grid grid-cols-[auto_1fr] items-start gap-3 rounded-[22px] border border-sd-border bg-sd-surface-subtle px-4 py-4">
+              <li key={`${item}-${index}`} className="grid grid-cols-[auto_1fr] items-start gap-3 rounded-[22px] border border-sd-border bg-sd-surface-subtle px-4 py-4">
                 <span className="text-sm font-semibold text-sd-text-soft">{String(index + 1).padStart(2, '0')}</span>
                 <p className="m-0 text-sm leading-6 text-sd-text">{item}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         ) : (
           <InlineMessage tone="info" title="Todavia no hay recomendaciones visibles.">
             El perfil sigue listo para continuar a la ruta.
@@ -674,6 +676,11 @@ function ResultsMainDeck({ assessment, resultLead }) {
 
 function ResultsRouteRail({ shellFamily, assessment, courseError, onTakeCourses, onRestart }) {
   const nextSteps = Array.isArray(assessment?.proximos_pasos) ? assessment.proximos_pasos : [];
+  const routeSummaryId = 'survey-results-route-summary';
+  const routeErrorId = courseError ? 'survey-results-route-error' : undefined;
+  const ctaDescription = courseError
+    ? `${routeSummaryId} ${routeErrorId}`
+    : routeSummaryId;
 
   return (
     <SupportRail
@@ -682,22 +689,32 @@ function ResultsRouteRail({ shellFamily, assessment, courseError, onTakeCourses,
       eyebrow="Siguiente paso"
       title="Tu ruta ya esta lista para abrirse"
       subtitle="El handoff final vive aqui con claridad y prioridad."
-      footer={
+    >
+      {courseError ? (
+        <InlineMessage id={routeErrorId} tone="danger" title="No pudimos abrir tu ruta todavia.">
+          {courseError}
+        </InlineMessage>
+      ) : null}
+
+      <div className="grid gap-4">
+        <p id={routeSummaryId} className="sd-copy-sm m-0">
+          Mantienes tu perfil y respuestas; el siguiente paso abre la pantalla de cursos con este contexto.
+        </p>
         <ActionCluster collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-          <Button variant="primary" type="button" onClick={onTakeCourses}>
-            {courseError ? 'Intentar de nuevo' : 'Ver mi ruta'}
+          <Button
+            variant="primary"
+            size="lg"
+            type="button"
+            onClick={onTakeCourses}
+            aria-describedby={ctaDescription}
+          >
+            {courseError ? 'Intentar abrir mi ruta de nuevo' : 'Ver mi ruta'}
           </Button>
           <Button variant="secondary" type="button" onClick={onRestart}>
             Reiniciar encuesta
           </Button>
         </ActionCluster>
-      }
-    >
-      {courseError ? (
-        <InlineMessage tone="danger" title="No pudimos abrir tu ruta todavia.">
-          {courseError}
-        </InlineMessage>
-      ) : null}
+      </div>
 
       {nextSteps.length ? (
         <div className="grid gap-3">
@@ -731,46 +748,39 @@ function ResultsScene({
   onRestart,
 }) {
   return (
-    <div className="grid gap-[var(--sd-shell-section-gap)]">
-      <SurveyStageHero
-        shellFamily={shellFamily}
-        showIntro={false}
-        surveyStage="results"
-        surveyIndex={0}
-        total={journeySteps.length}
-        progress={100}
-        assessment={assessment}
-        journeySteps={journeySteps}
-        showJourney={false}
-      />
-
-      <WorkspaceLayout
-        shellFamily={shellFamily}
-        className={
-          shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(16.5rem,17.5rem)_minmax(0,1.22fr)_minmax(19rem,20rem)] 2xl:grid-cols-[minmax(17rem,18rem)_minmax(0,1.3fr)_minmax(19.5rem,20.5rem)]'
-            : ''
-        }
-        command={
-          <ResultsCommandDeck
-            shellFamily={shellFamily}
-            assessment={assessment}
-            resultLead={resultLead}
-            journeySteps={journeySteps}
-          />
-        }
-        main={<ResultsMainDeck assessment={assessment} resultLead={resultLead} />}
-        insight={
-          <ResultsRouteRail
-            shellFamily={shellFamily}
-            assessment={assessment}
-            courseError={courseError}
-            onTakeCourses={onTakeCourses}
-            onRestart={onRestart}
-          />
-        }
-      />
-    </div>
+    <AssessmentLayout
+      shellFamily={shellFamily}
+      hero={
+        <SurveyStageHero
+          shellFamily={shellFamily}
+          showIntro={false}
+          surveyStage="results"
+          surveyIndex={0}
+          total={journeySteps.length}
+          progress={100}
+          assessment={assessment}
+          journeySteps={journeySteps}
+          showJourney={false}
+        />
+      }
+      progress={
+        <ResultsCommandDeck
+          shellFamily={shellFamily}
+          assessment={assessment}
+          resultLead={resultLead}
+        />
+      }
+      question={<ResultsMainDeck assessment={assessment} resultLead={resultLead} />}
+      insight={
+        <ResultsRouteRail
+          shellFamily={shellFamily}
+          assessment={assessment}
+          courseError={courseError}
+          onTakeCourses={onTakeCourses}
+          onRestart={onRestart}
+        />
+      }
+    />
   );
 }
 

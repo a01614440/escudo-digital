@@ -106,4 +106,37 @@ describe('F3 Auth + Survey closeout guards', () => {
     assert.doesNotMatch(source, /\[&_\.text-sd-text\]:text-white/);
     assert.doesNotMatch(source, /text-white\/76/);
   });
+
+  test('SurveyView closes results profile and CTA using domain layout without local grid hacks', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+    const resultsScene = source.slice(
+      source.indexOf('function ResultsScene'),
+      source.indexOf('export default function SurveyView')
+    );
+
+    assert.doesNotMatch(source, /WorkspaceLayout/);
+    assert.match(resultsScene, /<AssessmentLayout/);
+    assert.match(resultsScene, /progress=\{[\s\S]*<ResultsCommandDeck/);
+    assert.match(resultsScene, /question=\{<ResultsMainDeck/);
+    assert.match(resultsScene, /insight=\{[\s\S]*<ResultsRouteRail/);
+    assert.match(source, /const resultLevel = normalizeRiskLevel/);
+    assert.match(source, /<strong className="sd-title m-0">/);
+    assert.match(source, /<ol className="m-0 grid list-none gap-3 p-0">/);
+    assert.doesNotMatch(source, /tracking-\[-0\.06em\]/);
+    assert.doesNotMatch(resultsScene, /xl:grid-cols-\[minmax\(16\.5rem,17\.5rem\)_minmax\(0,1\.22fr\)_minmax\(19rem,20rem\)\]/);
+    assert.doesNotMatch(source, /className=\{shellFamily === 'tablet' \? '!grid-cols-1' : ''\}/);
+  });
+
+  test('SurveyView keeps Ver mi ruta as the primary handoff with an error retry fallback', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+    const routeContainer = readFileSync(new URL('../frontend/src/route-containers/resolveActiveRoute.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /const routeSummaryId = 'survey-results-route-summary'/);
+    assert.match(source, /const routeErrorId = courseError \? 'survey-results-route-error' : undefined/);
+    assert.match(source, /<InlineMessage id=\{routeErrorId\} tone="danger" title="No pudimos abrir tu ruta todavia\.">/);
+    assert.match(source, /<Button[\s\S]*variant="primary"[\s\S]*size="lg"[\s\S]*onClick=\{onTakeCourses\}[\s\S]*aria-describedby=\{ctaDescription\}/);
+    assert.match(source, /courseError \? 'Intentar abrir mi ruta de nuevo' : 'Ver mi ruta'/);
+    assert.match(source, /Mantienes tu perfil y respuestas; el siguiente paso abre la pantalla de cursos con este contexto\./);
+    assert.match(routeContainer, /onTakeCourses: \(\) =>[\s\S]*course\.openCourses\(\{[\s\S]*answers: assessment\.answers,[\s\S]*assessment: assessment\.assessment,[\s\S]*authToken: auth\.authToken/);
+  });
 });

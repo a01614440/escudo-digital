@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.E cerradas localmente.**
+**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.F cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -119,8 +119,18 @@ F3.E cerro Survey flow hardening de forma minima:
 - loading usa `SurfaceCard tone="inverse"` y tokens tipograficos, sin hacks locales `text-white` / shadow arbitrario;
 - no se tocaron results/CTA ni hooks de dominio.
 
+F3.F cerro Results / perfil / CTA closeout de forma minima:
+
+- `ResultsScene` usa `AssessmentLayout`;
+- results ya no usa `WorkspaceLayout` ni grid local desktop;
+- perfil/riesgo usa `sd-title` y radius tokenizado, sin tracking negativo;
+- recomendaciones se renderizan como lista semantica;
+- CTA `Ver mi ruta` es `Button variant="primary" size="lg"` y mantiene `onTakeCourses`;
+- `courseError` usa fallback `Intentar abrir mi ruta de nuevo` y queda enlazado por `aria-describedby`;
+- wiring de `resolveActiveRoute.jsx` fue verificado en lectura y no se modifico.
+
 Proximo paso recomendado:
 
-- esperar autorizacion explicita del usuario para abrir F3.F - Results / perfil / CTA closeout.
+- esperar autorizacion explicita del usuario para abrir F3.G - F3 closeout validation.
 
-No abrir F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
