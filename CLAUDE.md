@@ -145,6 +145,8 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - audito `CoursesView.jsx` como monolito de 1702 lineas y confirme su red de dependencias, pruebas y deuda visible;
 - confirme que `CoursesView` sigue siendo la unica superficie de F4 por ahora;
 - confirme que no se toco implementacion, solo auditoria y contexto;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.B.
+- luego se ejecuto F4.A refinada como baseline definitivo de UX en `docs/rebuild/audit/F4.A-courses-baseline-audit.md`;
+- la F4.A refinada audito densidad, jerarquia, CTA, simetria, comodidad visual y separacion F4 vs F5;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.B - Information architecture / density pass.
 
 No abrir F4.B/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

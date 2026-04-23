@@ -73,7 +73,9 @@ La tesis obligatoria es:
 - F3 Auth + Survey refine queda cerrado localmente.
 - F4.A Dashboard / Courses baseline audit quedo cerrada localmente con `docs/rebuild/audit/F4.A-dashboard-courses-baseline-audit.md`.
 - F4.A audito `CoursesView.jsx` y su red de dependencias sin tocar implementacion.
-- F4.A confirmo que el siguiente frente de trabajo es F4.B y que no conviene abrir F4/F5/F6/F7 sin autorizacion explicita.
+- F4.A refinada quedo cerrada localmente con `docs/rebuild/audit/F4.A-courses-baseline-audit.md` como baseline definitivo de UX para `CoursesView`.
+- F4.A refinada separo densidad, jerarquia, CTA, simetria y comodidad visual de problemas que pertenecen a F5.
+- F4.A confirmo que el siguiente frente de trabajo es F4.B - Information architecture / density pass y que no conviene abrir F5/F6/F7 sin autorizacion explicita.
 - No abrir F4.B/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
