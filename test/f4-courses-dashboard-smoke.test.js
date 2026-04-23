@@ -26,34 +26,6 @@ function coursesViewBlock() {
 }
 
 describe('F4.B Courses dashboard information density guards', () => {
-  test('RouteHero keeps only route and focus summary signals', () => {
-    const block = functionBlock('RouteHero', 'ContinuityConsole');
-
-    assert.match(block, /key: 'modules'/);
-    assert.match(block, /key: 'focus'/);
-    assert.doesNotMatch(block, /Score total/);
-    assert.doesNotMatch(block, /Ultimo acceso/);
-    assert.doesNotMatch(block, /assessment\?\.nivel/);
-  });
-
-  test('ContinuityConsole keeps the primary action area free of redundant metadata', () => {
-    const block = functionBlock('ContinuityConsole', 'TopSupportBand');
-
-    assert.match(block, /Que sigue ahora/);
-    assert.doesNotMatch(block, /key: 'category'/);
-    assert.doesNotMatch(block, /key: 'time'/);
-    assert.doesNotMatch(block, /!grid-cols-1/);
-  });
-
-  test('TopSupportBand no longer duplicates progress insight already shown elsewhere', () => {
-    const block = functionBlock('TopSupportBand', 'DashboardSceneBar');
-
-    assert.match(block, /quickGuide\.slice\(0, 2\)/);
-    assert.doesNotMatch(block, /ProgressSummary/);
-    assert.doesNotMatch(block, /prioritySummary/);
-    assert.doesNotMatch(block, /strongestTopic/);
-  });
-
   test('DashboardSceneBar and RouteModulePill avoid extra counters in the route rail', () => {
     const sceneBar = functionBlock('DashboardSceneBar', 'RouteModulePill');
     const pill = functionBlock('RouteModulePill', 'RouteNavigatorRail');
@@ -234,31 +206,59 @@ describe('F4.D Courses route navigator and module detail guards', () => {
   });
 });
 
-describe('F4.C Courses hero, continuity and CTA guards', () => {
-  test('RouteHero frames the route without competing with the continuity CTA', () => {
-    const block = functionBlock('RouteHero', 'ContinuityConsole');
-
-    assert.match(block, /Tu ruta ya esta lista para continuar\./);
-    assert.match(block, /subtitle=\{prioritySummary\}/);
-    assert.doesNotMatch(block, /assessment\?\.resumen/);
-    assert.doesNotMatch(block, /data-sd-primary-cta/);
-    assert.doesNotMatch(block, /<Button/);
-  });
-
-  test('ContinuityConsole owns the primary CTA before supporting progress', () => {
-    const block = functionBlock('ContinuityConsole', 'TopSupportBand');
+describe('F5.B Route top / continuity / CTA unification guards', () => {
+  test('RouteBriefing fuses hero, continuity and CTA into a single inverse surface', () => {
+    const block = functionBlock('RouteBriefing', 'DashboardSceneBar');
     const actionIndex = block.indexOf('<ActionCluster');
-    const progressIndex = block.indexOf('<ProgressSummary');
+    const progressIndex = block.indexOf('<ProgressBar');
 
     assert.match(block, /variant="command"/);
     assert.match(block, /tone="inverse"/);
-    assert.ok(actionIndex > -1, 'ContinuityConsole should render an action cluster');
-    assert.ok(progressIndex > -1, 'ContinuityConsole should render supporting progress');
-    assert.ok(actionIndex < progressIndex, 'the primary CTA should appear before supporting progress');
-    assert.match(block, /data-sd-primary-cta="courses-continuity"/);
+    assert.match(block, /className="sd-route-briefing/);
+    assert.match(block, /data-sd-container="true"/);
+    assert.match(block, /Tu ruta ya esta lista para continuar\./);
     assert.match(block, /const primaryLabel = target\?\.stats\.completedCount \? 'Continuar mi ruta' : 'Abrir modulo recomendado'/);
-    assert.match(block, /aria-label=\{`\$\{primaryLabel\}: \$\{displayModuleTitle\(target\.module\)\}`\}/);
+    assert.match(block, /data-sd-primary-cta="courses-continuity"/);
+    assert.match(block, /aria-label=\{`\$\{primaryLabel\}: \$\{moduleTitle\}`\}/);
     assert.match(block, /Ver en la ruta/);
-    assert.doesNotMatch(block, /Continuar donde me quede/);
+    assert.match(block, /variant="ghost"/);
+    assert.ok(actionIndex > -1, 'RouteBriefing should render a single action cluster');
+    assert.ok(progressIndex > -1, 'RouteBriefing should render a single inline progress bar');
+    assert.ok(actionIndex < progressIndex, 'primary CTA should appear before supporting progress');
+    assert.doesNotMatch(block, /<StatStrip/);
+    assert.doesNotMatch(block, /<ProgressSummary/);
+    assert.doesNotMatch(block, /<SupportRail/);
+    assert.doesNotMatch(block, /<PanelHeader/);
+    assert.doesNotMatch(block, /<StageHero/);
+  });
+
+  test('DashboardEmptyState collapses the split-hero shelf into a single dominant block', () => {
+    const block = functionBlock('DashboardEmptyState', 'RouteBriefing');
+
+    assert.match(block, /<SurfaceCard[\s\S]+variant="command"[\s\S]+tone="inverse"/);
+    assert.match(block, /className="sd-route-briefing/);
+    assert.match(block, /<Spinner/);
+    assert.match(block, /variant="primary"/);
+    assert.doesNotMatch(block, /<SplitHeroLayout/);
+    assert.doesNotMatch(block, /<SupportRail/);
+    assert.doesNotMatch(block, /<StageHero/);
+    assert.doesNotMatch(block, /<PanelHeader/);
+    assert.doesNotMatch(block, /<StatStrip/);
+    assert.doesNotMatch(block, /EMPTY_STRIP/);
+    assert.doesNotMatch(block, /variant="hero"/);
+  });
+
+  test('CoursesView top shelf renders a single RouteBriefing block and drops the quick-guide wiring', () => {
+    const block = coursesViewBlock();
+
+    assert.match(block, /<RouteBriefing[\s\S]+target=\{nextRouteTarget\}/);
+    assert.match(block, /onContinue=\{onOpenModule\}/);
+    assert.match(block, /onShowInRoute=\{handleShowInRoute\}/);
+    assert.doesNotMatch(block, /<RouteHero\b/);
+    assert.doesNotMatch(block, /<ContinuityConsole\b/);
+    assert.doesNotMatch(block, /<TopSupportBand\b/);
+    assert.doesNotMatch(block, /quickGuide/);
+    assert.doesNotMatch(block, /buildCourseQuickGuide/);
+    assert.doesNotMatch(block, /EMPTY_STRIP/);
   });
 });

@@ -9,7 +9,6 @@ import {
 } from '../lib/course.js';
 import { getLevelCopy, LEVEL_ORDER, TOPIC_ORDER } from '../lib/difficultyRules.js';
 import {
-  buildCourseQuickGuide,
   buildJourneyProgress,
   getModuleObjective,
 } from '../lib/journeyGuidance.js';
@@ -75,25 +74,6 @@ const TABS = [
   },
 ];
 
-const EMPTY_STRIP = [
-  {
-    key: 'diagnostico',
-    eyebrow: 'Diagnostico',
-    value: '1 base',
-    label: 'Primero leer, luego ordenar',
-    hint: 'La ruta nace del diagnostico; no se improvisa a mano.',
-    tone: 'accent',
-  },
-  {
-    key: 'accion',
-    eyebrow: 'Salida',
-    value: '1 paso',
-    label: 'Siempre hay un siguiente movimiento claro',
-    hint: 'Cuando la ruta esta lista, te muestra que hacer y por que.',
-    tone: 'accent',
-  },
-];
-
 function getModuleCtaLabel({ locked, adminAccess, stats }) {
   if (locked) return 'Bloqueado por secuencia';
   if (adminAccess && stats.pct >= 100) return 'Repetir modulo';
@@ -150,261 +130,156 @@ function DashboardEmptyState({
 }) {
   return (
     <section className="sd-page-shell py-[var(--sd-shell-padding-block)]" data-sd-container="true">
-      <SplitHeroLayout
-        shellFamily={shellFamily}
-        className={
-          shellFamily === 'tablet'
-            ? 'md:grid-cols-[minmax(0,1.1fr)_minmax(21rem,0.9fr)]'
-            : shellFamily === 'desktop'
-              ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(24rem,0.82fr)] 2xl:grid-cols-[minmax(0,1.28fr)_minmax(25rem,0.78fr)]'
-              : ''
-        }
-        hero={
-          <StageHero
-            tone={generating ? 'editorial' : 'hero'}
-            eyebrow="Ruta personalizada"
-            title={generating ? 'Estamos armando tu ruta' : title}
-            subtitle={
-              generating
+      <SurfaceCard
+        padding="xl"
+        variant="command"
+        tone="inverse"
+        className="sd-route-briefing relative overflow-hidden border-sd-border-strong"
+        data-sd-container="true"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
+
+        <div className="grid gap-6">
+          <span className="sd-eyebrow m-0">Ruta personalizada</span>
+
+          <div className="grid gap-3">
+            <h1 className="sd-title-display m-0">
+              {generating ? 'Estamos armando tu ruta' : title}
+            </h1>
+            <p className="sd-copy m-0 max-w-[60ch]">
+              {generating
                 ? 'Estamos ordenando modulos y prioridad para dejarte un siguiente paso claro.'
-                : body
-            }
-            meta="Diagnostico primero; continuidad despues."
-            footer={<StatStrip items={EMPTY_STRIP} compact={shellFamily === 'mobile'} variant="support" />}
-          >
-            <p className="m-0 text-sm leading-7 text-white/78">
-              Aqui la experiencia ya debe sentirse como producto completo: direccion,
-              continuidad y salida accionable, no solo un boton para “generar”.
+                : body}
             </p>
-          </StageHero>
-        }
-        primary={
-          <SurfaceCard padding="lg" variant="spotlight">
-            <PanelHeader
-              eyebrow={generating ? 'Generando' : 'Siguiente accion'}
-              title={generating ? 'Preparando la cabina' : 'Dejemos lista la ruta'}
-              subtitle={
-                generating
-                  ? 'Estamos recalculando modulos y continuidad con el mismo diagnostico.'
-                  : 'Desde aqui puedes crear o reconstruir la ruta sin tocar tu progreso.'
-              }
-              divider
-            />
+          </div>
 
-            <div className="grid gap-4">
-              {generating ? (
-                <SurfaceCard padding="compact" variant="command">
-                  <div className="flex items-start gap-4">
-                    <Spinner size="lg" />
-                    <div className="grid gap-2">
-                      <strong className="text-base text-white">Ordenando la ruta</strong>
-                      <p className="m-0 text-sm leading-6 text-white/76">
-                        Estamos priorizando que sigue sin perder contexto.
-                      </p>
-                    </div>
-                  </div>
-                  <ProgressBar className="mt-4" value={72} tone="accent" />
-                </SurfaceCard>
-              ) : null}
-
-              {error ? (
-                <InlineMessage tone="danger" title="No pudimos completar esta parte.">
-                  {error}
-                </InlineMessage>
-              ) : (
-                <InlineMessage tone={generating ? 'success' : 'info'} title="Que se va a conservar">
-                  Tu diagnostico, tu estado y la continuidad general se mantienen intactos.
-                </InlineMessage>
-              )}
-
-              {actionLabel && onAction ? (
-                <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-                  <Button type="button" variant="hero" size="lg" onClick={onAction} loading={generating}>
-                    {generating ? 'Actualizando cabina...' : actionLabel}
-                  </Button>
-                </ActionCluster>
-              ) : null}
+          {generating ? (
+            <div className="sd-route-briefing-progress grid gap-3">
+              <div className="flex items-center gap-4">
+                <Spinner size="lg" />
+                <div className="grid gap-1">
+                  <strong className="sd-copy-strong m-0">Ordenando la ruta</strong>
+                  <p className="m-0 text-sm leading-6 text-sd-text-inverse-soft">
+                    Estamos priorizando que sigue sin perder contexto.
+                  </p>
+                </div>
+              </div>
+              <ProgressBar value={72} tone="accent" size="lg" />
             </div>
-          </SurfaceCard>
-        }
-        secondary={
-          <SupportRail
-            tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
-            sticky={shellFamily === 'desktop'}
-            eyebrow="Que esperar"
-            title="Como se lee esta pantalla"
-            subtitle="Primero se ordena el diagnostico, luego aparece la ruta y despues el handoff al modulo."
-          >
-            <div className="grid gap-2">
-              <SurfaceCard padding="compact" variant="subtle">
-                <strong className="text-sm text-sd-text">1. Diagnostico primero</strong>
-                <p className="mt-2 text-sm leading-6 text-sd-muted">
-                  Sin esa base, la ruta no deberia inventarse visualmente.
-                </p>
-              </SurfaceCard>
-              <SurfaceCard padding="compact" variant="subtle">
-                <strong className="text-sm text-sd-text">2. Continuidad visible</strong>
-                <p className="mt-2 text-sm leading-6 text-sd-muted">
-                  En cuanto exista un modulo activo, veras con claridad que sigue y como entrar.
-                </p>
-              </SurfaceCard>
-            </div>
-          </SupportRail>
-        }
-      />
-    </section>
-  );
-}
+          ) : null}
 
-function RouteHero({
-  shellFamily,
-  prioritySummary,
-  strongestTopic,
-  weakestTopic,
-  completedModules,
-  routeLength,
-  adminAccess,
-}) {
-  const stripItems = [
-    {
-      key: 'modules',
-      eyebrow: 'Ruta',
-      value: `${completedModules}/${routeLength}`,
-      label: 'Modulos completos',
-      hint: 'Cuanto ya recorriste.',
-      tone: 'neutral',
-      variant: 'command',
-    },
-    {
-      key: 'focus',
-      eyebrow: 'Foco',
-      value: strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] : 'Sin dato',
-      label: strongestTopic ? formatPercent(strongestTopic[1]) : '0%',
-      hint: weakestTopic
-        ? `Gap: ${CATEGORY_LABELS[weakestTopic[0]]}`
-        : 'Sin gap dominante todavia.',
-      tone: 'accent',
-      variant: 'command',
-    },
-  ];
+          {error ? (
+            <InlineMessage tone="danger" title="No pudimos completar esta parte.">
+              {error}
+            </InlineMessage>
+          ) : null}
 
-  return (
-    <StageHero
-      tone="spotlight"
-      eyebrow="Ruta personalizada"
-      title="Tu ruta ya esta lista para continuar."
-      subtitle={prioritySummary}
-      actions={adminAccess ? <Badge tone="soft">Modo admin</Badge> : undefined}
-      footer={<StatStrip items={stripItems} compact={shellFamily === 'mobile'} variant="command" />}
-    />
-  );
-}
-
-function ContinuityConsole({
-  shellFamily,
-  target,
-  adminAccess,
-  onContinue,
-  onShowInRoute,
-}) {
-  const nextActivityTitle = target
-    ? displayActivityTitle(target.nextActivity, 'el siguiente bloque')
-    : null;
-  const primaryLabel = target?.stats.completedCount ? 'Continuar mi ruta' : 'Abrir modulo recomendado';
-
-  return (
-    <SurfaceCard
-      padding="lg"
-      variant="command"
-      tone="inverse"
-      className="relative overflow-hidden border-sd-border-strong"
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
-
-      <div className="grid gap-6">
-        <PanelHeader
-          eyebrow="Que sigue ahora"
-          title={
-            target
-              ? displayModuleTitle(target.module)
-              : 'Tu siguiente paso aparecera aqui en cuanto la ruta tenga un modulo activo.'
-          }
-          subtitle={
-            target
-              ? `Siguiente actividad: ${nextActivityTitle}.`
-              : 'Cuando la ruta este lista, esta region te muestra solo el paso principal.'
-          }
-          divider
-        />
-
-        {target ? (
-          <>
-            <ActionCluster
-              align="start"
-              collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
-              className="items-center"
-            >
+          {actionLabel && onAction ? (
+            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
               <Button
                 type="button"
                 variant="primary"
                 size="lg"
-                data-sd-primary-cta="courses-continuity"
-                aria-label={`${primaryLabel}: ${displayModuleTitle(target.module)}`}
-                onClick={() =>
-                  onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
-                }
+                onClick={onAction}
+                loading={generating}
               >
-                {primaryLabel}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => onShowInRoute(target.module.id)}>
-                Ver en la ruta
+                {generating ? 'Actualizando ruta...' : actionLabel}
               </Button>
             </ActionCluster>
-
-            <ProgressSummary
-              eyebrow="Avance del modulo"
-              title={nextActivityTitle}
-              value={formatPercent(target.stats.pct)}
-              hint={
-                target.stats.completedCount
-                  ? `${target.stats.completedCount} de ${target.stats.total} actividades listas.`
-                  : 'Empieza aqui sin perder el contexto de tu diagnostico.'
-              }
-              progressValue={target.stats.pct}
-              variant="support"
-              tone="accent"
-            />
-          </>
-        ) : (
-          <InlineMessage tone="info" title="Sin continuidad activa">
-            En cuanto tengas una ruta disponible, esta cabina te mostrara el siguiente paso con CTA directo.
-          </InlineMessage>
-        )}
-      </div>
-    </SurfaceCard>
+          ) : null}
+        </div>
+      </SurfaceCard>
+    </section>
   );
 }
 
-function TopSupportBand({
+function RouteBriefing({
   shellFamily,
-  quickGuide,
+  target,
+  adminAccess,
+  prioritySummary,
+  completedModules,
+  routeLength,
+  onContinue,
+  onShowInRoute,
 }) {
+  const routePct = routeLength ? Math.round((completedModules / routeLength) * 100) : 0;
+  const hasTarget = Boolean(target);
+  const primaryLabel = target?.stats.completedCount ? 'Continuar mi ruta' : 'Abrir modulo recomendado';
+  const moduleTitle = hasTarget ? displayModuleTitle(target.module) : null;
+  const nextActivityTitle = hasTarget
+    ? displayActivityTitle(target.nextActivity, 'siguiente bloque')
+    : null;
+
   return (
-    <SupportRail
-      tone={shellFamily === 'desktop' ? 'support' : 'insight'}
-      eyebrow="Como leerla"
-      title="Ruta por prioridad"
-      subtitle="Solo dejamos las referencias que ayudan a decidir que abrir."
+    <SurfaceCard
+      padding="xl"
+      variant="command"
+      tone="inverse"
+      className="sd-route-briefing relative overflow-hidden border-sd-border-strong"
+      data-sd-container="true"
     >
-      <div className="grid gap-3">
-        {quickGuide.slice(0, 2).map((item) => (
-          <SurfaceCard key={item.title} padding="compact" variant="subtle" className="h-full">
-            <strong className="block text-sm text-sd-text">{item.title}</strong>
-            <p className="mt-2 text-sm leading-6 text-sd-muted">{item.body}</p>
-          </SurfaceCard>
-        ))}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
+
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="sd-eyebrow m-0">Ruta personalizada</span>
+          {adminAccess ? <Badge tone="soft">Modo admin</Badge> : null}
+        </div>
+
+        <div className="grid gap-3">
+          <h1 className="sd-title-display m-0">
+            {hasTarget ? moduleTitle : 'Tu ruta ya esta lista para continuar.'}
+          </h1>
+          <p className="sd-copy m-0 max-w-[60ch]">
+            {hasTarget ? `Siguiente actividad: ${nextActivityTitle}.` : prioritySummary}
+          </p>
+        </div>
+
+        {hasTarget ? (
+          <ActionCluster
+            align="start"
+            collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
+          >
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              data-sd-primary-cta="courses-continuity"
+              aria-label={`${primaryLabel}: ${moduleTitle}`}
+              onClick={() =>
+                onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
+              }
+            >
+              {primaryLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onShowInRoute(target.module.id)}
+            >
+              Ver en la ruta
+            </Button>
+          </ActionCluster>
+        ) : (
+          <InlineMessage tone="info" title="Sin continuidad activa">
+            En cuanto tengas una ruta disponible, esta region te muestra el siguiente paso con CTA directo.
+          </InlineMessage>
+        )}
+
+        {routeLength > 0 ? (
+          <div className="sd-route-briefing-progress grid gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <span className="text-sd-text-inverse-soft">Avance total de tu ruta</span>
+              <strong className="sd-copy-strong m-0">
+                {`${completedModules}/${routeLength} modulos · ${routePct}%`}
+              </strong>
+            </div>
+            <ProgressBar value={routePct} tone="accent" size="lg" />
+          </div>
+        ) : null}
       </div>
-    </SupportRail>
+    </SurfaceCard>
   );
 }
 
@@ -1238,8 +1113,6 @@ export default function CoursesView({
   const defaultLevel =
     recommendedEntry ? normalizeModuleLevel(recommendedEntry.module.nivel) : availableLevels[0] || 'basico';
   const computed = computeCompetenciesFromProgress(coursePlan, courseProgress);
-  const strongestTopic =
-    Object.entries(computed.competencias || {}).sort((a, b) => b[1] - a[1])[0] || null;
   const weakestTopic =
     Object.entries(computed.competencias || {}).sort((a, b) => a[1] - b[1])[0] || null;
 
@@ -1261,13 +1134,6 @@ export default function CoursesView({
   );
 
   const resumeTarget = useMemo(() => buildResumeTarget(entries), [entries]);
-  const quickGuide = useMemo(
-    () =>
-      buildCourseQuickGuide({
-        hasProgress: Boolean(Object.keys(courseProgress?.completed || {}).length),
-      }),
-    [courseProgress]
-  );
 
   useEffect(() => {
     if (!availableLevels.includes(level)) {
@@ -1369,41 +1235,15 @@ export default function CoursesView({
       data-sd-container="true"
     >
       <div className="grid gap-[var(--sd-shell-section-gap)]">
-        <SplitHeroLayout
+        <RouteBriefing
           shellFamily={shellFamily}
-          className={
-            shellFamily === 'tablet'
-              ? 'md:grid-cols-[minmax(0,0.98fr)_minmax(22rem,1.02fr)]'
-              : shellFamily === 'desktop'
-                ? 'xl:grid-cols-[minmax(0,1.02fr)_minmax(25rem,0.98fr)] 2xl:grid-cols-[minmax(0,1.08fr)_minmax(26rem,0.92fr)]'
-                : ''
-          }
-          hero={
-            <RouteHero
-              shellFamily={shellFamily}
-              prioritySummary={prioritySummary}
-              strongestTopic={strongestTopic}
-              weakestTopic={weakestTopic}
-              completedModules={completedModules}
-              routeLength={route.length}
-              adminAccess={adminAccess}
-            />
-          }
-          primary={
-            <ContinuityConsole
-              shellFamily={shellFamily}
-              target={nextRouteTarget}
-              adminAccess={adminAccess}
-              onContinue={onOpenModule}
-              onShowInRoute={handleShowInRoute}
-            />
-          }
-          secondary={
-            <TopSupportBand
-              shellFamily={shellFamily}
-              quickGuide={quickGuide}
-            />
-          }
+          target={nextRouteTarget}
+          adminAccess={adminAccess}
+          prioritySummary={prioritySummary}
+          completedModules={completedModules}
+          routeLength={route.length}
+          onContinue={onOpenModule}
+          onShowInRoute={handleShowInRoute}
         />
 
         <DashboardSceneBar
