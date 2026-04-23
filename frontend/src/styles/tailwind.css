@@ -41,6 +41,23 @@
   --sd-warning-soft: rgba(185, 120, 18, 0.16);
   --sd-danger: #cf4c67;
   --sd-danger-soft: rgba(207, 76, 103, 0.15);
+  --sd-evidence: #6d56d8;
+  --sd-evidence-soft: rgba(109, 86, 216, 0.14);
+  --sd-evidence-contrast: #f8f6ff;
+  --sd-safe-action: #16876a;
+  --sd-safe-action-soft: rgba(22, 135, 106, 0.14);
+  --sd-safe-action-contrast: #f5fffb;
+  --sd-coach: #2d7898;
+  --sd-coach-soft: rgba(45, 120, 152, 0.14);
+  --sd-coach-contrast: #f4fbff;
+  --sd-progress-track: rgba(47, 99, 255, 0.14);
+  --sd-progress-fill: #2f63ff;
+  --sd-progress-complete: #27845c;
+  --sd-progress-risk: #cf4c67;
+  --sd-simulation-surface: #eef4ff;
+  --sd-simulation-surface-strong: #0c1830;
+  --sd-simulation-border: rgba(47, 99, 255, 0.18);
+  --sd-simulation-glow: rgba(47, 99, 255, 0.22);
 
   --sd-font-family-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
   --sd-font-family-display: "Unbounded", "Sora", ui-sans-serif, system-ui, sans-serif;
@@ -222,6 +239,23 @@ body[data-theme='dark'] {
   --sd-warning-soft: rgba(242, 179, 92, 0.18);
   --sd-danger: #ff8fa5;
   --sd-danger-soft: rgba(255, 143, 165, 0.18);
+  --sd-evidence: #b8a7ff;
+  --sd-evidence-soft: rgba(184, 167, 255, 0.18);
+  --sd-evidence-contrast: #120d24;
+  --sd-safe-action: #6ee5bd;
+  --sd-safe-action-soft: rgba(110, 229, 189, 0.18);
+  --sd-safe-action-contrast: #061a14;
+  --sd-coach: #8ad8f2;
+  --sd-coach-soft: rgba(138, 216, 242, 0.18);
+  --sd-coach-contrast: #071722;
+  --sd-progress-track: rgba(109, 141, 255, 0.18);
+  --sd-progress-fill: #6d8dff;
+  --sd-progress-complete: #4ed59b;
+  --sd-progress-risk: #ff8fa5;
+  --sd-simulation-surface: #101a2f;
+  --sd-simulation-surface-strong: #050c17;
+  --sd-simulation-border: rgba(139, 163, 220, 0.18);
+  --sd-simulation-glow: rgba(109, 141, 255, 0.28);
 }
 
 @media (min-width: 48rem) {
@@ -283,6 +317,23 @@ body[data-theme='dark'] {
   --color-sd-warning-soft: var(--sd-warning-soft);
   --color-sd-danger: var(--sd-danger);
   --color-sd-danger-soft: var(--sd-danger-soft);
+  --color-sd-evidence: var(--sd-evidence);
+  --color-sd-evidence-soft: var(--sd-evidence-soft);
+  --color-sd-evidence-contrast: var(--sd-evidence-contrast);
+  --color-sd-safe-action: var(--sd-safe-action);
+  --color-sd-safe-action-soft: var(--sd-safe-action-soft);
+  --color-sd-safe-action-contrast: var(--sd-safe-action-contrast);
+  --color-sd-coach: var(--sd-coach);
+  --color-sd-coach-soft: var(--sd-coach-soft);
+  --color-sd-coach-contrast: var(--sd-coach-contrast);
+  --color-sd-progress-track: var(--sd-progress-track);
+  --color-sd-progress-fill: var(--sd-progress-fill);
+  --color-sd-progress-complete: var(--sd-progress-complete);
+  --color-sd-progress-risk: var(--sd-progress-risk);
+  --color-sd-simulation-surface: var(--sd-simulation-surface);
+  --color-sd-simulation-surface-strong: var(--sd-simulation-surface-strong);
+  --color-sd-simulation-border: var(--sd-simulation-border);
+  --color-sd-simulation-glow: var(--sd-simulation-glow);
 }
 
 @layer base {

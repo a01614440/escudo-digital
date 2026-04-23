@@ -7,6 +7,7 @@ import {
   blurTokens,
   containerAwarenessRules,
   colorTokens,
+  educationalTokens,
   foundationInventory,
   interactionRules,
   motionTokens,
@@ -41,6 +42,27 @@ test('foundation typography classes consume CSS variables', () => {
   assert.match(css, /\.sd-heading-md\s*\{[^}]*var\(--sd-type-role-heading-md-size\)/s);
   assert.match(css, /\.sd-copy\s*\{[^}]*var\(--sd-type-size-body\)/s);
   assert.doesNotMatch(css, /\.sd-title-display\s*\{[^}]*text-\[/s);
+});
+
+test('foundation exposes educational semantic tokens', () => {
+  assert.ok(colorTokens.educational.includes('--sd-evidence'));
+  assert.ok(colorTokens.educational.includes('--sd-safe-action'));
+  assert.ok(colorTokens.educational.includes('--sd-coach'));
+  assert.ok(colorTokens.educational.includes('--sd-simulation-surface'));
+  assert.equal(educationalTokens.evidence.base, '--sd-evidence');
+  assert.equal(educationalTokens.progress.fill, '--sd-progress-fill');
+  assert.match(educationalTokens.safeAction.use, /Acciones seguras/i);
+  assert.match(educationalTokens.simulation.use, /chat, inbox, llamada/i);
+});
+
+test('foundation educational tokens are mirrored as CSS variables', () => {
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+  assert.match(css, /--sd-evidence:/);
+  assert.match(css, /--sd-safe-action:/);
+  assert.match(css, /--sd-coach:/);
+  assert.match(css, /--sd-simulation-surface:/);
+  assert.match(css, /--color-sd-progress-fill: var\(--sd-progress-fill\)/);
+  assert.match(css, /--color-sd-simulation-glow: var\(--sd-simulation-glow\)/);
 });
 
 test('foundation documents interaction and layout inventory', () => {

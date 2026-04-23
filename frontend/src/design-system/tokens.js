@@ -31,6 +31,60 @@ export const colorTokens = {
     '--sd-accent-contrast',
   ],
   semantic: ['--sd-success', '--sd-success-soft', '--sd-warning', '--sd-warning-soft', '--sd-danger', '--sd-danger-soft'],
+  educational: [
+    '--sd-evidence',
+    '--sd-evidence-soft',
+    '--sd-evidence-contrast',
+    '--sd-safe-action',
+    '--sd-safe-action-soft',
+    '--sd-safe-action-contrast',
+    '--sd-coach',
+    '--sd-coach-soft',
+    '--sd-coach-contrast',
+    '--sd-progress-track',
+    '--sd-progress-fill',
+    '--sd-progress-complete',
+    '--sd-progress-risk',
+    '--sd-simulation-surface',
+    '--sd-simulation-surface-strong',
+    '--sd-simulation-border',
+    '--sd-simulation-glow',
+  ],
+};
+
+export const educationalTokens = {
+  evidence: {
+    base: '--sd-evidence',
+    soft: '--sd-evidence-soft',
+    contrast: '--sd-evidence-contrast',
+    use: 'Senales detectadas, evidencia sospechosa o elementos que requieren inspeccion.',
+  },
+  safeAction: {
+    base: '--sd-safe-action',
+    soft: '--sd-safe-action-soft',
+    contrast: '--sd-safe-action-contrast',
+    use: 'Acciones seguras recomendadas; no equivale automaticamente a exito del usuario.',
+  },
+  coach: {
+    base: '--sd-coach',
+    soft: '--sd-coach-soft',
+    contrast: '--sd-coach-contrast',
+    use: 'Feedback pedagogico, reflexion guiada y explicaciones de apoyo.',
+  },
+  progress: {
+    track: '--sd-progress-track',
+    fill: '--sd-progress-fill',
+    complete: '--sd-progress-complete',
+    risk: '--sd-progress-risk',
+    use: 'Progreso de ruta, modulo o actividad separado del accent primario.',
+  },
+  simulation: {
+    surface: '--sd-simulation-surface',
+    surfaceStrong: '--sd-simulation-surface-strong',
+    border: '--sd-simulation-border',
+    glow: '--sd-simulation-glow',
+    use: 'Superficies inmersivas base para chat, inbox, llamada y laboratorio web.',
+  },
 };
 
 export const radiusTokens = {
