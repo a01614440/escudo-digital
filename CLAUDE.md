@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F3 Auth + Survey refine cerrado localmente. F3.A-F3.G cerradas localmente.**
+**F4 refine en curso. F4.A refinada y F4.B cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -147,6 +147,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - confirme que no se toco implementacion, solo auditoria y contexto;
 - luego se ejecuto F4.A refinada como baseline definitivo de UX en `docs/rebuild/audit/F4.A-courses-baseline-audit.md`;
 - la F4.A refinada audito densidad, jerarquia, CTA, simetria, comodidad visual y separacion F4 vs F5;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.B - Information architecture / density pass.
+- F4.B Information architecture / density pass quedo cerrada localmente con `docs/rebuild/audit/F4.B-information-density.md`;
+- F4.B redujo densidad en `CoursesView.jsx`: retiro stats/badges secundarios, copy redundante, `ProgressSummary` duplicado, contadores de rail, metadata de continuidad y lecturas laterales repetidas;
+- F4.B agrego `test/f4-courses-dashboard-smoke.test.js` para evitar regresion de densidad;
+- F4.B valido `.\npm-local.cmd test` con 61/61 y `.\npm-local.cmd run build`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.C - Hero + continuity + CTA pass.
 
-No abrir F4.B/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F4.C/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

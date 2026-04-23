@@ -57,21 +57,21 @@ const TABS = [
     label: 'Ruta',
     eyebrow: 'Direccion',
     title: 'Ruta activa y siguiente paso',
-    subtitle: 'Modulos, continuidad y handoff leidos como una sola cabina.',
+    subtitle: 'Modulos y continuidad en un solo frente.',
   },
   {
     id: 'progreso',
     label: 'Progreso',
     eyebrow: 'Lectura',
     title: 'Blindaje, gaps y evolucion',
-    subtitle: 'Lo que ya dominas, lo que falta y como va cambiando tu recorrido.',
+    subtitle: 'Lo importante del avance, sin ruido.',
   },
   {
     id: 'ajustes',
     label: 'Ajustes',
     eyebrow: 'Control',
     title: 'Ritmo, foco y regeneracion',
-    subtitle: 'Ajustes visuales de la ruta sin perder continuidad.',
+    subtitle: 'Ritmo y foco sin perder continuidad.',
   },
 ];
 
@@ -166,10 +166,10 @@ function DashboardEmptyState({
             title={generating ? 'Estamos armando tu ruta' : title}
             subtitle={
               generating
-                ? 'Estamos ordenando modulos, continuidad y prioridad para que la cabina nazca ya con siguiente paso claro.'
+                ? 'Estamos ordenando modulos y prioridad para dejarte un siguiente paso claro.'
                 : body
             }
-            meta="La ruta no es una lista suelta: conecta diagnostico, continuidad y lesson."
+            meta="Diagnostico primero; continuidad despues."
             footer={<StatStrip items={EMPTY_STRIP} compact={shellFamily === 'mobile'} variant="support" />}
           >
             <p className="m-0 text-sm leading-7 text-white/78">
@@ -186,7 +186,7 @@ function DashboardEmptyState({
               subtitle={
                 generating
                   ? 'Estamos recalculando modulos y continuidad con el mismo diagnostico.'
-                  : 'Desde aqui puedes crear o reconstruir la ruta sin tocar tu dominio ni tu cuenta.'
+                  : 'Desde aqui puedes crear o reconstruir la ruta sin tocar tu progreso.'
               }
               divider
             />
@@ -197,9 +197,9 @@ function DashboardEmptyState({
                   <div className="flex items-start gap-4">
                     <Spinner size="lg" />
                     <div className="grid gap-2">
-                      <strong className="text-base text-white">Ordenando modulos y continuidad</strong>
+                      <strong className="text-base text-white">Ordenando la ruta</strong>
                       <p className="m-0 text-sm leading-6 text-white/76">
-                        Estamos priorizando que sigue y como retomarlo sin perder contexto.
+                        Estamos priorizando que sigue sin perder contexto.
                       </p>
                     </div>
                   </div>
@@ -264,20 +264,9 @@ function RouteHero({
   weakestTopic,
   completedModules,
   routeLength,
-  computed,
-  courseProgress,
   adminAccess,
 }) {
   const stripItems = [
-    {
-      key: 'shield',
-      eyebrow: 'Shield',
-      value: formatPercent(computed.score_total),
-      label: 'Score total',
-      hint: 'Lectura global de tu estado actual.',
-      tone: 'accent',
-      variant: 'command',
-    },
     {
       key: 'modules',
       eyebrow: 'Ruta',
@@ -306,19 +295,9 @@ function RouteHero({
       eyebrow="Ruta personalizada"
       title="Tu ruta ya te dice que sigue."
       subtitle={assessment?.resumen || prioritySummary}
-      actions={
-        <ActionCluster collapse="wrap">
-          {assessment?.nivel ? <Badge tone="soft">{`Nivel ${assessment.nivel}`}</Badge> : null}
-          {adminAccess ? <Badge tone="soft">Modo admin</Badge> : null}
-        </ActionCluster>
-      }
-      meta={`Ultimo acceso: ${formatDate(courseProgress?.lastAccessAt)}`}
+      actions={adminAccess ? <Badge tone="soft">Modo admin</Badge> : undefined}
       footer={<StatStrip items={stripItems} compact={shellFamily === 'mobile'} variant="command" />}
-    >
-      <p className="m-0 text-sm leading-7 text-white/78">
-        La consola de continuidad concentra la accion principal y el detalle del modulo deja la explicacion larga para despues.
-      </p>
-    </StageHero>
+    />
   );
 }
 
@@ -348,12 +327,7 @@ function ContinuityConsole({
           subtitle={
             target
               ? `Siguiente accion: ${displayActivityTitle(target.nextActivity, 'el siguiente bloque')}.`
-              : 'Cuando la ruta este lista, esta region concentra la accion principal.'
-          }
-          meta={
-            <div className="flex flex-wrap gap-2">
-              {target ? <Badge tone="accent">{`Modulo ${target.moduleIndex + 1}`}</Badge> : <Badge tone="neutral">Ruta lista</Badge>}
-            </div>
+              : 'Cuando la ruta este lista, esta region te muestra solo el paso principal.'
           }
           divider
         />
@@ -366,28 +340,12 @@ function ContinuityConsole({
               value={formatPercent(target.stats.pct)}
               hint={
                 target.stats.completedCount
-                  ? `${target.stats.completedCount} de ${target.stats.total} actividades ya completadas.`
-                  : 'Todavia no registras actividades en este bloque.'
+                  ? `${target.stats.completedCount} de ${target.stats.total} actividades listas.`
+                  : 'Tu primera actividad aparece aqui.'
               }
               progressValue={target.stats.pct}
               variant="support"
               tone="accent"
-              className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
-            />
-
-            <KeyValueBlock
-              items={[
-                {
-                  key: 'category',
-                  label: 'Categoria',
-                  value: CATEGORY_LABELS[target.module.categoria] || 'Ruta',
-                },
-                {
-                  key: 'time',
-                  label: 'Tiempo',
-                  value: target.stats.durationLabel,
-                },
-              ]}
             />
 
             <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
@@ -419,58 +377,23 @@ function ContinuityConsole({
 function TopSupportBand({
   shellFamily,
   quickGuide,
-  strongestTopic,
-  weakestTopic,
-  prioritySummary,
 }) {
   return (
-    <div
-      className={cn(
-        'grid gap-[var(--sd-shell-pane-gap)]',
-        shellFamily === 'desktop'
-          ? 'xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)]'
-          : shellFamily === 'tablet'
-            ? 'lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.88fr)]'
-            : ''
-      )}
+    <SupportRail
+      tone={shellFamily === 'desktop' ? 'support' : 'insight'}
+      eyebrow="Como leerla"
+      title="Ruta por prioridad"
+      subtitle="Solo dejamos las referencias que ayudan a decidir que abrir."
     >
-      <SurfaceCard padding="lg" variant="editorial">
-        <PanelHeader
-          eyebrow="Como leerla"
-          title="Ruta por prioridad"
-          subtitle="Solo dejamos las referencias que ayudan a decidir que abrir."
-          divider
-        />
-        <div className="grid gap-3 md:grid-cols-2">
-          {quickGuide.slice(0, 2).map((item) => (
-            <SurfaceCard key={item.title} padding="compact" variant="subtle" className="h-full">
-              <strong className="block text-sm text-sd-text">{item.title}</strong>
-              <p className="mt-2 text-sm leading-6 text-sd-muted">{item.body}</p>
-            </SurfaceCard>
-          ))}
-        </div>
-      </SurfaceCard>
-
-      <SupportRail
-        tone={shellFamily === 'desktop' ? 'support' : 'insight'}
-        eyebrow="Lectura rapida"
-        title="Lo que mas pesa hoy"
-        subtitle="Foco principal y gap visible en un solo bloque."
-      >
-        <ProgressSummary
-          eyebrow="Foco actual"
-          title={prioritySummary}
-          value={strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] : 'Ruta activa'}
-          hint={
-            weakestTopic
-              ? `Gap visible: ${CATEGORY_LABELS[weakestTopic[0]]}`
-              : 'Todavia no hay suficiente progresion para detectar el gap principal.'
-          }
-          progressValue={strongestTopic?.[1] || 0}
-          variant="support"
-        />
-      </SupportRail>
-    </div>
+      <div className="grid gap-3">
+        {quickGuide.slice(0, 2).map((item) => (
+          <SurfaceCard key={item.title} padding="compact" variant="subtle" className="h-full">
+            <strong className="block text-sm text-sd-text">{item.title}</strong>
+            <p className="mt-2 text-sm leading-6 text-sd-muted">{item.body}</p>
+          </SurfaceCard>
+        ))}
+      </div>
+    </SupportRail>
   );
 }
 
@@ -478,9 +401,6 @@ function DashboardSceneBar({
   shellFamily,
   activeTab,
   onChange,
-  completedModules,
-  routeLength,
-  nextRouteTarget,
 }) {
   const copy = TABS.find((tab) => tab.id === activeTab) || TABS[0];
 
@@ -504,11 +424,6 @@ function DashboardSceneBar({
           eyebrow={copy.eyebrow}
           title={copy.title}
           subtitle={copy.subtitle}
-          meta={
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="accent">{`${completedModules}/${routeLength} modulos cerrados`}</Badge>
-            </div>
-          }
         />
         <DashboardTabs activeTab={activeTab} onChange={onChange} />
       </div>
@@ -566,8 +481,6 @@ function RouteModulePill({
         <ProgressBar value={entry.stats.pct} tone={locked ? 'warning' : 'accent'} />
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-sd-text-soft">
-          <span>{`${entry.stats.completedCount}/${entry.stats.total} actividades`}</span>
-          <span>{entry.stats.durationLabel}</span>
           <span>{locked ? 'Bloqueado por secuencia' : getModuleStatusLabel(entry.stats.status)}</span>
           {recommended ? <Badge tone="accent">Siguiente</Badge> : null}
         </div>
@@ -586,7 +499,6 @@ function RouteNavigatorRail({
   adminAccess,
   unlockedLimit,
   recommendedIndex,
-  entries,
   onSelectModule,
 }) {
   const levelCopy = getLevelCopy(level);
@@ -603,8 +515,7 @@ function RouteNavigatorRail({
       <PanelHeader
         eyebrow="Navegador de ruta"
         title="Modulos por prioridad"
-        subtitle="Elige un bloque y lee su detalle sin perder continuidad."
-        meta={<Badge tone="ink">{`${currentLevelEntries.length} visibles`}</Badge>}
+        subtitle="Elige un bloque sin perder continuidad."
         divider
         className="[&_.sd-heading-sm]:text-white [&_.sd-copy-sm]:text-white/76 [&_.sd-eyebrow]:text-white/70"
       />
@@ -615,7 +526,7 @@ function RouteNavigatorRail({
             <PanelHeader
               eyebrow="Nivel visible"
               title={levelCopy.title}
-              subtitle="Filtra la ruta sin perder el orden."
+              subtitle="Filtra sin romper el orden."
             />
             <div className="mt-4">
               <LevelFilter levels={availableLevels} activeLevel={level} onChange={onLevelChange} />
@@ -729,13 +640,7 @@ function ModuleMissionBoard({
           module.descripcion,
           'Bloque practico para detectar senales, fijar una rutina segura y saber exactamente como retomar.'
         )}
-        actions={
-          <ActionCluster collapse="wrap">
-            <Badge tone={recommended ? 'accent' : 'neutral'}>
-              {recommended ? 'Siguiente recomendado' : getModuleStatusLabel(stats.status)}
-            </Badge>
-          </ActionCluster>
-        }
+        actions={recommended ? <Badge tone="accent">Siguiente recomendado</Badge> : undefined}
         meta={`${CATEGORY_LABELS[module.categoria] || 'Ruta'} · ${getModuleObjective(module)}`}
         footer={
           <StatStrip
@@ -750,20 +655,10 @@ function ModuleMissionBoard({
                 hint: 'Porcentaje visible dentro del modulo.',
                 tone: getModuleStatusTone(stats.status),
               },
-              {
-                key: 'time',
-                eyebrow: 'Tiempo',
-                value: stats.durationLabel,
-                label: 'Dedicacion',
-                hint: 'Tiempo registrado en este bloque.',
-                tone: 'neutral',
-              },
             ]}
           />
         }
-      >
-        <p className="m-0 text-sm leading-7 text-sd-text-soft">Objetivo claro, siguiente actividad visible y CTA directo.</p>
-      </StageHero>
+      />
 
       <div
         className={cn(
@@ -776,12 +671,12 @@ function ModuleMissionBoard({
         )}
       >
         <SurfaceCard padding="lg" variant="panel">
-          <PanelHeader
-            eyebrow="Ruta interna del modulo"
-            title={displayActivityTitle(stats.nextActivity, 'Modulo listo para repaso')}
-            subtitle="La secuencia deja visible que sigue y que ya quedo hecho."
-            divider
-          />
+            <PanelHeader
+              eyebrow="Ruta interna del modulo"
+              title={displayActivityTitle(stats.nextActivity, 'Modulo listo para repaso')}
+              subtitle="Solo dejamos visible que sigue y que ya quedo hecho."
+              divider
+            />
           <ModuleActivityList
             module={module}
             nextActivity={stats.nextActivity}
@@ -805,16 +700,10 @@ function ModuleMissionBoard({
               progressValue={stats.pct}
               tone="accent"
               variant="support"
-              className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
             />
 
             <KeyValueBlock
               items={[
-                {
-                  key: 'visits',
-                  label: 'Visitas',
-                  value: stats.visits || 0,
-                },
                 {
                   key: 'last',
                   label: 'Ultimo cierre',
@@ -863,13 +752,10 @@ function RouteInsightRail({
   routeLength,
   completedModules,
   selectedEntry,
-  quickGuide,
-  strongestTopic,
   weakestTopic,
   nextUnlockEntry,
   adminAccess,
 }) {
-  const selectedStats = selectedEntry?.stats || null;
   const selectedModule = selectedEntry?.module || null;
   const routeCompletion = routeLength ? Math.round((completedModules / routeLength) * 100) : 0;
 
@@ -890,16 +776,10 @@ function RouteInsightRail({
             progressValue={routeCompletion}
             tone="accent"
             variant="support"
-            className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
           />
 
           <KeyValueBlock
             items={[
-              {
-                key: 'fortaleza',
-                label: 'Fortaleza',
-                value: strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] : 'Sin dato suficiente',
-              },
               {
                 key: 'gap',
                 label: 'Gap visible',
@@ -913,14 +793,6 @@ function RouteInsightRail({
             ]}
           />
 
-          {selectedStats ? (
-            <InlineMessage tone="info" title="Lectura del modulo seleccionado">
-              {selectedStats.completedCount
-                ? `Ya registras ${selectedStats.completedCount} actividad(es) en este bloque.`
-                : 'Todavia no registras avance en este bloque.'}
-            </InlineMessage>
-          ) : null}
-
           {adminAccess ? (
             <InlineMessage tone="info" title="Modo admin activo">
               Esta ruta permite abrir y repetir modulos sin esperar el desbloqueo secuencial.
@@ -929,13 +801,6 @@ function RouteInsightRail({
         </div>
       </SupportRail>
 
-      <SurfaceCard padding="md" variant="editorial">
-        <PanelHeader
-          eyebrow="Guia"
-          title={quickGuide[0]?.title || 'Recorre por prioridad'}
-          subtitle={quickGuide[0]?.body || 'Usa la ruta por prioridad y continuidad.'}
-        />
-      </SurfaceCard>
     </div>
   );
 }
@@ -966,18 +831,8 @@ function ProgressScene({
       <StageHero
         tone="editorial"
         eyebrow="Progreso visible"
-        title="Tu blindaje ya se puede leer como avance real, no como datos sueltos."
+        title="Tu blindaje ya se puede leer como avance real."
         subtitle={getPrioritySummary(answers, assessment)}
-        actions={
-          <ActionCluster collapse="wrap">
-            {strongestTopic ? (
-              <Badge tone="accent">{`Fortaleza: ${CATEGORY_LABELS[strongestTopic[0]]}`}</Badge>
-            ) : null}
-            {weakestTopic ? (
-              <Badge tone="warning">{`Gap: ${CATEGORY_LABELS[weakestTopic[0]]}`}</Badge>
-            ) : null}
-          </ActionCluster>
-        }
         meta="Aqui interpretas que tan blindada esta la ruta y donde conviene insistir en los siguientes modulos."
         footer={
           <StatStrip
@@ -999,23 +854,10 @@ function ProgressScene({
                 hint: 'Sirve para retomar con una expectativa real.',
                 tone: 'neutral',
               },
-              {
-                key: 'last',
-                eyebrow: 'Ultimo acceso',
-                value: formatDate(progress?.lastAccessAt),
-                label: 'Registro',
-                hint: 'Ayuda a leer continuidad y ritmo.',
-                tone: 'neutral',
-              },
             ]}
           />
         }
-      >
-        <p className="m-0 text-sm leading-7 text-sd-text-soft">
-          El progreso deja de ser accesorio: ahora explica fortalezas, errores frecuentes y como
-          eso reordena la siguiente parte de tu ruta.
-        </p>
-      </StageHero>
+      />
 
       <div
         className={cn(
@@ -1169,14 +1011,6 @@ function SettingsScene({
       hint: 'Sigue usando la misma logica de plan.',
       tone: 'neutral',
     },
-    {
-      key: 'duration',
-      eyebrow: 'Duracion',
-      value: coursePrefs?.duracion || '5-10',
-      label: 'Ritmo esperado',
-      hint: 'Ajusta cuanto deberia sentirse cada bloque.',
-      tone: 'neutral',
-    },
   ];
 
   return (
@@ -1193,23 +1027,18 @@ function SettingsScene({
         <StageHero
           tone="editorial"
           eyebrow="Ajustes de cabina"
-          title="Ritmo, foco y regeneracion ya viven dentro del mismo sistema visual de la ruta."
-          subtitle="Aqui no se reescribe la logica del plan: solo se ajusta como quieres recorrerlo y cuando vale la pena regenerarlo."
-          meta="Los cambios preservan diagnostico, continuidad y estructura general del recorrido."
+          title="Ritmo, foco y regeneracion de la ruta"
+          subtitle="Ajusta como recorrerla antes de regenerar."
+          meta="Preserva diagnostico y continuidad."
           footer={<StatStrip items={settingsStrip} compact={shellFamily === 'mobile'} variant="support" />}
-        >
-          <p className="m-0 text-sm leading-7 text-sd-text-soft">
-            Esta region ya no se siente como un formulario suelto. Es la cabina donde decides
-            ritmo, dificultad visible y temas prioritarios antes de volver a ordenar la ruta.
-          </p>
-        </StageHero>
+        />
       }
       primary={
         <SurfaceCard padding="lg" variant="spotlight">
           <PanelHeader
             eyebrow="Preferencias"
             title="Ajusta ritmo y enfoque"
-            subtitle="Estos controles no tocan dominio ni scoring; solo reordenan la presentacion de la ruta cuando vuelves a generarla."
+            subtitle="Solo cambian la presentacion y prioridad visible."
             divider
           />
 
@@ -1509,8 +1338,6 @@ export default function CoursesView({
               weakestTopic={weakestTopic}
               completedModules={completedModules}
               routeLength={route.length}
-              computed={computed}
-              courseProgress={courseProgress}
               adminAccess={adminAccess}
             />
           }
@@ -1527,9 +1354,6 @@ export default function CoursesView({
             <TopSupportBand
               shellFamily={shellFamily}
               quickGuide={quickGuide}
-              strongestTopic={strongestTopic}
-              weakestTopic={weakestTopic}
-              prioritySummary={prioritySummary}
             />
           }
         />
@@ -1538,9 +1362,6 @@ export default function CoursesView({
           shellFamily={shellFamily}
           activeTab={tab}
           onChange={setTab}
-          completedModules={completedModules}
-          routeLength={route.length}
-          nextRouteTarget={nextRouteTarget}
         />
 
         {tab === 'ruta' ? (
@@ -1556,7 +1377,6 @@ export default function CoursesView({
                 adminAccess={adminAccess}
                 unlockedLimit={unlockedLimit}
                 recommendedIndex={recommendedIndex}
-                entries={entries}
                 onSelectModule={setSelectedModuleId}
               />
 
@@ -1576,8 +1396,6 @@ export default function CoursesView({
                 routeLength={route.length}
                 completedModules={completedModules}
                 selectedEntry={selectedEntry}
-                quickGuide={quickGuide}
-                strongestTopic={strongestTopic}
                 weakestTopic={weakestTopic}
                 nextUnlockEntry={nextUnlockEntry}
                 adminAccess={adminAccess}
@@ -1595,7 +1413,6 @@ export default function CoursesView({
                 adminAccess={adminAccess}
                 unlockedLimit={unlockedLimit}
                 recommendedIndex={recommendedIndex}
-                entries={entries}
                 onSelectModule={setSelectedModuleId}
               />
 
@@ -1616,8 +1433,6 @@ export default function CoursesView({
                   routeLength={route.length}
                   completedModules={completedModules}
                   selectedEntry={selectedEntry}
-                  quickGuide={quickGuide}
-                  strongestTopic={strongestTopic}
                   weakestTopic={weakestTopic}
                   nextUnlockEntry={nextUnlockEntry}
                   adminAccess={adminAccess}
@@ -1639,7 +1454,6 @@ export default function CoursesView({
                   adminAccess={adminAccess}
                   unlockedLimit={unlockedLimit}
                   recommendedIndex={recommendedIndex}
-                  entries={entries}
                   onSelectModule={setSelectedModuleId}
                 />
               }
@@ -1661,8 +1475,6 @@ export default function CoursesView({
                   routeLength={route.length}
                   completedModules={completedModules}
                   selectedEntry={selectedEntry}
-                  quickGuide={quickGuide}
-                  strongestTopic={strongestTopic}
                   weakestTopic={weakestTopic}
                   nextUnlockEntry={nextUnlockEntry}
                   adminAccess={adminAccess}

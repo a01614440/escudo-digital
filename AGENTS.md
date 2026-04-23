@@ -76,7 +76,11 @@ La tesis obligatoria es:
 - F4.A refinada quedo cerrada localmente con `docs/rebuild/audit/F4.A-courses-baseline-audit.md` como baseline definitivo de UX para `CoursesView`.
 - F4.A refinada separo densidad, jerarquia, CTA, simetria y comodidad visual de problemas que pertenecen a F5.
 - F4.A confirmo que el siguiente frente de trabajo es F4.B - Information architecture / density pass y que no conviene abrir F5/F6/F7 sin autorizacion explicita.
-- No abrir F4.B/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F4.B Information architecture / density pass quedo cerrada localmente con `docs/rebuild/audit/F4.B-information-density.md`.
+- F4.B redujo densidad en `CoursesView.jsx`: retiro stats/badges secundarios, copy redundante, `ProgressSummary` duplicado, contadores de rail, metadata de continuidad y lecturas laterales repetidas.
+- F4.B agrego `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (61/61) + `.\npm-local.cmd run build`.
+- El siguiente frente recomendado es F4.C - Hero + continuity + CTA pass.
+- No abrir F4.C/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
