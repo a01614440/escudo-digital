@@ -17,9 +17,11 @@ import {
 import {
   Badge,
   Button,
+  Checkbox,
   Field,
   InlineMessage,
   ProgressBar,
+  Radio,
   Select,
   Spinner,
   SurfaceCard,
@@ -38,6 +40,22 @@ const LOADING_PIPELINE = [
   'Calculamos tu perfil.',
   'Preparamos tu ruta.',
 ];
+
+function mergeDescribedBy(...ids) {
+  return ids.filter(Boolean).join(' ') || undefined;
+}
+
+function buildNextMultiAnswer(options, selectedValues, optionValue, checked) {
+  const nextValues = new Set(selectedValues);
+
+  if (checked) {
+    nextValues.add(optionValue);
+  } else {
+    nextValues.delete(optionValue);
+  }
+
+  return options.map((option) => option.value).filter((value) => nextValues.has(value));
+}
 
 function getStageHeroModel({ showIntro, surveyStage, surveyIndex, total, assessment, progress }) {
   if (showIntro) {
@@ -216,45 +234,43 @@ function SurveyStageHero({
   );
 }
 
-function SurveyChoiceCard({ type = 'radio', name, checked, label, helper, onChange }) {
-  return (
-    <label className="block cursor-pointer">
-      <input className="sr-only" type={type} name={name} checked={checked} onChange={onChange} />
-      <SurfaceCard
-        padding="compact"
-        variant={checked ? 'raised' : 'subtle'}
-        interactive
-        selected={checked}
-        className={checked ? 'border-sd-accent shadow-[0_24px_50px_-28px_rgba(47,99,255,0.3)]' : ''}
-      >
-        <div className="grid gap-2">
-          <div className="flex items-start justify-between gap-3">
-            <strong className="text-sm leading-6 text-sd-text">{label}</strong>
-            {checked ? <span className="text-sm font-medium text-sd-accent">Elegida</span> : null}
-          </div>
-          {helper ? <p className="m-0 text-sm leading-6 text-sd-muted">{helper}</p> : null}
-        </div>
-      </SurfaceCard>
-    </label>
-  );
-}
+function renderInput({
+  question,
+  value,
+  onChange,
+  shellFamily,
+  questionDomId,
+  describedBy,
+  invalid,
+}) {
+  const controlName = question.id || questionDomId;
 
-function renderInput(question, value, onChange, shellFamily) {
   if (question.type === 'single') {
     return (
-      <div className="grid gap-3">
-        {question.options.map((option) => (
-          <SurveyChoiceCard
-            key={option.value}
-            type="radio"
-            name={question.id}
-            checked={value === option.value}
-            label={option.label}
-            helper={option.helper}
-            onChange={() => onChange(question.id, option.value)}
-          />
-        ))}
-      </div>
+      <fieldset
+        className="grid gap-3"
+        aria-describedby={describedBy}
+        aria-invalid={invalid ? 'true' : undefined}
+        aria-required="true"
+      >
+        <legend className="sr-only">{question.title}</legend>
+        <div className="grid gap-3">
+          {question.options.map((option, index) => (
+            <Radio
+              key={option.value}
+              id={`${questionDomId}-option-${index}`}
+              name={controlName}
+              value={option.value}
+              checked={value === option.value}
+              label={option.label}
+              hint={option.helper}
+              invalid={invalid}
+              aria-describedby={describedBy}
+              onChange={() => onChange(question.id, option.value)}
+            />
+          ))}
+        </div>
+      </fieldset>
     );
   }
 
@@ -262,31 +278,50 @@ function renderInput(question, value, onChange, shellFamily) {
     const selected = Array.isArray(value) ? value : [];
 
     return (
-      <div className={shellFamily === 'mobile' ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
-        {question.options.map((option) => (
-          <SurveyChoiceCard
-            key={option.value}
-            type="checkbox"
-            name={`${question.id}-${option.value}`}
-            checked={selected.includes(option.value)}
-            label={option.label}
-            helper={option.helper}
-            onChange={(event) => {
-              const next = event.target.checked
-                ? [...selected, option.value]
-                : selected.filter((item) => item !== option.value);
-              onChange(question.id, next);
-            }}
-          />
-        ))}
-      </div>
+      <fieldset
+        className="grid gap-3"
+        aria-describedby={describedBy}
+        aria-invalid={invalid ? 'true' : undefined}
+        aria-required="true"
+      >
+        <legend className="sr-only">{question.title}</legend>
+        <div className={shellFamily === 'mobile' ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
+          {question.options.map((option, index) => (
+            <Checkbox
+              key={option.value}
+              id={`${questionDomId}-option-${index}`}
+              name={controlName}
+              value={option.value}
+              checked={selected.includes(option.value)}
+              label={option.label}
+              hint={option.helper}
+              invalid={invalid}
+              aria-describedby={describedBy}
+              onChange={(event) => {
+                onChange(
+                  question.id,
+                  buildNextMultiAnswer(question.options, selected, option.value, event.target.checked)
+                );
+              }}
+            />
+          ))}
+        </div>
+      </fieldset>
     );
   }
 
   if (question.type === 'select') {
     return (
-      <Field label="Tu respuesta">
-        <Select value={value || ''} onChange={(event) => onChange(question.id, event.target.value)}>
+      <Field label="Tu respuesta" required>
+        <Select
+          id={`${questionDomId}-select`}
+          name={controlName}
+          value={value || ''}
+          required
+          invalid={invalid}
+          aria-describedby={describedBy}
+          onChange={(event) => onChange(question.id, event.target.value)}
+        >
           <option value="">Selecciona una opcion</option>
           {question.options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -299,10 +334,15 @@ function renderInput(question, value, onChange, shellFamily) {
   }
 
   return (
-    <Field label="Tu respuesta">
+    <Field label="Tu respuesta" required>
       <TextArea
+        id={`${questionDomId}-text`}
+        name={controlName}
         placeholder={question.placeholder || 'Escribe aqui...'}
         value={value || ''}
+        required
+        invalid={invalid}
+        aria-describedby={describedBy}
         onChange={(event) => onChange(question.id, event.target.value)}
       />
     </Field>
@@ -484,6 +524,13 @@ function QuestionBoard({
     );
   }
 
+  const questionDomId = `survey-question-${question.id || surveyIndex}`;
+  const descriptionId = question.helper ? `${questionDomId}-description` : undefined;
+  const flowErrorId = flowError ? `${questionDomId}-flow-error` : undefined;
+  const validationErrorId = validationError ? `${questionDomId}-validation-error` : undefined;
+  const describedBy = mergeDescribedBy(descriptionId, flowErrorId, validationErrorId);
+  const invalid = Boolean(validationError);
+
   return (
     <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
       <div className="grid gap-6">
@@ -493,17 +540,32 @@ function QuestionBoard({
           subtitle={question.helper}
           divider
         />
+        {question.helper ? (
+          <p id={descriptionId} className="sr-only">
+            {question.helper}
+          </p>
+        ) : null}
 
         {flowError ? (
-          <InlineMessage tone="danger" title="Hay un problema en el flujo actual.">
+          <InlineMessage id={flowErrorId} tone="danger" title="Hay un problema en el flujo actual.">
             {flowError}
           </InlineMessage>
         ) : null}
 
-        <div className="grid gap-4">{renderInput(question, answers[question.id], onAnswerChange, shellFamily)}</div>
+        <div className="grid gap-4">
+          {renderInput({
+            question,
+            value: answers[question.id],
+            onChange: onAnswerChange,
+            shellFamily,
+            questionDomId,
+            describedBy,
+            invalid,
+          })}
+        </div>
 
         {validationError ? (
-          <InlineMessage tone="warning" title="Falta completar esta pregunta.">
+          <InlineMessage id={validationErrorId} tone="warning" title="Falta completar esta pregunta.">
             {validationError}
           </InlineMessage>
         ) : null}

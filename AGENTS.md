@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F3.B
+## Estado actual tras F3.C
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -56,8 +56,10 @@ La tesis obligatoria es:
 - F3.A no implemento cambios en `AuthView.jsx` ni `SurveyView.jsx`; solo definio matriz de decision y alcance F3.B-F3.G.
 - F3.B AuthView closeout minimo quedo cerrado localmente con `docs/rebuild/audit/F3.B-authview-closeout.md`.
 - F3.B solo toco `AuthView.jsx`, `test/f3-auth-survey-smoke.test.js` y docs. No toco auth core, hooks ni services.
-- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3.C - Survey primitives + a11y pass**.
-- No abrir F3.C/F3.D/F3.E/F3.F/F3.G/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F3.C Survey primitives + a11y pass quedo cerrado localmente con `docs/rebuild/audit/F3.C-survey-primitives-a11y.md`.
+- F3.C migro opciones `single` a `Radio`, opciones `multi` a `Checkbox`, retiro `SurveyChoiceCard`, y conecto `fieldset`/`legend`/`aria-describedby`/`aria-invalid`/`aria-required` sin tocar `useAssessmentFlow`, scoring, services ni backend.
+- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3.D - Survey layout / patterns pass**.
+- No abrir F3.D/F3.E/F3.F/F3.G/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

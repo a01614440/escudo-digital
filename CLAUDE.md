@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.B cerradas localmente.**
+**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.C cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -89,8 +89,19 @@ F3.B cerro AuthView de forma minima:
 - override local de grid en `SplitHeroLayout` retirado.
 - guard agregado en `test/f3-auth-survey-smoke.test.js`.
 
+F3.C cerro Survey primitives + a11y pass de forma minima:
+
+- opciones `single` migradas a `Radio`;
+- opciones `multi` migradas a `Checkbox`;
+- `SurveyChoiceCard` local retirado;
+- preguntas agrupadas con `fieldset` / `legend`;
+- `aria-describedby`, `aria-invalid` y `aria-required` conectados a controles;
+- `InlineMessage` de flujo y validacion enlazado por id;
+- `Select` y `TextArea` reciben id/name/required/invalid/aria-describedby;
+- guard agregado en `test/f3-auth-survey-smoke.test.js`.
+
 Proximo paso recomendado:
 
-- esperar autorizacion explicita del usuario para abrir F3.C - Survey primitives + a11y pass.
+- esperar autorizacion explicita del usuario para abrir F3.D - Survey layout / patterns pass.
 
-No abrir F3.C, F3.D, F3.E, F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F3.D, F3.E, F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.

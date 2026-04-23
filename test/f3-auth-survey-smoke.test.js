@@ -23,4 +23,30 @@ describe('F3 Auth + Survey closeout guards', () => {
     assert.doesNotMatch(source, /data-sd-container="true"[\s\S]*<SplitHeroLayout/);
     assert.doesNotMatch(source, /md:grid-cols-\[minmax\(0,1\.08fr\)_minmax\(23rem,0\.92fr\)\]/);
   });
+
+  test('SurveyView uses foundation choice primitives instead of improvised choice cards', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /Checkbox,/);
+    assert.match(source, /Radio,/);
+    assert.match(source, /<Radio[\s\S]*checked=\{value === option\.value\}/);
+    assert.match(source, /<Checkbox[\s\S]*checked=\{selected\.includes\(option\.value\)\}/);
+    assert.match(source, /buildNextMultiAnswer\(question\.options, selected, option\.value, event\.target\.checked\)/);
+    assert.doesNotMatch(source, /function SurveyChoiceCard/);
+    assert.doesNotMatch(source, /<input className="sr-only"/);
+    assert.doesNotMatch(source, /shadow-\[0_24px_50px/);
+  });
+
+  test('SurveyView wires question controls to accessible descriptions and errors', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /function mergeDescribedBy/);
+    assert.match(source, /<fieldset[\s\S]*aria-describedby=\{describedBy\}[\s\S]*aria-invalid=\{invalid \? 'true' : undefined\}/);
+    assert.match(source, /aria-required="true"/);
+    assert.match(source, /<legend className="sr-only">\{question\.title\}<\/legend>/);
+    assert.match(source, /id=\{validationErrorId\} tone="warning"/);
+    assert.match(source, /id=\{flowErrorId\} tone="danger"/);
+    assert.match(source, /<Select[\s\S]*id=\{`\$\{questionDomId\}-select`\}[\s\S]*required[\s\S]*invalid=\{invalid\}[\s\S]*aria-describedby=\{describedBy\}/);
+    assert.match(source, /<TextArea[\s\S]*id=\{`\$\{questionDomId\}-text`\}[\s\S]*required[\s\S]*invalid=\{invalid\}[\s\S]*aria-describedby=\{describedBy\}/);
+  });
 });
