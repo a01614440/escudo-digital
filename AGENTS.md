@@ -79,8 +79,12 @@ La tesis obligatoria es:
 - F4.B Information architecture / density pass quedo cerrada localmente con `docs/rebuild/audit/F4.B-information-density.md`.
 - F4.B redujo densidad en `CoursesView.jsx`: retiro stats/badges secundarios, copy redundante, `ProgressSummary` duplicado, contadores de rail, metadata de continuidad y lecturas laterales repetidas.
 - F4.B agrego `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (61/61) + `.\npm-local.cmd run build`.
-- El siguiente frente recomendado es F4.C - Hero + continuity + CTA pass.
-- No abrir F4.C/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F4.C Hero + continuity + CTA pass quedo cerrada localmente con `docs/rebuild/audit/F4.C-hero-continuity-cta.md`.
+- F4.C hizo que `RouteHero` oriente sin competir con CTA y que `ContinuityConsole` sea la region dominante de accion usando `SurfaceCard variant="command" tone="inverse"`.
+- F4.C movio el CTA primario antes del progreso de apoyo, agrego `data-sd-primary-cta="courses-continuity"` y dejo `aria-label` especifico por modulo.
+- F4.C amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (63/63).
+- El siguiente frente recomendado es F4.D - Route navigator + module detail pass.
+- No abrir F4.D/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

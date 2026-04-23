@@ -98,3 +98,32 @@ describe('F4.B Courses dashboard information density guards', () => {
     assert.match(settings, /Ritmo, foco y regeneracion de la ruta/);
   });
 });
+
+describe('F4.C Courses hero, continuity and CTA guards', () => {
+  test('RouteHero frames the route without competing with the continuity CTA', () => {
+    const block = functionBlock('RouteHero', 'ContinuityConsole');
+
+    assert.match(block, /Tu ruta ya esta lista para continuar\./);
+    assert.match(block, /subtitle=\{prioritySummary\}/);
+    assert.doesNotMatch(block, /assessment\?\.resumen/);
+    assert.doesNotMatch(block, /data-sd-primary-cta/);
+    assert.doesNotMatch(block, /<Button/);
+  });
+
+  test('ContinuityConsole owns the primary CTA before supporting progress', () => {
+    const block = functionBlock('ContinuityConsole', 'TopSupportBand');
+    const actionIndex = block.indexOf('<ActionCluster');
+    const progressIndex = block.indexOf('<ProgressSummary');
+
+    assert.match(block, /variant="command"/);
+    assert.match(block, /tone="inverse"/);
+    assert.ok(actionIndex > -1, 'ContinuityConsole should render an action cluster');
+    assert.ok(progressIndex > -1, 'ContinuityConsole should render supporting progress');
+    assert.ok(actionIndex < progressIndex, 'the primary CTA should appear before supporting progress');
+    assert.match(block, /data-sd-primary-cta="courses-continuity"/);
+    assert.match(block, /const primaryLabel = target\?\.stats\.completedCount \? 'Continuar mi ruta' : 'Abrir modulo recomendado'/);
+    assert.match(block, /aria-label=\{`\$\{primaryLabel\}: \$\{displayModuleTitle\(target\.module\)\}`\}/);
+    assert.match(block, /Ver en la ruta/);
+    assert.doesNotMatch(block, /Continuar donde me quede/);
+  });
+});

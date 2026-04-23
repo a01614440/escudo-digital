@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F4 refine en curso. F4.A refinada y F4.B cerradas localmente.**
+**F4 refine en curso. F4.A refinada, F4.B y F4.C cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -151,6 +151,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F4.B redujo densidad en `CoursesView.jsx`: retiro stats/badges secundarios, copy redundante, `ProgressSummary` duplicado, contadores de rail, metadata de continuidad y lecturas laterales repetidas;
 - F4.B agrego `test/f4-courses-dashboard-smoke.test.js` para evitar regresion de densidad;
 - F4.B valido `.\npm-local.cmd test` con 61/61 y `.\npm-local.cmd run build`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.C - Hero + continuity + CTA pass.
+- F4.C Hero + continuity + CTA pass quedo cerrada localmente con `docs/rebuild/audit/F4.C-hero-continuity-cta.md`;
+- F4.C hizo que `RouteHero` oriente sin competir con CTA y que `ContinuityConsole` sea la region dominante de accion usando `SurfaceCard variant="command" tone="inverse"`;
+- F4.C movio el CTA primario antes del progreso de apoyo, agrego `data-sd-primary-cta="courses-continuity"` y dejo `aria-label` especifico por modulo;
+- F4.C valido `.\npm-local.cmd test` con 63/63;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.D - Route navigator + module detail pass.
 
-No abrir F4.C/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F4.D/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

@@ -258,7 +258,6 @@ function DashboardEmptyState({
 
 function RouteHero({
   shellFamily,
-  assessment,
   prioritySummary,
   strongestTopic,
   weakestTopic,
@@ -293,8 +292,8 @@ function RouteHero({
     <StageHero
       tone="spotlight"
       eyebrow="Ruta personalizada"
-      title="Tu ruta ya te dice que sigue."
-      subtitle={assessment?.resumen || prioritySummary}
+      title="Tu ruta ya esta lista para continuar."
+      subtitle={prioritySummary}
       actions={adminAccess ? <Badge tone="soft">Modo admin</Badge> : undefined}
       footer={<StatStrip items={stripItems} compact={shellFamily === 'mobile'} variant="command" />}
     />
@@ -308,10 +307,16 @@ function ContinuityConsole({
   onContinue,
   onShowInRoute,
 }) {
+  const nextActivityTitle = target
+    ? displayActivityTitle(target.nextActivity, 'el siguiente bloque')
+    : null;
+  const primaryLabel = target?.stats.completedCount ? 'Continuar mi ruta' : 'Abrir modulo recomendado';
+
   return (
     <SurfaceCard
       padding="lg"
-      variant="raised"
+      variant="command"
+      tone="inverse"
       className="relative overflow-hidden border-sd-border-strong"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
@@ -326,7 +331,7 @@ function ContinuityConsole({
           }
           subtitle={
             target
-              ? `Siguiente accion: ${displayActivityTitle(target.nextActivity, 'el siguiente bloque')}.`
+              ? `Siguiente actividad: ${nextActivityTitle}.`
               : 'Cuando la ruta este lista, esta region te muestra solo el paso principal.'
           }
           divider
@@ -334,35 +339,41 @@ function ContinuityConsole({
 
         {target ? (
           <>
+            <ActionCluster
+              align="start"
+              collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
+              className="items-center"
+            >
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                data-sd-primary-cta="courses-continuity"
+                aria-label={`${primaryLabel}: ${displayModuleTitle(target.module)}`}
+                onClick={() =>
+                  onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
+                }
+              >
+                {primaryLabel}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => onShowInRoute(target.module.id)}>
+                Ver en la ruta
+              </Button>
+            </ActionCluster>
+
             <ProgressSummary
-              eyebrow="Avance"
-              title={displayActivityTitle(target.nextActivity, 'Siguiente actividad')}
+              eyebrow="Avance del modulo"
+              title={nextActivityTitle}
               value={formatPercent(target.stats.pct)}
               hint={
                 target.stats.completedCount
                   ? `${target.stats.completedCount} de ${target.stats.total} actividades listas.`
-                  : 'Tu primera actividad aparece aqui.'
+                  : 'Empieza aqui sin perder el contexto de tu diagnostico.'
               }
               progressValue={target.stats.pct}
               variant="support"
               tone="accent"
             />
-
-            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                onClick={() =>
-                  onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
-                }
-              >
-                {target.stats.completedCount ? 'Continuar donde me quede' : 'Abrir modulo recomendado'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => onShowInRoute(target.module.id)}>
-                Verlo dentro de la ruta
-              </Button>
-            </ActionCluster>
           </>
         ) : (
           <InlineMessage tone="info" title="Sin continuidad activa">
@@ -1332,7 +1343,6 @@ export default function CoursesView({
           hero={
             <RouteHero
               shellFamily={shellFamily}
-              assessment={assessment}
               prioritySummary={prioritySummary}
               strongestTopic={strongestTopic}
               weakestTopic={weakestTopic}
