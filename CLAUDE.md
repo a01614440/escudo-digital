@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F5.A Lesson shell / activity chrome baseline audit cerrada localmente. Siguiente frente recomendado: F5.B Lesson shell structure + responsive contract.**
+**F5.D Route-to-lesson transition pass cerrada localmente. Siguiente frente recomendado: F5.E Lesson shell layout refactor (content-first / fullscreen).**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -177,6 +177,18 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F5.A confirmo que `ActivityRenderer` y `activityRegistry` siguen siendo contratos sensibles congelados;
 - F5.A separo F5 de F6: F5 cubre lesson shell, generic activity chrome, feedback, module complete y actividades basicas; F6 cubre WhatsApp/SMS/Inbox/ScenarioFlow/CallSimulation/WebLab;
 - F5.A no implemento cambios en vistas, actividades, renderer, registry, estilos, dominio ni backend;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.B - Lesson shell structure + responsive contract.
+- luego el usuario redefinio F5 como **F5 expandida - Route -> Lesson -> Experience refine**, absorbiendo ruta, transicion a lesson, lesson shell y activity chrome como una sola familia de experiencia;
+- F5.A Experience baseline audit quedo cerrada localmente con `docs/rebuild/audit/F5.A-experience-baseline-audit.md`;
+- F5.A unificada confirmo problemas de top shelf fragmentado, exceso de columnas, contraste pobre, lesson demasiado dashboard, actividad con poco ancho util y falta de sensacion fullscreen/demo-ready;
+- F5.B Route top / continuity / CTA refactor quedo cerrada localmente con `docs/rebuild/audit/F5.B-route-top-continuity-cta.md`;
+- F5.B unifico `RouteHero` + `ContinuityConsole` + `TopSupportBand` en `RouteBriefing`, una sola superficie `command`/`inverse` con CTA dominante y progreso inline;
+- F5.C Route density / symmetry / contrast cleanup quedo cerrada localmente con `docs/rebuild/audit/F5.C-route-density-symmetry-contrast.md`;
+- F5.C aplanó la pestaña Ruta a dos paneles desktop, eliminó `RouteInsightRail`, compactó `RouteModulePill`/`ModuleActivityList`, simplificó `ModuleMissionBoard`, `ProgressScene` y `SettingsScene`;
+- F5.D Route-to-lesson transition pass quedo cerrada localmente con `docs/rebuild/audit/F5.D-route-to-lesson-transition.md`;
+- F5.D alineo `LessonMissionHero` con el lenguaje visual de `RouteBriefing`: `SurfaceCard variant="command" tone="inverse"`, `sd-title-display`, CTA ghost para volver a ruta, progreso inline con `ProgressBar`, `data-sd-lesson-source="courses-continuity"` y animacion `sd-lesson-enter`;
+- F5.D agrego `test/f5-lesson-transition-smoke.test.js`;
+- F5.D valido `.\npm-local.cmd test` con 79/79, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F5.D no toco `ActivityRenderer`, `activityRegistry`, simulaciones, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.E - Lesson shell layout refactor (content-first / fullscreen).
 
-No abrir F5.B/F5.C/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F5.E/F5.F/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

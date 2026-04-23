@@ -24,6 +24,7 @@ import {
   Badge,
   Button,
   InlineMessage,
+  ProgressBar,
   SurfaceCard,
 } from './ui/index.js';
 
@@ -185,72 +186,66 @@ function LessonMissionHero({
   const activityTitle = getActivityTitle(activity, activityIndex);
   const categoryLabel = CATEGORY_LABELS[module?.categoria] || 'Ruta';
   const levelLabel = LEVEL_LABELS[module?.nivel] || cleanText(module?.nivel, 'Nivel');
+  const activityLabel = ACTIVITY_LABELS[activity?.tipo] || 'Práctica';
   const modulePositionPct = Math.round(((activityIndex + 1) / Math.max(totalActivities, 1)) * 100);
   const routeProgressPct = Math.round((completedModules / Math.max(routeLength, 1)) * 100);
+  const subtitle = cleanText(
+    activity?.intro || activity?.escenario || activity?.prompt,
+    'Esta práctica vive en una cabina dedicada: tarea principal, contexto breve y renderer al centro.'
+  );
+  const progressHint = moduleSummary.completedCount
+    ? `${moduleSummary.completedCount} completada(s) en este módulo`
+    : `${routeProgressPct}% de ruta cerrada`;
 
   return (
-    <StageHero
-      tone="hero"
-      className="sd-lesson-mission-hero"
-      eyebrow={`Módulo ${moduleIndex + 1} · ${moduleTitle}`}
-      title={activityTitle}
-      subtitle={cleanText(
-        activity?.intro || activity?.escenario || activity?.prompt,
-        'Esta práctica ya vive dentro de una cabina dedicada: una tarea principal, contexto breve y renderer al centro.'
-      )}
-      actions={
-        <Button variant="secondary" size="compact" type="button" onClick={onBack}>
-          Volver a la ruta
-        </Button>
-      }
-      meta={`${categoryLabel} · ${levelLabel}`}
-      aside={
-        <ProgressSummary
-          className="sd-lesson-mission-hero-summary"
-          eyebrow="Posición actual"
-          title="Dónde vas dentro del módulo"
-          value={`${activityIndex + 1}/${Math.max(totalActivities, 1)}`}
-          hint={
-            moduleSummary.completedCount
-              ? `${moduleSummary.completedCount} actividades ya quedaron registradas en este módulo.`
-              : 'Todavía estás construyendo historial en este bloque.'
-          }
-          progressValue={modulePositionPct}
-          variant="support"
-          tone="accent"
-        />
-      }
-      footer={
-        <StatStrip
-          compact={shellFamily === 'mobile'}
-          variant="command"
-          items={[
-            {
-              key: 'route',
-              eyebrow: 'Ruta',
-              value: `${moduleIndex + 1}/${Math.max(routeLength, 1)}`,
-              label: 'Módulo en curso',
-              hint: routeProgressPct
-                ? `${routeProgressPct}% de la ruta ya quedó cerrada.`
-                : 'Aún no cierras módulos completos.',
-              tone: 'accent',
-              variant: 'command',
-            },
-            {
-              key: 'activity',
-              eyebrow: 'Actividad',
-              value: `${activityIndex + 1}/${Math.max(totalActivities, 1)}`,
-              label: 'Bloque actual',
-              hint: ACTIVITY_LABELS[activity?.tipo] || 'Práctica interactiva',
-              tone: 'neutral',
-              variant: 'command',
-            },
-          ]}
-        />
-      }
+    <SurfaceCard
+      padding="xl"
+      variant="command"
+      tone="inverse"
+      className="sd-lesson-briefing relative overflow-hidden border-sd-border-strong"
+      data-sd-container="true"
     >
-      <p className="m-0 text-sm leading-7 text-sd-text-inverse">{getModuleObjective(module)}</p>
-    </StageHero>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
+
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="sd-eyebrow m-0">{`Módulo ${moduleIndex + 1} · ${moduleTitle}`}</span>
+          <Badge tone="soft">{activityLabel}</Badge>
+        </div>
+
+        <div className="grid gap-3">
+          <h1 className="sd-title-display m-0">{activityTitle}</h1>
+          <p className="sd-copy m-0 max-w-[60ch]">{subtitle}</p>
+          <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-inverse-soft">
+            {`${categoryLabel} · ${levelLabel} · ${getModuleObjective(module)}`}
+          </p>
+        </div>
+
+        <ActionCluster
+          align="start"
+          collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            data-sd-lesson-back="courses"
+            onClick={onBack}
+          >
+            Volver a la ruta
+          </Button>
+        </ActionCluster>
+
+        <div className="sd-lesson-briefing-progress grid gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <span className="text-sd-text-inverse-soft">
+              {`Actividad ${activityIndex + 1}/${Math.max(totalActivities, 1)} · Módulo ${moduleIndex + 1}/${Math.max(routeLength, 1)}`}
+            </span>
+            <strong className="sd-copy-strong m-0">{progressHint}</strong>
+          </div>
+          <ProgressBar value={modulePositionPct} tone="accent" size="lg" />
+        </div>
+      </div>
+    </SurfaceCard>
   );
 }
 
@@ -741,8 +736,9 @@ export default function LessonView({
   return (
     <section
       id="lessonView"
-      className="sd-page-shell py-[var(--sd-shell-padding-block)]"
+      className="sd-page-shell sd-lesson-enter py-[var(--sd-shell-padding-block)]"
       data-sd-container="true"
+      data-sd-lesson-source="courses-continuity"
     >
       <div className="grid gap-[var(--sd-shell-section-gap)]">
         {hero}

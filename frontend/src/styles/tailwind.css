@@ -2350,3 +2350,20 @@ body[data-theme='dark'] {
     background-position: -20% 0;
   }
 }
+
+@keyframes sd-lesson-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sd-lesson-enter {
+  animation: sd-lesson-enter 220ms ease-out both;
+  will-change: opacity, transform;
+}
