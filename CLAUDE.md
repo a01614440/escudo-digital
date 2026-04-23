@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F2 closeout / shell hardening cerrado localmente. Esperando autorizacion humana para abrir F3.**
+**F3 Auth + Survey refine abierto en modo subfases. F3.A baseline audit cerrada localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -70,8 +70,20 @@ Subfases F2 cerradas localmente:
 - F2.E Ownership map / docs
 - F2.F F2 closeout validation
 
+F3 debe ejecutarse en subfases pequeñas:
+
+- F3.A Auth + Survey baseline audit
+- F3.B AuthView closeout minimo
+- F3.C Survey primitives + a11y pass
+- F3.D Survey layout / patterns pass
+- F3.E Survey flow hardening
+- F3.F Results / perfil / CTA closeout
+- F3.G F3 closeout validation
+
+F3.A solo audito y genero `docs/rebuild/audit/F3.A-auth-survey-baseline-audit.md`. No implemento cambios en `AuthView.jsx` ni `SurveyView.jsx`.
+
 Proximo paso recomendado:
 
-- esperar autorizacion explicita del usuario para abrir F3 refine (Auth + Survey), empezando por auditoria/scope de F3.
+- esperar autorizacion explicita del usuario para abrir F3.B - AuthView closeout minimo.
 
-No abrir F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F3.B, F3.C, F3.D, F3.E, F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.

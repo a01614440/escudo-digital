@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F2.F
+## Estado actual tras F3.A
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -50,8 +50,12 @@ La tesis obligatoria es:
   - F2.D Shell contract + navigation hardening
   - F2.E Ownership map / docs
 - F2.F F2 closeout validation
-- F2 closeout queda cerrado localmente. El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3 refine - Auth + Survey**.
-- No abrir F3/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F2 closeout queda cerrado localmente.
+- F3 fue abierta como **Auth + Survey refine** en subfases pequeñas.
+- F3.A Auth + Survey baseline audit quedo cerrada localmente con `docs/rebuild/audit/F3.A-auth-survey-baseline-audit.md`.
+- F3.A no implemento cambios en `AuthView.jsx` ni `SurveyView.jsx`; solo definio matriz de decision y alcance F3.B-F3.G.
+- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3.B - AuthView closeout minimo**.
+- No abrir F3.B/F3.C/F3.D/F3.E/F3.F/F3.G/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
