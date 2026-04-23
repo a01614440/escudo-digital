@@ -77,6 +77,19 @@ test('InlineMessage exposes live-region semantics by tone', () => {
   assert.doesNotMatch(source, /tracking-\[-/);
 });
 
+test('OverlayFrame traps focus, closes on Escape, and restores focus', () => {
+  const source = readFileSync(new URL('../frontend/src/components/ui/OverlayFrame.jsx', import.meta.url), 'utf8');
+  assert.match(source, /const FOCUSABLE_SELECTOR = \[/);
+  assert.match(source, /document\.addEventListener\('keydown', handleKeyDown\)/);
+  assert.match(source, /document\.addEventListener\('focusin', handleFocusIn\)/);
+  assert.match(source, /event\.key === 'Escape'/);
+  assert.match(source, /event\.key !== 'Tab'/);
+  assert.match(source, /event\.shiftKey/);
+  assert.match(source, /restoreFocusRef\.current = document\.activeElement/);
+  assert.match(source, /restoreTarget\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(source, /aria-hidden="true"/);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);

@@ -15,7 +15,13 @@ export const DialogPreview = {
         open
         title="Confirmar decision"
         subtitle="Esta capa sirve como referencia de semantica y contraste."
-        actions={<Button variant="primary">Aceptar</Button>}
+        onClose={() => {}}
+        actions={(
+          <>
+            <Button variant="secondary">Cancelar</Button>
+            <Button variant="primary">Aceptar</Button>
+          </>
+        )}
       >
         <p className="sd-copy m-0">El contenido del dialogo debe mantenerse corto, claro y enfocado.</p>
       </Dialog>
@@ -29,6 +35,7 @@ export const DrawerPreview = {
       open
       title="Detalle lateral"
       subtitle="Drawer base para railes secundarios o detalle persistente."
+      onClose={() => {}}
       actions={<Button variant="primary">Aplicar</Button>}
     >
       <p className="sd-copy m-0">Esta variante mantiene lectura vertical y footer fijo.</p>
@@ -42,6 +49,7 @@ export const SheetPreview = {
       open
       title="Acciones moviles"
       subtitle="Base para support sheet o panel contextual."
+      onClose={() => {}}
       actions={<Button variant="primary">Continuar</Button>}
     >
       <p className="sd-copy m-0">El sheet debe sentirse inferior y contextual, no como un modal centrado.</p>
