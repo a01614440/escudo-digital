@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.A Simulation baseline audit global cerrada localmente. Siguiente frente recomendado: F6.B Contrast / readability / text-density system pass.**
+**F6.B Contrast / readability / text-density system pass cerrada localmente. Siguiente frente recomendado: F6.C Category identity / color semantics pass.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -229,6 +229,12 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.A global confirmo problemas sistemicos de contraste, texto demasiado visible, falta de dominancia fullscreen, identidad desigual por categoria, feedback/completion pesado y demo-readiness insuficiente;
 - F6.A global confirmo que `ActivityRenderer.jsx`, `activityRegistry.js`, `requestSimulationTurn`, scoring, hooks, backend, services y contracts deben mantenerse congelados;
 - F6.A global no implemento cambios en vistas, simulaciones, estilos ni logica; solo documento alcance, riesgos, matriz de problemas y plan F6.B-F6.K;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.B - Contrast / readability / text-density system pass.
+- F6.B Contrast / readability / text-density system pass quedo cerrada localmente con `docs/rebuild/audit/F6.B-contrast-readability-text-density.md`;
+- F6.B reforzo legibilidad compartida en `ActivitySummaryBar`, `SimulationGuide`, `ActivityChrome`, `FeedbackPanel`, `immersivePrimitives`, `immersive/shared.js` y `tailwind.css`;
+- F6.B reemplazo washes compartidos `bg-white/75`, `bg-white/60`, `bg-white/76`, `bg-white/84` por superficies tokenizadas `bg-sd-surface` / `bg-sd-surface-raised` y bordes fuertes en primitives inmersivos;
+- F6.B agrego hooks `sd-simulation-readable-surface`, `sd-activity-summary-*`, `sd-immersive-progress-*` y `data-sd-text-density="compact"`;
+- F6.B agrego `test/f6-simulation-experience-smoke.test.js`;
+- F6.B no toco simulaciones especificas por canal, `ActivityRenderer.jsx`, `activityRegistry.js`, hooks, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.C - Category identity / color semantics pass.
 
-No abrir F6.B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.C/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

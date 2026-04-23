@@ -37,24 +37,22 @@ export function SimulationGuide({ activity, compact = false }) {
 
   return (
     <details
-      className="sd-simulation-guide rounded-[22px] border border-sd-border-strong bg-white/84 p-4"
+      className="sd-simulation-guide sd-simulation-readable-surface p-4"
       data-sd-simulation-guide="collapsed"
+      data-sd-text-density="compact"
     >
       <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
         <span>{guideTitle}</span>
         <Badge tone="neutral">{`${steps.length} pasos`}</Badge>
       </summary>
 
-      <div className="mt-4 grid gap-3">
+      <div className="sd-simulation-guide-list">
         {steps.map((step, index) => (
-          <div
-            className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[18px] border border-sd-border bg-white p-3"
-            key={step}
-          >
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sd-border bg-sd-surface-subtle text-xs font-semibold text-sd-text">
+          <div className="sd-simulation-guide-step" key={step}>
+            <span className="sd-simulation-guide-index">
               {String(index + 1).padStart(2, '0')}
             </span>
-            <p className="m-0 text-sm leading-6 text-sd-text-soft">{step}</p>
+            <p>{step}</p>
           </div>
         ))}
       </div>
@@ -92,8 +90,9 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
   return (
     <div className="sd-activity-chrome grid gap-4" data-sd-activity-chrome="guided" data-sd-activity-type={activityType}>
       <details
-        className="sd-activity-briefing rounded-[22px] border border-sd-border-strong bg-white p-4"
+        className="sd-activity-briefing sd-simulation-readable-surface p-4"
         data-sd-briefing="activity-chrome"
+        data-sd-text-density="compact"
         open={!compact}
       >
         <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
@@ -162,14 +161,20 @@ export function ActivitySummaryBar({ items = [] }) {
   if (!visibleItems.length) return null;
 
   return (
-    <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
+    <div className="sd-activity-summary-grid" data-sd-activity-summary="compact">
       {visibleItems.map((item) => (
-        <SurfaceCard key={item.label} padding="compact" variant="subtle">
-          <strong className="block text-xs font-semibold uppercase tracking-[0.14em] text-sd-text-soft">
+        <SurfaceCard
+          key={item.label}
+          padding="compact"
+          variant="support"
+          className="sd-activity-summary-card"
+          data-sd-activity-summary-card="true"
+        >
+          <strong className="sd-activity-summary-label">
             {item.label}
           </strong>
-          <p className="mt-2 text-base font-semibold leading-6 text-sd-text">{item.value}</p>
-          {item.caption ? <p className="mt-2 text-sm leading-6 text-sd-text-soft">{item.caption}</p> : null}
+          <p className="sd-activity-summary-value">{item.value}</p>
+          {item.caption ? <p className="sd-activity-summary-caption">{item.caption}</p> : null}
         </SurfaceCard>
       ))}
     </div>

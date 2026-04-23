@@ -505,8 +505,29 @@ body[data-theme='dark'] {
     @apply flex items-center justify-between gap-3;
   }
 
+  .sd-simulation-readable-surface {
+    @apply rounded-[22px] border border-sd-border-strong bg-sd-surface-raised text-sd-text;
+    box-shadow: 0 18px 44px -34px rgba(15, 23, 42, 0.32);
+  }
+
+  .sd-simulation-guide-list {
+    @apply mt-4 grid gap-2;
+  }
+
+  .sd-simulation-guide-step {
+    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[18px] border border-sd-border-strong bg-sd-surface p-3;
+  }
+
+  .sd-simulation-guide-step p {
+    @apply m-0 text-sm leading-6 text-sd-text;
+  }
+
+  .sd-simulation-guide-index {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full border border-sd-border-strong bg-sd-surface-subtle text-xs font-semibold text-sd-text;
+  }
+
   .sd-activity-briefing-item {
-    @apply rounded-[18px] border border-sd-border bg-sd-surface-subtle p-3;
+    @apply rounded-[18px] border border-sd-border-strong bg-sd-surface p-3;
   }
 
   .sd-activity-briefing-item dt {
@@ -522,7 +543,7 @@ body[data-theme='dark'] {
   }
 
   .sd-feedback-copy {
-    @apply grid gap-2 text-sm leading-6 text-sd-text-soft;
+    @apply grid gap-2 text-sm leading-6 text-sd-text;
   }
 
   .sd-feedback-copy p {
@@ -536,7 +557,7 @@ body[data-theme='dark'] {
 
   .sd-feedback-item,
   .sd-feedback-list {
-    @apply rounded-[18px] border border-sd-border bg-white/76 p-3;
+    @apply rounded-[18px] border border-sd-border-strong bg-sd-surface p-3;
   }
 
   .sd-feedback-item h4,
@@ -545,11 +566,51 @@ body[data-theme='dark'] {
   }
 
   .sd-feedback-item p {
-    @apply m-0 mt-2 text-sm leading-6 text-sd-text-soft;
+    @apply m-0 mt-2 text-sm leading-6 text-sd-text;
   }
 
   .sd-feedback-list ul {
-    @apply m-0 mt-3 grid gap-2 pl-5 text-sm leading-6 text-sd-text-soft;
+    @apply m-0 mt-3 grid gap-2 pl-5 text-sm leading-6 text-sd-text;
+  }
+
+  .sd-activity-summary-grid {
+    @apply grid gap-2 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))];
+  }
+
+  .sd-activity-summary-card {
+    @apply border-sd-border-strong bg-sd-surface-raised;
+  }
+
+  .sd-activity-summary-label {
+    @apply block text-xs font-semibold text-sd-text-soft;
+    letter-spacing: var(--sd-type-tracking-label);
+  }
+
+  .sd-activity-summary-value {
+    @apply m-0 mt-1 text-base font-semibold leading-6 text-sd-text;
+  }
+
+  .sd-activity-summary-caption {
+    @apply m-0 mt-1 text-sm leading-6 text-sd-text;
+  }
+
+  .sd-immersive-panel,
+  .sd-immersive-aside-panel {
+    color: var(--sd-text);
+  }
+
+  .sd-immersive-aside-panel .eyebrow {
+    color: var(--sd-text-soft);
+    letter-spacing: var(--sd-type-tracking-label);
+  }
+
+  .sd-immersive-progress-pill {
+    @apply flex items-center justify-between gap-3 rounded-[18px] border border-sd-border-strong bg-sd-surface px-4 py-3;
+  }
+
+  .sd-immersive-progress-label {
+    @apply text-xs font-semibold text-sd-text-soft;
+    letter-spacing: var(--sd-type-tracking-label);
   }
 
   @media (min-width: 768px) {

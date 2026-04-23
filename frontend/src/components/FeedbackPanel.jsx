@@ -72,11 +72,12 @@ export default function FeedbackPanel({ feedback }) {
         variant="support"
         className="sd-feedback-panel border-sd-border-strong"
         data-sd-feedback-panel="true"
+        data-sd-text-density="compact"
       >
         <PanelHeader
           eyebrow="Retroalimentacion"
           title="Lo importante de este resultado"
-          subtitle="Resumen corto para decidir el siguiente paso sin romper el foco."
+          subtitle="Resumen corto para decidir el siguiente paso."
           divider
         />
         <div className="sd-feedback-copy">
@@ -112,11 +113,12 @@ export default function FeedbackPanel({ feedback }) {
         tone === 'risk' ? '[&_.sd-heading-sm]:text-sd-text' : ''
       )}
       data-sd-feedback-panel="true"
+      data-sd-text-density="compact"
     >
       <PanelHeader
         eyebrow="Retroalimentacion"
         title={title || 'Lectura del resultado'}
-        subtitle="Criterio, correccion y siguiente accion sin sacar la practica de foco."
+        subtitle="Criterio y siguiente accion."
         meta={
           <div className="flex flex-wrap gap-2">
             {scoreLabel ? (

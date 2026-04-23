@@ -156,8 +156,11 @@ La tesis obligatoria es:
 - F6.A global fue auditoria pura: leyo simulaciones, wrappers comunes, estilos y tests relevantes, pero no implemento cambios.
 - F6.A global confirmo problemas sistemicos de contraste, sobrecarga de texto, falta de dominancia fullscreen, identidad desigual por categoria, feedback/completion pesado y demo-readiness insuficiente.
 - F6.A global confirmo que `ActivityRenderer.jsx`, `activityRegistry.js`, `requestSimulationTurn`, scoring, hooks de dominio, backend, services y contracts siguen congelados.
-- El siguiente frente recomendado es F6.B - Contrast / readability / text-density system pass.
-- No abrir F6.B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F6.B Contrast / readability / text-density system pass quedo cerrada localmente con `docs/rebuild/audit/F6.B-contrast-readability-text-density.md`.
+- F6.B reforzo legibilidad compartida en `ActivitySummaryBar`, `SimulationGuide`, `ActivityChrome`, `FeedbackPanel`, primitives inmersivos compartidos y `tailwind.css`.
+- F6.B agrego `test/f6-simulation-experience-smoke.test.js` y no toco simulaciones especificas, renderer, registry, dominio, backend, services, contracts, scoring, `app.css` ni `legacy.css`.
+- El siguiente frente recomendado es F6.C - Category identity / color semantics pass.
+- No abrir F6.C/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
