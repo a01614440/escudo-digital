@@ -90,6 +90,27 @@ test('OverlayFrame traps focus, closes on Escape, and restores focus', () => {
   assert.match(source, /aria-hidden="true"/);
 });
 
+test('foundation exposes native Checkbox and Radio primitives', () => {
+  const checkbox = readFileSync(new URL('../frontend/src/components/ui/Checkbox.jsx', import.meta.url), 'utf8');
+  const radio = readFileSync(new URL('../frontend/src/components/ui/Radio.jsx', import.meta.url), 'utf8');
+  const index = readFileSync(new URL('../frontend/src/components/ui/index.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+
+  assert.ok(foundationInventory.primitives.includes('Checkbox'));
+  assert.ok(foundationInventory.primitives.includes('Radio'));
+  assert.match(index, /export \{ default as Checkbox \}/);
+  assert.match(index, /export \{ default as Radio \}/);
+  assert.match(checkbox, /type="checkbox"/);
+  assert.match(radio, /type="radio"/);
+  assert.match(checkbox, /aria-describedby=\{mergeDescribedBy\(ariaDescribedBy, errorId, hintId\)\}/);
+  assert.match(radio, /aria-invalid=\{isInvalid \? 'true' : ariaInvalid\}/);
+  assert.match(checkbox, /role="alert"/);
+  assert.match(radio, /role="alert"/);
+  assert.match(css, /\.sd-choice-input:focus-visible \+ \.sd-choice-control/);
+  assert.match(css, /\.sd-choice-input:checked \+ \.sd-choice-control/);
+  assert.match(css, /\.sd-choice-input\[aria-invalid='true'\] \+ \.sd-choice-control/);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);

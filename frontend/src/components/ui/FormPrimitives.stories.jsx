@@ -1,4 +1,17 @@
-import { Badge, Field, InlineMessage, Input, ProgressBar, Select, SkeletonBlock, Spinner, SurfaceCard, TextArea } from './index.js';
+import {
+  Badge,
+  Checkbox,
+  Field,
+  InlineMessage,
+  Input,
+  ProgressBar,
+  Radio,
+  Select,
+  SkeletonBlock,
+  Spinner,
+  SurfaceCard,
+  TextArea,
+} from './index.js';
 
 const meta = {
   title: 'Foundation/Primitives/Form and Feedback',
@@ -23,6 +36,15 @@ export const Playground = {
           <option value="web">Web</option>
         </Select>
       </Field>
+      <div className="grid gap-3" role="group" aria-label="Preferencias de practica">
+        <Checkbox label="Recordarme revisar senales antes de responder" defaultChecked />
+        <Checkbox label="Mostrar apoyo contextual" hint="Puedes cambiarlo despues desde ajustes." />
+      </div>
+      <div className="grid gap-3" role="radiogroup" aria-label="Formato de actividad preferido">
+        <Radio name="story-format" value="chat" label="Chat guiado" defaultChecked />
+        <Radio name="story-format" value="inbox" label="Inbox y correo" hint="Practica con mensajes mas largos." />
+        <Radio name="story-format" value="call" label="Llamada simulada" disabled />
+      </div>
       <InlineMessage tone="warning" title="Senal detectada">
         Una prioridad mal definida puede afectar la continuidad de la ruta.
       </InlineMessage>
@@ -54,6 +76,23 @@ export const InlineMessageSemantics = {
       <InlineMessage tone="danger" title="Accion bloqueada">
         No compartas codigos ni contrasenas fuera de la app oficial.
       </InlineMessage>
+    </SurfaceCard>
+  ),
+};
+
+export const ChoiceControls = {
+  render: () => (
+    <SurfaceCard className="grid gap-6 max-w-3xl" variant="support">
+      <div className="grid gap-3" role="group" aria-label="Opciones de apoyo">
+        <Checkbox label="Guardar progreso automaticamente" defaultChecked />
+        <Checkbox label="Recibir pistas durante simulaciones" hint="Las pistas aparecen sin resolver la actividad." />
+        <Checkbox label="Opcion invalida de ejemplo" error="Selecciona esta opcion solo si tienes autorizacion." />
+      </div>
+      <div className="grid gap-3" role="radiogroup" aria-label="Nivel de guia">
+        <Radio name="guidance-level" value="low" label="Poca guia" />
+        <Radio name="guidance-level" value="medium" label="Guia equilibrada" defaultChecked />
+        <Radio name="guidance-level" value="high" label="Guia completa" hint="Mejor para primeras practicas." />
+      </div>
     </SurfaceCard>
   ),
 };

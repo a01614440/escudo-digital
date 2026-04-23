@@ -317,6 +317,8 @@ export const foundationInventory = {
     'Input',
     'TextArea',
     'Select',
+    'Checkbox',
+    'Radio',
     'Field',
     'InlineMessage',
     'ProgressBar',
