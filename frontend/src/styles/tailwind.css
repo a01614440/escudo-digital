@@ -524,6 +524,50 @@ body[data-theme='dark'] {
     background: linear-gradient(180deg, rgba(16, 26, 47, 0.72), rgba(19, 33, 58, 0.88));
   }
 
+  .sd-surface-tone-inverse {
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, var(--sd-accent) 18%, transparent), transparent 16rem),
+      linear-gradient(160deg, var(--sd-surface-inverse), color-mix(in srgb, var(--sd-surface-command) 72%, black));
+    border-color: color-mix(in srgb, var(--sd-accent) 22%, rgba(255, 255, 255, 0.14));
+    box-shadow: var(--sd-shadow-lg);
+    color: var(--sd-text-inverse);
+  }
+
+  .sd-surface-tone-inverse .sd-title-display,
+  .sd-surface-tone-inverse .sd-title,
+  .sd-surface-tone-inverse .sd-heading-md,
+  .sd-surface-tone-inverse .sd-heading-sm,
+  .sd-surface-tone-inverse .sd-copy-strong,
+  .sd-surface-tone-inverse .sd-label {
+    color: var(--sd-text-inverse);
+  }
+
+  .sd-surface-tone-inverse .sd-eyebrow,
+  .sd-surface-tone-inverse .sd-subtitle,
+  .sd-surface-tone-inverse .sd-copy,
+  .sd-surface-tone-inverse .sd-copy-sm,
+  .sd-surface-tone-inverse .sd-caption {
+    color: color-mix(in srgb, var(--sd-text-inverse) 68%, var(--sd-text-inverse-soft) 32%);
+  }
+
+  .sd-surface-tone-inverse .sd-divider {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.12) 18%,
+      rgba(255, 255, 255, 0.24) 50%,
+      rgba(255, 255, 255, 0.12) 82%,
+      transparent
+    );
+  }
+
+  .sd-surface-tone-inverse .sd-button-secondary,
+  .sd-surface-tone-inverse .sd-button-ghost {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--sd-text-inverse);
+  }
+
   .sd-interactive-surface {
     transition:
       transform var(--sd-motion-fast) var(--sd-ease-standard),

@@ -21,9 +21,15 @@ const VARIANT_STYLES = {
   editorial: 'sd-panel sd-region-editorial',
 };
 
+const TONE_STYLES = {
+  default: '',
+  inverse: 'sd-surface-tone-inverse',
+};
+
 export default function SurfaceCard({
   as: Component = 'section',
   variant = 'panel',
+  tone = 'default',
   padding = 'md',
   interactive = false,
   selected = false,
@@ -36,10 +42,12 @@ export default function SurfaceCard({
       className={cn(
         'panel',
         VARIANT_STYLES[variant] || VARIANT_STYLES.panel,
+        TONE_STYLES[tone] || TONE_STYLES.default,
         PADDING_STYLES[padding] || PADDING_STYLES.md,
         interactive ? 'sd-interactive-surface' : '',
         className
       )}
+      data-tone={tone !== 'default' ? tone : undefined}
       data-selected={selected ? 'true' : undefined}
       {...props}
     >

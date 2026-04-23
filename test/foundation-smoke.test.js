@@ -128,6 +128,21 @@ test('foundation exposes an accessible IconButton primitive', () => {
   assert.match(css, /\.sd-icon-button-glyph\s*\{/);
 });
 
+test('SurfaceCard supports inverse tone as a reusable foundation surface', () => {
+  const source = readFileSync(new URL('../frontend/src/components/ui/SurfaceCard.jsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+  const story = readFileSync(new URL('../frontend/src/components/ui/SurfaceCard.stories.jsx', import.meta.url), 'utf8');
+
+  assert.match(source, /const TONE_STYLES = \{/);
+  assert.match(source, /inverse: 'sd-surface-tone-inverse'/);
+  assert.match(source, /tone = 'default'/);
+  assert.match(source, /data-tone=\{tone !== 'default' \? tone : undefined\}/);
+  assert.match(css, /\.sd-surface-tone-inverse\s*\{/);
+  assert.match(css, /background:[\s\S]*var\(--sd-surface-inverse\)/);
+  assert.match(css, /\.sd-surface-tone-inverse \.sd-copy[\s\S]*var\(--sd-text-inverse\)/);
+  assert.match(story, /tone="inverse"/);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);
