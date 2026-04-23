@@ -65,6 +65,18 @@ test('foundation educational tokens are mirrored as CSS variables', () => {
   assert.match(css, /--color-sd-simulation-glow: var\(--sd-simulation-glow\)/);
 });
 
+test('InlineMessage exposes live-region semantics by tone', () => {
+  const source = readFileSync(new URL('../frontend/src/components/ui/InlineMessage.jsx', import.meta.url), 'utf8');
+  assert.match(source, /info:\s*\{\s*role:\s*'status',\s*'aria-live':\s*'polite'\s*\}/);
+  assert.match(source, /success:\s*\{\s*role:\s*'status',\s*'aria-live':\s*'polite'\s*\}/);
+  assert.match(source, /warning:\s*\{\s*role:\s*'alert',\s*'aria-live':\s*'assertive'\s*\}/);
+  assert.match(source, /danger:\s*\{\s*role:\s*'alert',\s*'aria-live':\s*'assertive'\s*\}/);
+  assert.match(source, /role=\{role \?\? a11y\.role\}/);
+  assert.match(source, /aria-live=\{ariaLive \?\? a11y\['aria-live'\]\}/);
+  assert.match(source, /aria-atomic=\{ariaAtomic \?\? 'true'\}/);
+  assert.doesNotMatch(source, /tracking-\[-/);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);

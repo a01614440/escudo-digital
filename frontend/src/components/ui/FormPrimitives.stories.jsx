@@ -38,3 +38,22 @@ export const Playground = {
     </SurfaceCard>
   ),
 };
+
+export const InlineMessageSemantics = {
+  render: () => (
+    <SurfaceCard className="grid gap-4 max-w-3xl" variant="support">
+      <InlineMessage tone="info" title="Guia disponible">
+        Revisa el contexto antes de tomar una decision.
+      </InlineMessage>
+      <InlineMessage tone="success" title="Respuesta guardada">
+        Tu avance quedo registrado correctamente.
+      </InlineMessage>
+      <InlineMessage tone="warning" title="Senal detectada">
+        La solicitud mezcla urgencia con una accion sensible.
+      </InlineMessage>
+      <InlineMessage tone="danger" title="Accion bloqueada">
+        No compartas codigos ni contrasenas fuera de la app oficial.
+      </InlineMessage>
+    </SurfaceCard>
+  ),
+};
