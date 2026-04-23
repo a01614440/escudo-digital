@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F4 refine en curso. F4.A refinada, F4.B, F4.C y F4.D cerradas localmente.**
+**F4 refine en curso. F4.A refinada, F4.B, F4.C, F4.D y F4.E cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -159,6 +159,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F4.D bajo el rail de modulos a `SurfaceCard variant="support"`, retiro hacks inversos locales, mejoro wrapping/estado de `RouteModulePill` y conecto lista -> detalle con atributos estables;
 - F4.D hizo que `ModuleMissionBoard` muestre CTA local antes del progreso de apoyo y retiro metadata secundaria de ultimo cierre/actividades;
 - F4.D amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` con 67/67;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.E - Progress / stats / adjustments pass.
+- F4.E Progress / stats / adjustments pass quedo cerrada localmente con `docs/rebuild/audit/F4.E-progress-stats-adjustments.md`;
+- F4.E priorizo stats accionables en `ProgressScene`: ruta, fortaleza y gap; retiro `Shield`, snapshots vacios y lecturas decorativas;
+- F4.E hizo que `SettingsScene` sea una superficie secundaria de control con `tone="support"`, `variant="panel"`, resumen de temas priorizados y CTA `data-sd-settings-cta="courses-regenerate"`;
+- F4.E amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` con 70/70;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F4.F - Shell/layout comfort pass.
 
-No abrir F4.E/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F4.F/F5/F6 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

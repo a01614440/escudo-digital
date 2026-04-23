@@ -95,7 +95,48 @@ describe('F4.B Courses dashboard information density guards', () => {
     assert.doesNotMatch(progress, /Fortaleza:/);
     assert.doesNotMatch(progress, /Gap:/);
     assert.doesNotMatch(settings, /key: 'duration'/);
-    assert.match(settings, /Ritmo, foco y regeneracion de la ruta/);
+    assert.match(settings, /Ajustes de ruta sin perder progreso/);
+  });
+});
+
+describe('F4.E Courses progress, stats and adjustments guards', () => {
+  test('ProgressScene prioritizes route, focus and gap instead of decorative shield stats', () => {
+    const block = functionBlock('ProgressScene', 'SettingsScene');
+
+    assert.match(block, /const progressStrip = \[/);
+    assert.match(block, /key: 'route'/);
+    assert.match(block, /key: 'focus'/);
+    assert.match(block, /key: 'gap'/);
+    assert.match(block, /title="Progreso util de tu ruta"/);
+    assert.match(block, /items=\{progressStrip\}/);
+    assert.doesNotMatch(block, /key: 'shield'/);
+    assert.doesNotMatch(block, /Shield/);
+  });
+
+  test('ProgressScene keeps snapshots conditional and makes the side rail actionable', () => {
+    const block = functionBlock('ProgressScene', 'SettingsScene');
+
+    assert.match(block, /\{history\.length \? \(/);
+    assert.match(block, /eyebrow="Historial reciente"/);
+    assert.doesNotMatch(block, /Sin snapshots todavia/);
+    assert.match(block, /eyebrow="Siguiente foco"/);
+    assert.match(block, /title=\{weakestTopic \? CATEGORY_LABELS\[weakestTopic\[0\]\] : 'Sin gap dominante'\}/);
+    assert.match(block, /tone="warning"/);
+    assert.match(block, /title="Senales de aprendizaje"/);
+    assert.doesNotMatch(block, /key: 'prefs'/);
+  });
+
+  test('SettingsScene treats adjustments as secondary controls with explicit regeneration CTA', () => {
+    const block = functionBlock('SettingsScene');
+
+    assert.match(block, /const selectedTopicCount = Array\.isArray\(coursePrefs\?\.temas\) \? coursePrefs\.temas\.length : 0/);
+    assert.match(block, /tone="support"/);
+    assert.match(block, /title="Ajustes de ruta sin perder progreso"/);
+    assert.match(block, /variant="panel"/);
+    assert.match(block, /key: 'topics'/);
+    assert.match(block, /data-sd-settings-cta="courses-regenerate"/);
+    assert.match(block, /aria-label="Actualizar ruta con estas preferencias"/);
+    assert.doesNotMatch(block, /variant="hero"/);
   });
 });
 

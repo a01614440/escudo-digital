@@ -832,36 +832,45 @@ function ProgressScene({
     ? [...progress.snapshots].slice(-4).reverse()
     : [];
   const routeCompletion = routeLength ? Math.round((completedModules / routeLength) * 100) : 0;
+  const progressStrip = [
+    {
+      key: 'route',
+      eyebrow: 'Ruta',
+      value: formatPercent(routeCompletion),
+      label: `${completedModules}/${routeLength} modulos`,
+      hint: 'Avance total del recorrido.',
+      tone: 'accent',
+    },
+    {
+      key: 'focus',
+      eyebrow: 'Fortaleza',
+      value: strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] : 'Sin dato',
+      label: strongestTopic ? formatPercent(strongestTopic[1]) : '0%',
+      hint: 'Competencia mejor consolidada.',
+      tone: 'neutral',
+    },
+    {
+      key: 'gap',
+      eyebrow: 'Gap',
+      value: weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] : 'Sin gap',
+      label: weakestTopic ? formatPercent(weakestTopic[1]) : '0%',
+      hint: 'Tema que conviene reforzar.',
+      tone: 'warning',
+    },
+  ];
 
   return (
     <div className="grid gap-5">
       <StageHero
         tone="editorial"
         eyebrow="Progreso visible"
-        title="Tu blindaje ya se puede leer como avance real."
+        title="Progreso util de tu ruta"
         subtitle={getPrioritySummary(answers, assessment)}
-        meta="Aqui interpretas que tan blindada esta la ruta y donde conviene insistir en los siguientes modulos."
+        meta="Avance, fortaleza y gap sin datos decorativos."
         footer={
           <StatStrip
             compact={shellFamily === 'mobile'}
-            items={[
-              {
-                key: 'shield',
-                eyebrow: 'Shield',
-                value: formatPercent(computed.score_total),
-                label: 'Lectura global',
-                hint: 'Se mueve conforme completas actividades.',
-                tone: 'accent',
-              },
-              {
-                key: 'route',
-                eyebrow: 'Ruta completada',
-                value: formatPercent(routeCompletion),
-                label: `${completedModules}/${routeLength} modulos`,
-                hint: 'Sirve para retomar con una expectativa real.',
-                tone: 'neutral',
-              },
-            ]}
+            items={progressStrip}
           />
         }
       />
@@ -881,7 +890,7 @@ function ProgressScene({
             <PanelHeader
               eyebrow="Competencias"
               title="Tu blindaje por tema"
-              subtitle="Estas barras muestran donde ya detectas mejor las senales y donde conviene insistir."
+              subtitle="Lee rapido que esta fuerte y que conviene reforzar."
               divider
             />
             <div className="grid gap-4">
@@ -899,16 +908,16 @@ function ProgressScene({
             </div>
           </SurfaceCard>
 
-          <SurfaceCard padding="lg" variant="editorial">
+          {history.length ? (
+            <SurfaceCard padding="lg" variant="editorial">
             <PanelHeader
-              eyebrow="Snapshots"
-              title="Como se esta moviendo la ruta"
+              eyebrow="Historial reciente"
+              title="Evolucion de la ruta"
               subtitle="Este historial sirve para retomar con contexto y no solo recordar “mas o menos como iba”."
               divider
             />
             <div className="grid gap-3">
-              {history.length ? (
-                history.map((item, index) => (
+              {history.map((item, index) => (
                   <div
                     key={`${item.timestamp || index}`}
                     className="rounded-[22px] border border-sd-border bg-white/76 px-4 py-4"
@@ -921,36 +930,32 @@ function ProgressScene({
                       {`${item.completedCount} actividad(es) registradas en este snapshot.`}
                     </p>
                   </div>
-                ))
-              ) : (
-                <InlineMessage tone="info" title="Sin snapshots todavia">
-                  Completa mas actividades para empezar a ver evolucion a lo largo del tiempo.
-                </InlineMessage>
-              )}
+              ))}
             </div>
-          </SurfaceCard>
+            </SurfaceCard>
+          ) : null}
         </div>
 
         <div className="grid gap-4">
           <ProgressSummary
-            eyebrow="Lectura rapida"
-            title={strongestTopic ? CATEGORY_LABELS[strongestTopic[0]] : 'Sin lectura dominante'}
-            value={strongestTopic ? formatPercent(strongestTopic[1]) : '0%'}
+            eyebrow="Siguiente foco"
+            title={weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] : 'Sin gap dominante'}
+            value={weakestTopic ? formatPercent(weakestTopic[1]) : '0%'}
             hint={
-              strongestTopic
-                ? 'Esta es la competencia que mejor esta respondiendo dentro de tu progreso reciente.'
-                : 'Aun no hay suficiente recorrido para detectar la fortaleza principal.'
+              weakestTopic
+                ? 'Este tema merece prioridad en los siguientes modulos.'
+                : 'Aun no hay suficiente recorrido para detectar el gap principal.'
             }
-            progressValue={strongestTopic?.[1] || 0}
+            progressValue={weakestTopic?.[1] || 0}
             variant="support"
-            tone="accent"
+            tone="warning"
           />
 
           <SupportRail
             tone="support"
             eyebrow="Lo importante"
-            title="Fortalezas, gaps y configuracion"
-            subtitle="Este costado concentra lo que mas importa para decidir como seguir."
+            title="Senales de aprendizaje"
+            subtitle="Errores y fortalezas que ayudan a decidir como seguir."
           >
             <div className="grid gap-4">
               <KeyValueBlock
@@ -966,8 +971,8 @@ function ProgressScene({
                     value: insights.strengths.length ? insights.strengths.join(' / ') : 'Sin fortalezas destacadas aun',
                   },
                   {
-                    key: 'prefs',
-                    label: 'Ruta / preferencias',
+                    key: 'plan',
+                    label: 'Plan actual',
                     value: `v${coursePlan?.planVersion || 0} · ${coursePrefs?.estilo || 'mix'} · ${coursePrefs?.dificultad || 'auto'}`,
                   },
                 ]}
@@ -1000,6 +1005,7 @@ function SettingsScene({
       return { ...current, temas: nextTopics.length ? nextTopics : currentTopics };
     });
   };
+  const selectedTopicCount = Array.isArray(coursePrefs?.temas) ? coursePrefs.temas.length : 0;
 
   const settingsStrip = [
     {
@@ -1018,6 +1024,14 @@ function SettingsScene({
       hint: 'Sigue usando la misma logica de plan.',
       tone: 'neutral',
     },
+    {
+      key: 'topics',
+      eyebrow: 'Temas',
+      value: selectedTopicCount ? String(selectedTopicCount) : 'Auto',
+      label: selectedTopicCount ? 'Priorizados' : 'Sin filtro manual',
+      hint: 'Solo ordena el foco visible.',
+      tone: 'neutral',
+    },
   ];
 
   return (
@@ -1032,20 +1046,20 @@ function SettingsScene({
       }
       hero={
         <StageHero
-          tone="editorial"
+          tone="support"
           eyebrow="Ajustes de cabina"
-          title="Ritmo, foco y regeneracion de la ruta"
-          subtitle="Ajusta como recorrerla antes de regenerar."
-          meta="Preserva diagnostico y continuidad."
+          title="Ajustes de ruta sin perder progreso"
+          subtitle="Cambia ritmo, dificultad o temas antes de regenerar."
+          meta="No toca diagnostico, scoring ni avance guardado."
           footer={<StatStrip items={settingsStrip} compact={shellFamily === 'mobile'} variant="support" />}
         />
       }
       primary={
-        <SurfaceCard padding="lg" variant="spotlight">
+        <SurfaceCard padding="lg" variant="panel">
           <PanelHeader
             eyebrow="Preferencias"
-            title="Ajusta ritmo y enfoque"
-            subtitle="Solo cambian la presentacion y prioridad visible."
+            title="Preferencias de recorrido"
+            subtitle="Cambian como se presenta la ruta; no alteran tu progreso registrado."
             divider
           />
 
@@ -1088,7 +1102,7 @@ function SettingsScene({
           <Field
             className="mt-6"
             label="Temas prioritarios"
-            hint="Activa o quita temas segun el foco que quieras reforzar."
+            hint="Elige temas solo si quieres reforzar una prioridad concreta."
           >
             <ActionCluster align="start" collapse="wrap">
               {TOPIC_ORDER.map((topic) => {
@@ -1118,8 +1132,8 @@ function SettingsScene({
           tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
           sticky={shellFamily === 'desktop'}
           eyebrow="Aplicar cambios"
-          title="Regenerar sin perder continuidad"
-          subtitle="Usa esta accion cuando quieras reordenar modulos, ritmo y prioridad con la misma base logica."
+          title="Actualizar ruta"
+          subtitle="Regenera solo cuando quieras reordenar modulos, ritmo y prioridad."
         >
           <div className="grid gap-4">
             {error ? (
@@ -1127,13 +1141,20 @@ function SettingsScene({
                 {error}
               </InlineMessage>
             ) : (
-              <InlineMessage tone="info" title="Que se conserva">
-                Tu diagnostico, progreso y continuidad siguen intactos mientras se recalcula la ruta.
+              <InlineMessage tone="info" title="Se conserva tu base">
+                Diagnostico, progreso y continuidad siguen intactos mientras se recalcula la ruta.
               </InlineMessage>
             )}
 
             <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-              <Button type="button" variant="hero" onClick={onGenerateCourse} loading={generating}>
+              <Button
+                type="button"
+                variant="primary"
+                data-sd-settings-cta="courses-regenerate"
+                aria-label="Actualizar ruta con estas preferencias"
+                onClick={onGenerateCourse}
+                loading={generating}
+              >
                 {generating ? 'Actualizando ruta...' : 'Actualizar ruta'}
               </Button>
             </ActionCluster>

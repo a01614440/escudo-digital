@@ -87,8 +87,12 @@ La tesis obligatoria es:
 - F4.D bajo el rail de modulos a `SurfaceCard variant="support"`, retiro hacks inversos locales, mejoro wrapping/estado de `RouteModulePill` y conecto lista -> detalle con atributos estables.
 - F4.D hizo que `ModuleMissionBoard` muestre CTA local antes del progreso de apoyo y retiro metadata secundaria de ultimo cierre/actividades.
 - F4.D amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (67/67).
-- El siguiente frente recomendado es F4.E - Progress / stats / adjustments pass.
-- No abrir F4.E/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F4.E Progress / stats / adjustments pass quedo cerrada localmente con `docs/rebuild/audit/F4.E-progress-stats-adjustments.md`.
+- F4.E priorizo stats accionables en `ProgressScene`: ruta, fortaleza y gap; retiro `Shield`, snapshots vacios y lecturas decorativas.
+- F4.E hizo que `SettingsScene` sea una superficie secundaria de control con `tone="support"`, `variant="panel"`, resumen de temas priorizados y CTA `data-sd-settings-cta="courses-regenerate"`.
+- F4.E amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (70/70).
+- El siguiente frente recomendado es F4.F - Shell/layout comfort pass.
+- No abrir F4.F/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
