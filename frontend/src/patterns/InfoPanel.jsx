@@ -11,6 +11,7 @@ const TONE_VARIANTS = {
 };
 
 export default function InfoPanel({
+  as = 'aside',
   tone = 'info',
   eyebrow,
   title,
@@ -25,7 +26,7 @@ export default function InfoPanel({
 
   return (
     <SurfaceCard
-      as="aside"
+      as={as}
       variant={TONE_VARIANTS[resolvedTone]}
       padding="compact"
       className={cn('sd-info-panel', `sd-info-panel-${resolvedTone}`, className)}

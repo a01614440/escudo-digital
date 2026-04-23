@@ -41,22 +41,25 @@ export default function QuestionPage({
   placeholder = 'Selecciona una opcion',
   textPlaceholder,
   error,
+  errorId: errorIdProp,
+  errorTitle = 'Revisa esta respuesta',
   required = false,
   help,
   actions,
   footer,
   className,
   children,
+  'aria-describedby': ariaDescribedBy,
 }) {
   const generatedId = useId();
   const questionId = id || generatedId;
   const headingId = `${questionId}-heading`;
   const descriptionId = description ? `${questionId}-description` : undefined;
-  const errorId = error ? `${questionId}-error` : undefined;
+  const errorId = error ? errorIdProp || `${questionId}-error` : undefined;
   const helpId = help ? `${questionId}-help` : undefined;
   const controlName = name || questionId;
   const questionTitle = title || prompt;
-  const describedBy = mergeDescribedBy(descriptionId, errorId, helpId);
+  const describedBy = mergeDescribedBy(ariaDescribedBy, descriptionId, errorId, helpId);
   const selectedValues = normalizeMultiValue(value, values);
   const controlled = value !== undefined || values !== undefined;
 
@@ -79,6 +82,7 @@ export default function QuestionPage({
         className="sd-question-fieldset"
         aria-describedby={describedBy}
         aria-invalid={error ? 'true' : undefined}
+        aria-required={required ? 'true' : undefined}
       >
         <legend className="sr-only">{questionTitle}</legend>
         <div className="sd-question-options" data-type={choiceType}>
@@ -212,7 +216,7 @@ export default function QuestionPage({
       </div>
 
       {error ? (
-        <InlineMessage id={errorId} tone="warning" title="Revisa esta respuesta">
+        <InlineMessage id={errorId} tone="warning" title={errorTitle}>
           {error}
         </InlineMessage>
       ) : null}

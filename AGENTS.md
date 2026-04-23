@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F3.C
+## Estado actual tras F3.D
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -58,8 +58,11 @@ La tesis obligatoria es:
 - F3.B solo toco `AuthView.jsx`, `test/f3-auth-survey-smoke.test.js` y docs. No toco auth core, hooks ni services.
 - F3.C Survey primitives + a11y pass quedo cerrado localmente con `docs/rebuild/audit/F3.C-survey-primitives-a11y.md`.
 - F3.C migro opciones `single` a `Radio`, opciones `multi` a `Checkbox`, retiro `SurveyChoiceCard`, y conecto `fieldset`/`legend`/`aria-describedby`/`aria-invalid`/`aria-required` sin tocar `useAssessmentFlow`, scoring, services ni backend.
-- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3.D - Survey layout / patterns pass**.
-- No abrir F3.D/F3.E/F3.F/F3.G/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F3.D Survey layout / patterns pass quedo cerrado localmente con `docs/rebuild/audit/F3.D-survey-layout-patterns.md`.
+- F3.D adopto `QuestionPage`, `AssessmentLayout` e `InfoPanel` para la escena activa de preguntas. Tambien endurecio `QuestionPage` con `aria-describedby` externo, `errorId`, `errorTitle` y `aria-required`, e hizo que `InfoPanel` acepte `as` para evitar aside anidado.
+- F3.D no cambio intro/loading/results, `showIntro`, flow, hooks, scoring, services ni backend.
+- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3.E - Survey flow hardening**.
+- No abrir F3.E/F3.F/F3.G/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

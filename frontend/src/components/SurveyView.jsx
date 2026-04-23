@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { normalizeRiskLevel } from '../lib/course.js';
 import { buildJourneyProgress } from '../lib/journeyGuidance.js';
 import { getShellFamily } from '../hooks/useResponsiveLayout.js';
-import { SplitHeroLayout, WorkspaceLayout } from '../layouts/index.js';
+import { AssessmentLayout, SplitHeroLayout, WorkspaceLayout } from '../layouts/index.js';
 import {
   ActionCluster,
   EmptyState,
+  InfoPanel,
   JourneyStepper,
   KeyValueBlock,
   PanelHeader,
   ProgressSummary,
+  QuestionPage,
   StageHero,
   StatStrip,
   SupportRail,
@@ -17,15 +19,10 @@ import {
 import {
   Badge,
   Button,
-  Checkbox,
-  Field,
   InlineMessage,
   ProgressBar,
-  Radio,
-  Select,
   Spinner,
   SurfaceCard,
-  TextArea,
 } from './ui/index.js';
 
 const TRAINING_CHANNELS = ['WhatsApp', 'SMS', 'Paginas clonadas', 'Llamadas', 'Correo'];
@@ -40,22 +37,6 @@ const LOADING_PIPELINE = [
   'Calculamos tu perfil.',
   'Preparamos tu ruta.',
 ];
-
-function mergeDescribedBy(...ids) {
-  return ids.filter(Boolean).join(' ') || undefined;
-}
-
-function buildNextMultiAnswer(options, selectedValues, optionValue, checked) {
-  const nextValues = new Set(selectedValues);
-
-  if (checked) {
-    nextValues.add(optionValue);
-  } else {
-    nextValues.delete(optionValue);
-  }
-
-  return options.map((option) => option.value).filter((value) => nextValues.has(value));
-}
 
 function getStageHeroModel({ showIntro, surveyStage, surveyIndex, total, assessment, progress }) {
   if (showIntro) {
@@ -234,121 +215,6 @@ function SurveyStageHero({
   );
 }
 
-function renderInput({
-  question,
-  value,
-  onChange,
-  shellFamily,
-  questionDomId,
-  describedBy,
-  invalid,
-}) {
-  const controlName = question.id || questionDomId;
-
-  if (question.type === 'single') {
-    return (
-      <fieldset
-        className="grid gap-3"
-        aria-describedby={describedBy}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-required="true"
-      >
-        <legend className="sr-only">{question.title}</legend>
-        <div className="grid gap-3">
-          {question.options.map((option, index) => (
-            <Radio
-              key={option.value}
-              id={`${questionDomId}-option-${index}`}
-              name={controlName}
-              value={option.value}
-              checked={value === option.value}
-              label={option.label}
-              hint={option.helper}
-              invalid={invalid}
-              aria-describedby={describedBy}
-              onChange={() => onChange(question.id, option.value)}
-            />
-          ))}
-        </div>
-      </fieldset>
-    );
-  }
-
-  if (question.type === 'multi') {
-    const selected = Array.isArray(value) ? value : [];
-
-    return (
-      <fieldset
-        className="grid gap-3"
-        aria-describedby={describedBy}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-required="true"
-      >
-        <legend className="sr-only">{question.title}</legend>
-        <div className={shellFamily === 'mobile' ? 'grid gap-3' : 'grid gap-3 md:grid-cols-2'}>
-          {question.options.map((option, index) => (
-            <Checkbox
-              key={option.value}
-              id={`${questionDomId}-option-${index}`}
-              name={controlName}
-              value={option.value}
-              checked={selected.includes(option.value)}
-              label={option.label}
-              hint={option.helper}
-              invalid={invalid}
-              aria-describedby={describedBy}
-              onChange={(event) => {
-                onChange(
-                  question.id,
-                  buildNextMultiAnswer(question.options, selected, option.value, event.target.checked)
-                );
-              }}
-            />
-          ))}
-        </div>
-      </fieldset>
-    );
-  }
-
-  if (question.type === 'select') {
-    return (
-      <Field label="Tu respuesta" required>
-        <Select
-          id={`${questionDomId}-select`}
-          name={controlName}
-          value={value || ''}
-          required
-          invalid={invalid}
-          aria-describedby={describedBy}
-          onChange={(event) => onChange(question.id, event.target.value)}
-        >
-          <option value="">Selecciona una opcion</option>
-          {question.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-      </Field>
-    );
-  }
-
-  return (
-    <Field label="Tu respuesta" required>
-      <TextArea
-        id={`${questionDomId}-text`}
-        name={controlName}
-        placeholder={question.placeholder || 'Escribe aqui...'}
-        value={value || ''}
-        required
-        invalid={invalid}
-        aria-describedby={describedBy}
-        onChange={(event) => onChange(question.id, event.target.value)}
-      />
-    </Field>
-  );
-}
-
 function IntroActionPanel({ shellFamily, onStart }) {
   return (
     <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
@@ -435,7 +301,6 @@ function SurveyCommandDeck({ shellFamily, surveyIndex, total, progress, journeyS
   return (
     <SupportRail
       tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
-      sticky={shellFamily === 'desktop'}
       eyebrow="Control"
       title="Progreso claro"
       subtitle="Ves donde vas y cuanto falta, sin ruido extra."
@@ -452,37 +317,31 @@ function SurveyCommandDeck({ shellFamily, surveyIndex, total, progress, journeyS
           value={`${progress}%`}
           hint="El progreso acompana, no compite."
           progressValue={progress}
-          className={shellFamily === 'tablet' ? '!grid-cols-1' : ''}
         />
-        <JourneyStepper
-          steps={journeySteps}
-          compact
-          className={shellFamily === 'desktop' ? '!grid-cols-1 sm:!grid-cols-1' : ''}
-        />
+        <JourneyStepper steps={journeySteps} compact />
       </div>
     </SupportRail>
   );
 }
 
 function SurveyInsightDeck({ shellFamily, question }) {
+  const items = SURVEY_RULES.map((item, index) => ({
+    label: `Guia ${index + 1}`,
+    body: item,
+  }));
+
   const content = (
-    <SupportRail
-      tone="insight"
-      sticky={shellFamily === 'desktop'}
+    <InfoPanel
+      as="div"
+      tone="coach"
       eyebrow="Ayuda"
       title="Responde con criterio"
       subtitle="Esta guia acompana la pregunta sin invadirla."
-    >
-      <div className="grid gap-3">
-        {SURVEY_RULES.map((item) => (
-          <p key={item} className="m-0 text-sm leading-6 text-sd-muted">
-            {item}
-          </p>
-        ))}
-      </div>
-      <div className="sd-divider" />
-      <KeyValueBlock items={[{ key: 'format', label: 'Formato actual', value: question?.type || 'single' }]} />
-    </SupportRail>
+      items={items}
+      footer={
+        <KeyValueBlock items={[{ key: 'format', label: 'Formato actual', value: question?.type || 'single' }]} />
+      }
+    />
   );
 
   if (shellFamily === 'mobile') {
@@ -501,7 +360,6 @@ function SurveyInsightDeck({ shellFamily, question }) {
 
 function QuestionBoard({
   question,
-  shellFamily,
   answers,
   surveyIndex,
   total,
@@ -525,66 +383,57 @@ function QuestionBoard({
   }
 
   const questionDomId = `survey-question-${question.id || surveyIndex}`;
-  const descriptionId = question.helper ? `${questionDomId}-description` : undefined;
   const flowErrorId = flowError ? `${questionDomId}-flow-error` : undefined;
   const validationErrorId = validationError ? `${questionDomId}-validation-error` : undefined;
-  const describedBy = mergeDescribedBy(descriptionId, flowErrorId, validationErrorId);
-  const invalid = Boolean(validationError);
+  const questionValue =
+    answers[question.id] ?? (question.type === 'multi' ? [] : '');
+  const questionOptions = (question.options || []).map((option) => ({
+    ...option,
+    hint: option.hint || option.helper,
+  }));
 
   return (
-    <SurfaceCard padding="lg" variant="raised" className="border-sd-border-strong">
-      <div className="grid gap-6">
-        <PanelHeader
-          eyebrow={`Pregunta ${String(surveyIndex + 1).padStart(2, '0')}`}
-          title={question.title}
-          subtitle={question.helper}
-          divider
-        />
-        {question.helper ? (
-          <p id={descriptionId} className="sr-only">
-            {question.helper}
-          </p>
-        ) : null}
+    <div className="grid gap-4">
+      {flowError ? (
+        <InlineMessage id={flowErrorId} tone="danger" title="Hay un problema en el flujo actual.">
+          {flowError}
+        </InlineMessage>
+      ) : null}
 
-        {flowError ? (
-          <InlineMessage id={flowErrorId} tone="danger" title="Hay un problema en el flujo actual.">
-            {flowError}
-          </InlineMessage>
-        ) : null}
-
-        <div className="grid gap-4">
-          {renderInput({
-            question,
-            value: answers[question.id],
-            onChange: onAnswerChange,
-            shellFamily,
-            questionDomId,
-            describedBy,
-            invalid,
-          })}
-        </div>
-
-        {validationError ? (
-          <InlineMessage id={validationErrorId} tone="warning" title="Falta completar esta pregunta.">
-            {validationError}
-          </InlineMessage>
-        ) : null}
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sd-border-soft pt-5">
-          <Button
-            variant="secondary"
-            type="button"
-            onClick={onPrev}
-            disabled={surveyIndex === 0}
-          >
-            Atras
-          </Button>
-          <Button variant="primary" type="button" onClick={onNext}>
-            {surveyIndex === total - 1 ? 'Finalizar y ver perfil' : 'Guardar y seguir'}
-          </Button>
-        </div>
-      </div>
-    </SurfaceCard>
+      <QuestionPage
+        id={questionDomId}
+        eyebrow={`Pregunta ${String(surveyIndex + 1).padStart(2, '0')}`}
+        title={question.title}
+        description={question.helper}
+        type={question.type}
+        name={question.id || questionDomId}
+        options={questionOptions}
+        value={questionValue}
+        onValueChange={(nextValue) => onAnswerChange(question.id, nextValue)}
+        placeholder="Selecciona una opcion"
+        textPlaceholder={question.placeholder || 'Escribe aqui...'}
+        error={validationError}
+        errorId={validationErrorId}
+        errorTitle="Falta completar esta pregunta."
+        required
+        aria-describedby={flowErrorId}
+        footer={
+          <div className="flex w-full flex-wrap items-center justify-between gap-3 border-t border-sd-border-soft pt-5">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onPrev}
+              disabled={surveyIndex === 0}
+            >
+              Atras
+            </Button>
+            <Button variant="primary" type="button" onClick={onNext}>
+              {surveyIndex === total - 1 ? 'Finalizar y ver perfil' : 'Guardar y seguir'}
+            </Button>
+          </div>
+        }
+      />
+    </div>
   );
 }
 
@@ -606,52 +455,45 @@ function SurveyStageScene({
   const total = visibleQuestions.length || 1;
 
   return (
-    <div className="grid gap-[var(--sd-shell-section-gap)]">
-      <SurveyStageHero
-        shellFamily={shellFamily}
-        showIntro={false}
-        surveyStage="survey"
-        surveyIndex={surveyIndex}
-        total={total}
-        progress={progress}
-        assessment={null}
-        journeySteps={journeySteps}
-      />
-
-      <WorkspaceLayout
-        shellFamily={shellFamily}
-        className={
-          shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(16.5rem,17.5rem)_minmax(0,1.28fr)_minmax(18.5rem,19.5rem)] 2xl:grid-cols-[minmax(17rem,18rem)_minmax(0,1.35fr)_minmax(19rem,20rem)]'
-            : ''
-        }
-        command={
-          <SurveyCommandDeck
-            shellFamily={shellFamily}
-            surveyIndex={surveyIndex}
-            total={total}
-            progress={progress}
-            journeySteps={journeySteps}
-          />
-        }
-        main={
-          <QuestionBoard
-            question={question}
-            shellFamily={shellFamily}
-            answers={answers}
-            surveyIndex={surveyIndex}
-            total={total}
-            flowError={flowError}
-            validationError={validationError}
-            onAnswerChange={onAnswerChange}
-            onPrev={onPrev}
-            onNext={onNext}
-            onRestart={onRestart}
-          />
-        }
-        insight={<SurveyInsightDeck shellFamily={shellFamily} question={question} />}
-      />
-    </div>
+    <AssessmentLayout
+      shellFamily={shellFamily}
+      hero={
+        <SurveyStageHero
+          shellFamily={shellFamily}
+          showIntro={false}
+          surveyStage="survey"
+          surveyIndex={surveyIndex}
+          total={total}
+          progress={progress}
+          assessment={null}
+          journeySteps={journeySteps}
+        />
+      }
+      progress={
+        <SurveyCommandDeck
+          shellFamily={shellFamily}
+          surveyIndex={surveyIndex}
+          total={total}
+          progress={progress}
+          journeySteps={journeySteps}
+        />
+      }
+      question={
+        <QuestionBoard
+          question={question}
+          answers={answers}
+          surveyIndex={surveyIndex}
+          total={total}
+          flowError={flowError}
+          validationError={validationError}
+          onAnswerChange={onAnswerChange}
+          onPrev={onPrev}
+          onNext={onNext}
+          onRestart={onRestart}
+        />
+      }
+      insight={<SurveyInsightDeck shellFamily={shellFamily} question={question} />}
+    />
   );
 }
 

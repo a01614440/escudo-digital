@@ -26,27 +26,55 @@ describe('F3 Auth + Survey closeout guards', () => {
 
   test('SurveyView uses foundation choice primitives instead of improvised choice cards', () => {
     const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+    const questionPage = readFileSync(new URL('../frontend/src/patterns/QuestionPage.jsx', import.meta.url), 'utf8');
 
-    assert.match(source, /Checkbox,/);
-    assert.match(source, /Radio,/);
-    assert.match(source, /<Radio[\s\S]*checked=\{value === option\.value\}/);
-    assert.match(source, /<Checkbox[\s\S]*checked=\{selected\.includes\(option\.value\)\}/);
-    assert.match(source, /buildNextMultiAnswer\(question\.options, selected, option\.value, event\.target\.checked\)/);
+    assert.match(source, /QuestionPage,/);
+    assert.match(source, /<QuestionPage[\s\S]*type=\{question\.type\}[\s\S]*onValueChange=\{\(nextValue\) => onAnswerChange\(question\.id, nextValue\)\}/);
+    assert.match(questionPage, /Checkbox,/);
+    assert.match(questionPage, /Radio,/);
+    assert.match(questionPage, /buildNextMultiValue\(options, selectedValues, option\.value, event\.target\.checked\)/);
     assert.doesNotMatch(source, /function SurveyChoiceCard/);
+    assert.doesNotMatch(source, /function renderInput/);
+    assert.doesNotMatch(source, /function buildNextMultiAnswer/);
     assert.doesNotMatch(source, /<input className="sr-only"/);
     assert.doesNotMatch(source, /shadow-\[0_24px_50px/);
   });
 
   test('SurveyView wires question controls to accessible descriptions and errors', () => {
     const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+    const questionPage = readFileSync(new URL('../frontend/src/patterns/QuestionPage.jsx', import.meta.url), 'utf8');
 
-    assert.match(source, /function mergeDescribedBy/);
-    assert.match(source, /<fieldset[\s\S]*aria-describedby=\{describedBy\}[\s\S]*aria-invalid=\{invalid \? 'true' : undefined\}/);
-    assert.match(source, /aria-required="true"/);
-    assert.match(source, /<legend className="sr-only">\{question\.title\}<\/legend>/);
-    assert.match(source, /id=\{validationErrorId\} tone="warning"/);
+    assert.match(questionPage, /function mergeDescribedBy/);
+    assert.match(questionPage, /aria-describedby=\{describedBy\}/);
+    assert.match(questionPage, /aria-invalid=\{error \? 'true' : undefined\}/);
+    assert.match(questionPage, /aria-required=\{required \? 'true' : undefined\}/);
+    assert.match(questionPage, /<legend className="sr-only">\{questionTitle\}<\/legend>/);
+    assert.match(questionPage, /<Select[\s\S]*required=\{required\}[\s\S]*invalid=\{Boolean\(error\)\}[\s\S]*aria-describedby=\{describedBy\}/);
+    assert.match(questionPage, /<TextArea[\s\S]*required=\{required\}[\s\S]*invalid=\{Boolean\(error\)\}[\s\S]*aria-describedby=\{describedBy\}/);
+    assert.match(source, /errorId=\{validationErrorId\}/);
+    assert.match(source, /errorTitle="Falta completar esta pregunta\."/);
+    assert.match(source, /aria-describedby=\{flowErrorId\}/);
     assert.match(source, /id=\{flowErrorId\} tone="danger"/);
-    assert.match(source, /<Select[\s\S]*id=\{`\$\{questionDomId\}-select`\}[\s\S]*required[\s\S]*invalid=\{invalid\}[\s\S]*aria-describedby=\{describedBy\}/);
-    assert.match(source, /<TextArea[\s\S]*id=\{`\$\{questionDomId\}-text`\}[\s\S]*required[\s\S]*invalid=\{invalid\}[\s\S]*aria-describedby=\{describedBy\}/);
+  });
+
+  test('SurveyView adopts F1 domain layout patterns for the active question scene', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+    const infoPanel = readFileSync(new URL('../frontend/src/patterns/InfoPanel.jsx', import.meta.url), 'utf8');
+    const stageScene = source.slice(
+      source.indexOf('function SurveyStageScene'),
+      source.indexOf('function LoadingPrimaryPanel')
+    );
+
+    assert.match(source, /AssessmentLayout,/);
+    assert.match(source, /InfoPanel,/);
+    assert.match(stageScene, /<AssessmentLayout/);
+    assert.match(stageScene, /progress=\{[\s\S]*<SurveyCommandDeck/);
+    assert.match(stageScene, /question=\{[\s\S]*<QuestionBoard/);
+    assert.match(stageScene, /insight=\{<SurveyInsightDeck/);
+    assert.match(source, /<InfoPanel[\s\S]*tone="coach"[\s\S]*items=\{items\}/);
+    assert.match(infoPanel, /as = 'aside'/);
+    assert.match(infoPanel, /as=\{as\}/);
+    assert.doesNotMatch(stageScene, /<WorkspaceLayout/);
+    assert.doesNotMatch(stageScene, /xl:grid-cols-\[minmax\(16\.5rem,17\.5rem\)_minmax\(0,1\.28fr\)_minmax\(18\.5rem,19\.5rem\)\]/);
   });
 });
