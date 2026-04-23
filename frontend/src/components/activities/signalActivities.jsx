@@ -17,7 +17,6 @@ import {
   buildActivityFeedback,
   completeActivity,
   formatPercent,
-  Paragraphs,
 } from './sharedActivityUi.jsx';
 
 function getChatFeedbackTone(feedback) {
@@ -707,7 +706,15 @@ export function CompareDomainsActivity({ module, activity, startedAtRef, onCompl
 
   return (
     <>
-      <Paragraphs text={activity.prompt || 'Elige el dominio legítimo.'} />
+      <PanelHeader
+        eyebrow="Dominio visible"
+        title={repairPossibleMojibake(activity.prompt || 'Elige el dominio legítimo.')}
+        subtitle={repairPossibleMojibake(
+          activity.explicacion || 'Revisa el dominio más simple y coherente con la marca real.'
+        )}
+        meta={<Badge tone="warning">{`${domains.length || 0} dominios`}</Badge>}
+        divider
+      />
       <ActivitySummaryBar
         items={[
           {
@@ -723,24 +730,26 @@ export function CompareDomainsActivity({ module, activity, startedAtRef, onCompl
         ]}
       />
 
-      <div className="option-grid">
-        {domains.map((domain, index) => {
-          const status =
-            selectedIndex === null ? '' : index === correctIndex ? 'correct' : selectedIndex === index ? 'wrong' : '';
+      <SurfaceCard padding="compact" variant="insight" className="border-sd-border-strong">
+        <div className="option-grid">
+          {domains.map((domain, index) => {
+            const status =
+              selectedIndex === null ? '' : index === correctIndex ? 'correct' : selectedIndex === index ? 'wrong' : '';
 
-          return (
-            <button
-              key={domain}
-              className={`domain-btn ${status}`.trim()}
-              type="button"
-              onClick={() => handleSelect(index)}
-              disabled={selectedIndex !== null}
-            >
-              {domain}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={domain}
+                className={`domain-btn ${status}`.trim()}
+                type="button"
+                onClick={() => handleSelect(index)}
+                disabled={selectedIndex !== null}
+              >
+                {domain}
+              </button>
+            );
+          })}
+        </div>
+      </SurfaceCard>
 
       <FeedbackPanel feedback={feedback} />
 
@@ -838,7 +847,15 @@ export function SignalHuntActivity({ module, activity, startedAtRef, onComplete 
 
   return (
     <>
-      <div className="message-box">{activity.mensaje || 'Detecta las señales de riesgo.'}</div>
+      <PanelHeader
+        eyebrow="Señales del mensaje"
+        title="Detecta las señales de riesgo"
+        subtitle={repairPossibleMojibake(
+          activity.mensaje || 'Marca solo las señales que realmente cambian la decisión.'
+        )}
+        meta={<Badge tone="warning">{`${signals.filter((signal) => signal.correcta).length || 0} claves`}</Badge>}
+        divider
+      />
       <ActivitySummaryBar
         items={[
           {
@@ -853,32 +870,34 @@ export function SignalHuntActivity({ module, activity, startedAtRef, onComplete 
           },
         ]}
       />
-      <div className="signal-list">
-        {signals.map((signal) => {
-          const chosen = selected.has(signal.id);
-          const stateClass = result
-            ? chosen && signal.correcta
-              ? 'correct'
-              : chosen && !signal.correcta
-                ? 'wrong'
-                : !chosen && signal.correcta
-                  ? 'missed'
-                  : ''
-            : '';
+      <SurfaceCard padding="compact" variant="insight" className="border-sd-border-strong">
+        <div className="signal-list">
+          {signals.map((signal) => {
+            const chosen = selected.has(signal.id);
+            const stateClass = result
+              ? chosen && signal.correcta
+                ? 'correct'
+                : chosen && !signal.correcta
+                  ? 'wrong'
+                  : !chosen && signal.correcta
+                    ? 'missed'
+                    : ''
+              : '';
 
-          return (
-            <label className={`signal-row ${stateClass}`.trim()} key={signal.id}>
-              <input
-                type="checkbox"
-                checked={chosen}
-                onChange={() => toggleSignal(signal.id)}
-                disabled={Boolean(result)}
-              />
-              <span>{signal.label}</span>
-            </label>
-          );
-        })}
-      </div>
+            return (
+              <label className={`signal-row ${stateClass}`.trim()} key={signal.id}>
+                <input
+                  type="checkbox"
+                  checked={chosen}
+                  onChange={() => toggleSignal(signal.id)}
+                  disabled={Boolean(result)}
+                />
+                <span>{signal.label}</span>
+              </label>
+            );
+          })}
+        </div>
+      </SurfaceCard>
       <FeedbackPanel feedback={feedback} />
       <div className="activity-actions">
         {!result ? (

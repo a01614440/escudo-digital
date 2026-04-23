@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.H WebLab / web simulation refine cerrada localmente. Siguiente frente recomendado: F6.I Calls / other simulation refine.**
+**F6.I Calls / other simulation refine cerrada localmente. Siguiente frente recomendado: F6.J Cross-simulation functionality + polish pass.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -267,6 +267,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.H agrego `test/f6-weblab-refine-smoke.test.js`;
 - F6.H valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.H no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es abrir F6.I - Calls / other simulation refine.
+- F6.I Calls / other simulation refine quedo cerrada localmente con banner de fase para CallSimulation, transcript log anunciado y superficies guiadas para CompareDomains y SignalHunt;
+- F6.I agrego `test/f6-call-other-refine-smoke.test.js`;
+- F6.I valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.I no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es abrir F6.J - Cross-simulation functionality + polish pass.
 
-No abrir F6.I/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.J/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

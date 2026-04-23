@@ -471,13 +471,20 @@ export default function CallSimulationActivity({
 
       {phase === 'permissions' ? (
         <section className="call-immersive-phone call-immersive-permissions">
-          <div className="call-immersive-panel-head">
-            <p className="eyebrow">Elige cómo responder</p>
-            <h3>Mantén el control sin salir de la simulación</h3>
-            <p>
-              Puedes hablar, usar respuestas rápidas o escribir. En los tres modos la meta es la misma:
-              cortar la presión y verificar por otro canal.
-            </p>
+          <div className="call-stage-banner">
+            <div>
+              <p className="call-immersive-kicker">Elige cómo responder</p>
+              <h3>Mantén el control sin salir de la simulación</h3>
+              <p>
+                Puedes hablar, usar respuestas rápidas o escribir. En los tres modos la meta es la misma:
+                cortar la presión y verificar por otro canal.
+              </p>
+            </div>
+            <div className="call-stage-meta">
+              <span className="call-badge">{difficulty.toUpperCase()}</span>
+              <span className="call-badge subtle">{fraudType}</span>
+              <span className="call-badge subtle">{modeLabel}</span>
+            </div>
           </div>
           <div className="call-mode-grid">
             <button className="call-mode-card voice" type="button" onClick={requestVoiceMode}>
@@ -549,7 +556,14 @@ export default function CallSimulationActivity({
             <span className="call-badge subtle">{fraudType}</span>
           </div>
 
-          <div className="call-transcript-panel">
+          <div
+            className="call-transcript-panel"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+            aria-atomic="false"
+            aria-label="Cronología de la llamada"
+          >
             {transcript.map((entry, index) => (
               <article className={`call-transcript-bubble ${entry.speaker}`} key={`${entry.speaker}-${index}`}>
                 <span>{entry.speaker === 'caller' ? callerName : 'Tú'}</span>
