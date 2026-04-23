@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F5.G Comfort / jugabilidad / responsiveness pass cerrada localmente. Siguiente frente recomendado: F5.H F5 closeout validation.**
+**F5.H F5 closeout validation cerrada localmente. F5 expandida queda cerrada. Siguiente frente recomendado: F6.A WhatsApp / chat baseline audit.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -216,6 +216,12 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F5.G agrego `test/f5-comfort-responsive-smoke.test.js` y actualizo ratios esperados en `test/f4-courses-dashboard-smoke.test.js`;
 - F5.G valido `.\npm-local.cmd test` con 91/91, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F5.G no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F5.H - F5 closeout validation.
+- F5.H F5 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F5.H-f5-closeout-validation.md`;
+- F5.H valido `.\npm-local.cmd test` con 91/91, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F5.H confirmo line counts al cierre: `CoursesView.jsx` 1066, `LessonView.jsx` 796, `sharedActivityUi.jsx` 157, `FeedbackPanel.jsx` 142;
+- F5.H confirmo sin coincidencias prohibidas para `legacy`, `WorkspaceLayout`, `activityRegistry` ni `useSimulationEngine` en superficies F5 cerradas;
+- F5.H actualizo `docs/rebuild/02-legacy-new-ownership-map.md` para reflejar F5 expandida cerrada;
+- F5 expandida queda cerrada localmente: ruta, transicion route->lesson, lesson shell, activity chrome, feedback y comfort responsive;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.A - WhatsApp / chat baseline audit. F6.A debe iniciar con auditoria, no implementacion directa.
 
-No abrir F5.H/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.A/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

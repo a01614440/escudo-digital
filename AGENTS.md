@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F5.G
+## Estado actual tras F5.H
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -144,8 +144,14 @@ La tesis obligatoria es:
 - F5.G agrego `test/f5-comfort-responsive-smoke.test.js` y actualizo ratios esperados en `test/f4-courses-dashboard-smoke.test.js`.
 - F5.G valido `.\npm-local.cmd test` (91/91), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
 - F5.G no toco `ActivityRenderer`, `activityRegistry`, simulaciones internas, hooks de dominio, services, backend, contracts, scoring, `app.css` ni `legacy.css`.
-- El siguiente frente recomendado es F5.H - F5 closeout validation.
-- No abrir F5.H/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F5.H F5 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F5.H-f5-closeout-validation.md`.
+- F5.H valido `.\npm-local.cmd test` (91/91), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
+- F5.H confirmo line counts al cierre: `CoursesView.jsx` 1066, `LessonView.jsx` 796, `sharedActivityUi.jsx` 157, `FeedbackPanel.jsx` 142.
+- F5.H confirmo sin coincidencias prohibidas para `legacy`, `WorkspaceLayout`, `activityRegistry` ni `useSimulationEngine` en superficies F5 cerradas.
+- F5.H actualizo `docs/rebuild/02-legacy-new-ownership-map.md` para reflejar F5 expandida cerrada.
+- F5 expandida queda cerrada localmente: ruta, transicion route->lesson, lesson shell, activity chrome, feedback y comfort responsive.
+- El siguiente frente recomendado es F6.A - WhatsApp / chat baseline audit.
+- No abrir F6.A/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario. F6.A debe iniciar con auditoria, no implementacion directa.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

@@ -1,6 +1,6 @@
 # Fase 2 - Mapa de ownership legacy / new UI
 
-Actualizado en F2.E: 2026-04-23
+Actualizado en F5.H: 2026-04-23
 
 ## Objetivo
 
@@ -23,7 +23,7 @@ La convivencia temporal correcta no es "una misma pantalla con parches viejos y 
 
 `new-ui` no significa "sin deuda". Significa que la deuda pendiente debe resolverse como refinamiento de esa fase, no como retorno a legacy.
 
-## Ownership actual despues de F2.E
+## Ownership actual despues de F5.H
 
 | Superficie | Estado actual | Fuente principal | Owner / siguiente fase | Nota |
 |---|---|---|---|---|
@@ -33,15 +33,15 @@ La convivencia temporal correcta no es "una misma pantalla con parches viejos y 
 | Route containers | `new-ui` | `frontend/src/route-containers/*` | F2 closeout | `SessionLoadingRouteContainer` ya no usa `<main>` anidado ni clase `page`. |
 | App coordinator / route switch | `transition` | `frontend/src/App.jsx` | F2 / fases posteriores | Usa `DeviceShell` y slots, pero sigue concentrando orquestacion de estado y route switch manual. No abrir fuera de fase autorizada. |
 | Responsive macro | `transition` | `frontend/src/hooks/useResponsiveLayout.js` | F2 / F8 | Breakpoints macro alineados en F2.C; `dataset.shell` retirado. `viewport` e `inputMode` siguen por compatibilidad con `app.css`. |
-| Auth | `new-ui` | `frontend/src/components/AuthView.jsx` | F3 si se refina | F0.6: 0 clases legacy, uso fuerte de foundation. No tratar como legacy. |
-| Survey | `new-ui` | `frontend/src/components/SurveyView.jsx` | F3 refine | F0.6: 0 clases legacy. Requiere refinamiento con `QuestionPage`, `AssessmentLayout`, `Checkbox` y `Radio`, pero no es legacy. |
-| Dashboard / ruta | `new-ui` | `frontend/src/components/CoursesView.jsx` | F4 refine | F0.6: 0 clases legacy. Esta al limite arquitectonico por tamano/branching, pero la logica no se rehace y no se toca en F2. |
-| Lesson shell | `new-ui` | `frontend/src/components/LessonView.jsx` | F5 refine | F0.6: 0 clases legacy. Debe refinarse con `LessonLayout` en F5, no antes. |
-| Feedback panel | `new-ui` | `frontend/src/components/FeedbackPanel.jsx` | F5 | F0.6: compacto y sin legacy. Se beneficia del fix F1.C de `InlineMessage`. |
+| Auth | `new-ui` | `frontend/src/components/AuthView.jsx` | F3 cerrada | F3.B cerro el closeout visual minimo sin tocar auth core, hooks ni services. |
+| Survey | `new-ui` | `frontend/src/components/SurveyView.jsx` | F3 cerrada | F3.C-F3.G cerraron primitives, a11y, layouts/patterns, flow y results/CTA sin tocar scoring ni services. |
+| Dashboard / ruta | `new-ui` | `frontend/src/components/CoursesView.jsx` | F5 expandida cerrada | F5.B-F5.G consolidaron `RouteBriefing`, dos paneles balanceados, CTA dominante, progress/contexto secundario y guardrails de densidad. |
+| Lesson shell | `new-ui` | `frontend/src/components/LessonView.jsx` | F5 expandida cerrada | F5.D-F5.G cerraron transicion route->lesson, layout guided/immersive, activity stage compacto y mapa secundario/collapsable. |
+| Feedback panel | `new-ui` | `frontend/src/components/FeedbackPanel.jsx` | F5 expandida cerrada | F5.F lo compacto en una sola superficie con `InlineMessage` accesible y secciones internas ligeras. |
 | Session bar | `new-ui` | `frontend/src/components/SessionBar.jsx` | F2/F7 segun uso | F0.6: 0 legacy. No redisenar en F2.E. |
-| Activity renderer | `frozen-contract` | `frontend/src/components/activities/ActivityRenderer.jsx` | F5 minimo aprobado | Dispatcher/chrome base sensible. No tocar salvo adaptacion minima aprobada. |
+| Activity renderer | `frozen-contract` | `frontend/src/components/activities/ActivityRenderer.jsx` | Frozen; F6 envuelve por fuera | F5 lo preservo como dispatcher sensible. No tocar salvo adaptacion minima aprobada. |
 | Activity registry | `frozen-contract` | `frontend/src/components/activities/activityRegistry.js` | Contrato central | Congelado por defecto. No tocar por conveniencia visual. |
-| Basic activities | `legacy` | `frontend/src/components/activities/basicActivities.jsx` | F5 | Conservan clases legacy y deben migrarse dentro de lesson/activity chrome. |
+| Basic activities | `transition` | `frontend/src/components/activities/basicActivities.jsx` | F6/F8 segun alcance | F5 cerro el contenedor/chrome comun, no los internals de actividades basicas. Cualquier cleanup interno debe entrar despues con alcance explicito. |
 | WhatsApp / signal activities | `transition` | `frontend/src/components/activities/signalActivities.jsx` | F6A | Hibrido confirmado: thread `sd-chat-*` nuevo, panel lateral/senales legacy. |
 | SMS / Inbox / Scenario / Call / WebLab | `legacy` | `frontend/src/components/activities/immersive/*`, actividades relacionadas | F6B-F6F | No abrir antes de F6 correspondiente. |
 | Chat global | `legacy` | `frontend/src/components/ChatDrawer.jsx` | F7 | No redisenar antes de F7. F2 solo puede preservar su slot/mount. |
@@ -84,16 +84,16 @@ La convivencia temporal correcta no es "una misma pantalla con parches viejos y 
 ### `frontend/src/components/CoursesView.jsx`
 
 - Estado: `new-ui`.
-- Regla: no tocar hasta F4.
-- Evidencia: F0.6 reporto 0 clases legacy, pero CoursesView esta al limite arquitectonico.
-- Futuro: rehacer bloque visual con patterns/layouts de dominio, preservando dominio y progreso.
+- Regla: no reabrir como ruta/dashboard salvo fase autorizada.
+- Evidencia: F5 expandida cerro route top, continuidad, CTA, densidad, simetria, contraste y comfort responsive.
+- Futuro: ajustes mayores pertenecen a F8 hardening o a una fase explicitamente autorizada.
 
 ### `frontend/src/components/LessonView.jsx`
 
 - Estado: `new-ui`.
-- Regla: no tocar hasta F5.
-- Evidencia: F0.6 reporto 0 clases legacy y uso correcto de `ActivityRenderer`.
-- Futuro: introducir `LessonLayout` y reducir branching por shellFamily.
+- Regla: no reabrir lesson shell fuera de F6 wrappers especificos o fase autorizada.
+- Evidencia: F5 expandida cerro transicion route->lesson, layout content-first, immersive/fullscreen mode, activity chrome y comfort responsive.
+- Futuro: F6 puede envolver/adaptar simulaciones especificas, pero no debe reescribir el shell base sin justificacion.
 
 ### `frontend/src/components/activities/ActivityRenderer.jsx`
 
@@ -136,17 +136,15 @@ Una superficie solo puede pasar a `new-ui` cuando cumpla:
 
 Las vistas `AuthView`, `SurveyView`, `CoursesView` y `LessonView` ya cumplen el criterio de ownership visual `new-ui` segun F0.6/F0.8/F0.9, aunque sus refinamientos de fase sigan pendientes.
 
-## Deuda que sigue viva fuera de F2.E
+## Deuda que sigue viva fuera de F5.H
 
-- Survey refine pertenece a F3.
-- Courses refine pertenece a F4.
-- Lesson/activity chrome pertenece a F5.
+- Courses/Lesson/activity chrome quedan cerrados por F5 expandida; no reabrirlos salvo regresion concreta.
 - Simulaciones pertenecen a F6A-F6F.
 - Chat/Admin pertenecen a F7.
 - Cleanup masivo de `app.css` / `legacy.css` pertenece a F8.
 
-## Veredicto F2.E
+## Veredicto F5.H
 
 El mapa anterior de F0 quedaba desactualizado porque marcaba como `legacy` varias vistas que la auditoria F0.6/F0.8/F0.9 ya habia confirmado como visualmente migradas.
 
-Este mapa queda alineado con el estado real: F1 foundation cerrada, F2 shell closeout avanzado, vistas principales owned by `new-ui`, y legacy real limitado a actividades, simulaciones, chat/admin, error boundary y CSS transicional/heredado.
+Este mapa queda alineado con el estado real: F1 foundation cerrada, F2 shell closeout cerrado, F3 Auth/Survey cerrado, F4/F5 experiencia ruta->lesson->practica cerrada, vistas principales owned by `new-ui`, y legacy real limitado a internals de actividades/simulaciones, chat/admin, error boundary y CSS transicional/heredado.
