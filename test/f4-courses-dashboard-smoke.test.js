@@ -62,7 +62,7 @@ describe('F4.B Courses dashboard information density guards', () => {
     const block = functionBlock('RouteNavigatorRail', 'ModuleActivityList');
 
     assert.doesNotMatch(block, /visibles/);
-    assert.match(block, /Elige un bloque sin perder continuidad\./);
+    assert.match(block, /Escanea estado, prioridad y detalle seleccionado\./);
     assert.match(block, /Filtra sin romper el orden\./);
   });
 
@@ -96,6 +96,54 @@ describe('F4.B Courses dashboard information density guards', () => {
     assert.doesNotMatch(progress, /Gap:/);
     assert.doesNotMatch(settings, /key: 'duration'/);
     assert.match(settings, /Ritmo, foco y regeneracion de la ruta/);
+  });
+});
+
+describe('F4.D Courses route navigator and module detail guards', () => {
+  test('RouteNavigatorRail uses a quieter foundation surface instead of local inverse rail hacks', () => {
+    const block = functionBlock('RouteNavigatorRail', 'ModuleActivityList');
+
+    assert.match(block, /variant="support"/);
+    assert.match(block, /title="Ruta por modulos"/);
+    assert.doesNotMatch(block, /bg-\[linear-gradient/);
+    assert.doesNotMatch(block, /text-white/);
+    assert.doesNotMatch(block, /shadow-\[0_36px_90px/);
+  });
+
+  test('RouteModulePill exposes selected state, readable wrapping and semantic status badges', () => {
+    const block = functionBlock('RouteModulePill', 'RouteNavigatorRail');
+
+    assert.match(block, /aria-current=\{selected \? 'true' : undefined\}/);
+    assert.match(block, /aria-label=\{`\$\{displayModuleTitle\(entry\.module\)\}: \$\{statusLabel\}, \$\{categoryLabel\}, \$\{levelLabel\}`\}/);
+    assert.match(block, /data-route-module-state=\{locked \? 'locked' : recommended \? 'recommended' : entry\.stats\.status\}/);
+    assert.match(block, /break-words text-base leading-6/);
+    assert.match(block, /<Badge tone=\{statusTone\}>\{statusLabel\}<\/Badge>/);
+    assert.doesNotMatch(block, /shadow-\[0_24px_50px/);
+  });
+
+  test('ModuleActivityList marks the next activity as the current step', () => {
+    const block = functionBlock('ModuleActivityList', 'ModuleMissionBoard');
+
+    assert.match(block, /aria-current=\{isNext \? 'step' : undefined\}/);
+    assert.match(block, /data-activity-state=\{completed \? 'completed' : isNext \? 'next' : 'pending'\}/);
+    assert.doesNotMatch(block, /tracking-\[0\.14em\]/);
+  });
+
+  test('ModuleMissionBoard connects selected detail to a local CTA before support metadata', () => {
+    const block = functionBlock('ModuleMissionBoard', 'RouteInsightRail');
+    const actionIndex = block.indexOf('data-sd-module-cta="courses-detail"');
+    const progressIndex = block.indexOf('<ProgressSummary');
+
+    assert.match(block, /data-route-detail="module"/);
+    assert.match(block, /data-selected-module-id=\{module\.id\}/);
+    assert.match(block, /const moduleTitle = displayModuleTitle\(module\)/);
+    assert.match(block, /const nextActivityTitle = displayActivityTitle\(stats\.nextActivity, 'Actividad pendiente'\)/);
+    assert.ok(actionIndex > -1, 'Module detail should expose a local CTA marker');
+    assert.ok(progressIndex > -1, 'Module detail should keep supporting progress');
+    assert.ok(actionIndex < progressIndex, 'local CTA should appear before supporting progress');
+    assert.match(block, /aria-label=\{`\$\{getModuleCtaLabel\(\{ locked, adminAccess, stats \}\)\}: \$\{moduleTitle\}`\}/);
+    assert.doesNotMatch(block, /<KeyValueBlock/);
+    assert.doesNotMatch(block, /Ultimo cierre/);
   });
 });
 

@@ -449,6 +449,11 @@ function RouteModulePill({
   recommended,
   onSelect,
 }) {
+  const categoryLabel = CATEGORY_LABELS[entry.module.categoria] || 'Ruta';
+  const levelLabel = LEVEL_LABELS[normalizeModuleLevel(entry.module.nivel)] || 'Nivel';
+  const statusLabel = locked ? 'Bloqueado' : getModuleStatusLabel(entry.stats.status);
+  const statusTone = locked ? 'warning' : getModuleStatusTone(entry.stats.status);
+
   return (
     <SurfaceCard
       as="button"
@@ -459,9 +464,12 @@ function RouteModulePill({
       selected={selected}
       className={cn(
         'relative w-full overflow-hidden text-left transition',
-        selected ? 'border-sd-accent bg-sd-accent-soft shadow-[0_24px_50px_-28px_rgba(47,107,255,0.35)]' : '',
+        selected ? 'border-sd-accent bg-sd-accent-soft' : '',
         locked ? 'opacity-90' : ''
       )}
+      aria-current={selected ? 'true' : undefined}
+      aria-label={`${displayModuleTitle(entry.module)}: ${statusLabel}, ${categoryLabel}, ${levelLabel}`}
+      data-route-module-state={locked ? 'locked' : recommended ? 'recommended' : entry.stats.status}
       onClick={onSelect}
     >
       <div
@@ -471,28 +479,29 @@ function RouteModulePill({
         )}
       />
       <div className="grid gap-3 pl-1">
-        <div className="grid gap-2">
+        <div className="grid min-w-0 gap-3">
           <div className="grid min-w-0 grid-cols-[auto_1fr] items-start gap-3">
-            <span className="rounded-full border border-sd-border bg-sd-canvas px-3 py-2 text-xs font-semibold text-sd-text-soft">
+            <span className="rounded-full border border-sd-border bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-text-soft">
               {String(entry.index + 1).padStart(2, '0')}
             </span>
             <div className="grid min-w-0 gap-2">
-              <strong className="text-base leading-5 text-sd-text">
+              <strong className="break-words text-base leading-6 text-sd-text">
                 {displayModuleTitle(entry.module)}
               </strong>
-              <p className="m-0 text-sm leading-6 text-sd-text-soft">
+              <span className="hidden" aria-hidden="true">
                 {(LEVEL_LABELS[normalizeModuleLevel(entry.module.nivel)] || 'Nivel') +
                   ' · ' +
                   (CATEGORY_LABELS[entry.module.categoria] || 'Ruta')}
-              </p>
+              </span>
+              <span className="text-sm leading-6 text-sd-text-soft">{`${categoryLabel} · ${levelLabel}`}</span>
             </div>
           </div>
         </div>
 
         <ProgressBar value={entry.stats.pct} tone={locked ? 'warning' : 'accent'} />
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-sd-text-soft">
-          <span>{locked ? 'Bloqueado por secuencia' : getModuleStatusLabel(entry.stats.status)}</span>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-sd-text-soft">
+          <Badge tone={statusTone}>{statusLabel}</Badge>
           {recommended ? <Badge tone="accent">Siguiente</Badge> : null}
         </div>
       </div>
@@ -517,23 +526,19 @@ function RouteNavigatorRail({
   return (
     <SurfaceCard
       padding="md"
-      variant="command"
-      className={cn(
-        'overflow-hidden bg-[linear-gradient(180deg,#0a1d35,#123052)] shadow-[0_36px_90px_-40px_rgba(10,29,53,0.94)] [&_.text-sd-text]:text-white [&_.text-sd-muted]:text-white/74',
-        shellFamily === 'desktop' ? 'xl:sticky xl:top-6' : ''
-      )}
+      variant="support"
+      className={cn('overflow-hidden', shellFamily === 'desktop' ? 'xl:sticky xl:top-6' : '')}
     >
       <PanelHeader
         eyebrow="Navegador de ruta"
-        title="Modulos por prioridad"
-        subtitle="Elige un bloque sin perder continuidad."
+        title="Ruta por modulos"
+        subtitle="Escanea estado, prioridad y detalle seleccionado."
         divider
-        className="[&_.sd-heading-sm]:text-white [&_.sd-copy-sm]:text-white/76 [&_.sd-eyebrow]:text-white/70"
       />
 
       <div className="grid gap-4">
         {availableLevels.length > 1 ? (
-          <SurfaceCard padding="compact" variant="support" className="bg-white/6 shadow-none">
+          <SurfaceCard padding="compact" variant="subtle">
             <PanelHeader
               eyebrow="Nivel visible"
               title={levelCopy.title}
@@ -579,17 +584,19 @@ function ModuleActivityList({ module, nextActivity, completedMap }) {
           <div
             key={activity.id}
             className={cn(
-              'rounded-[24px] border px-4 py-4 transition',
+              'rounded-[18px] border px-4 py-4 transition',
               completed
                 ? 'border-emerald-200 bg-emerald-50/80'
                 : isNext
                   ? 'border-sd-accent bg-sd-accent-soft'
                   : 'border-sd-border bg-white/72'
             )}
+            aria-current={isNext ? 'step' : undefined}
+            data-activity-state={completed ? 'completed' : isNext ? 'next' : 'pending'}
           >
             <div className="grid gap-3">
               <div className="grid min-w-0 grid-cols-[auto_1fr] items-start gap-3">
-                <span className="rounded-[18px] bg-sd-canvas px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-sd-muted">
+                <span className="rounded-full bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-muted">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <div className="grid min-w-0 gap-2">
@@ -640,16 +647,18 @@ function ModuleMissionBoard({
   }
 
   const { module, index, stats } = entry;
+  const moduleTitle = displayModuleTitle(module);
+  const nextActivityTitle = displayActivityTitle(stats.nextActivity, 'Actividad pendiente');
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5" data-route-detail="module" data-selected-module-id={module.id}>
       <StageHero
         tone={recommended ? 'spotlight' : 'editorial'}
         eyebrow={`Modulo ${index + 1}`}
-        title={displayModuleTitle(module)}
+        title={moduleTitle}
         subtitle={cleanText(
           module.descripcion,
-          'Bloque practico para detectar senales, fijar una rutina segura y saber exactamente como retomar.'
+          'Modulo practico con siguiente actividad y salida clara.'
         )}
         actions={recommended ? <Badge tone="accent">Siguiente recomendado</Badge> : undefined}
         meta={`${CATEGORY_LABELS[module.categoria] || 'Ruta'} · ${getModuleObjective(module)}`}
@@ -682,12 +691,12 @@ function ModuleMissionBoard({
         )}
       >
         <SurfaceCard padding="lg" variant="panel">
-            <PanelHeader
-              eyebrow="Ruta interna del modulo"
-              title={displayActivityTitle(stats.nextActivity, 'Modulo listo para repaso')}
-              subtitle="Solo dejamos visible que sigue y que ya quedo hecho."
-              divider
-            />
+          <PanelHeader
+            eyebrow="Ruta interna del modulo"
+            title={nextActivityTitle}
+            subtitle="Primero ves la actividad que sigue; debajo queda el resto de la secuencia."
+            divider
+          />
           <ModuleActivityList
             module={module}
             nextActivity={stats.nextActivity}
@@ -699,33 +708,32 @@ function ModuleMissionBoard({
           tone={recommended ? 'insight' : 'support'}
           sticky={shellFamily === 'desktop'}
           eyebrow="Apertura"
-          title="Entrar con contexto"
-          subtitle="Metadata esencial y CTA claro para abrir el modulo."
+          title="Abrir modulo"
+          subtitle="Accion directa para el modulo seleccionado."
         >
           <div className="grid gap-4">
+            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                disabled={locked}
+                data-sd-module-cta="courses-detail"
+                aria-label={`${getModuleCtaLabel({ locked, adminAccess, stats })}: ${moduleTitle}`}
+                onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}
+              >
+                {getModuleCtaLabel({ locked, adminAccess, stats })}
+              </Button>
+            </ActionCluster>
+
             <ProgressSummary
               eyebrow="Estado del modulo"
               title={getModuleStatusLabel(stats.status)}
               value={formatPercent(stats.pct)}
-              hint={`Siguiente actividad: ${displayActivityTitle(stats.nextActivity, 'Actividad pendiente')}`}
+              hint={`Siguiente actividad: ${nextActivityTitle}`}
               progressValue={stats.pct}
               tone="accent"
               variant="support"
-            />
-
-            <KeyValueBlock
-              items={[
-                {
-                  key: 'last',
-                  label: 'Ultimo cierre',
-                  value: stats.completedAt ? formatDate(stats.completedAt) : 'Aun sin cierre',
-                },
-                {
-                  key: 'activities',
-                  label: 'Actividades',
-                  value: `${stats.completedCount}/${stats.total}`,
-                },
-              ]}
             />
 
             {locked ? (
@@ -739,18 +747,6 @@ function ModuleMissionBoard({
                 Puedes abrir o repetir este modulo sin esperar el desbloqueo secuencial.
               </InlineMessage>
             ) : null}
-
-            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                disabled={locked}
-                onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}
-              >
-                {getModuleCtaLabel({ locked, adminAccess, stats })}
-              </Button>
-            </ActionCluster>
           </div>
         </SupportRail>
       </div>
