@@ -80,4 +80,46 @@ describe('shell architecture contracts', () => {
     assert.match(source, /slots=\{\{\s*header,[\s\S]*overlay,[\s\S]*\}\}/);
     assert.doesNotMatch(source, /return\s+renderShell\(/);
   });
+
+  test('shells expose the declared shell policy as stable data attributes', () => {
+    for (const shellName of ['MobileShell', 'TabletShell', 'DesktopShell']) {
+      const source = readFileSync(new URL(`../frontend/src/shells/${shellName}.jsx`, import.meta.url), 'utf8');
+
+      assert.match(source, /data-shell-family=/);
+      assert.match(source, /data-shell-intent=\{routeIntent\}/);
+      assert.match(source, /data-shell-header-mode=\{policy\.headerMode\}/);
+      assert.match(source, /data-shell-primary-mode=\{policy\.primaryMode\}/);
+      assert.match(source, /data-shell-secondary-mode=\{policy\.secondaryMode\}/);
+      assert.match(source, /data-shell-secondary-persistent=\{policy\.secondaryPersistent \? 'true' : 'false'\}/);
+      assert.match(source, /data-shell-overlay-mode=\{policy\.overlayMode\}/);
+      assert.match(source, /data-shell-floating-mode=\{policy\.floatingMode\}/);
+      assert.match(source, /data-shell-slot-order=\{policy\.slotOrder\.join\(' '\)\}/);
+    }
+  });
+
+  test('shell slot semantics keep a single primary main and stable secondary regions', () => {
+    const mobile = readFileSync(new URL('../frontend/src/shells/MobileShell.jsx', import.meta.url), 'utf8');
+    const tablet = readFileSync(new URL('../frontend/src/shells/TabletShell.jsx', import.meta.url), 'utf8');
+    const desktop = readFileSync(new URL('../frontend/src/shells/DesktopShell.jsx', import.meta.url), 'utf8');
+
+    for (const source of [mobile, tablet, desktop]) {
+      assert.match(source, /<main[\s\S]*data-shell-slot="primary"/);
+      assert.match(source, /data-shell-slot="header"/);
+      assert.match(source, /data-shell-slot="floating"/);
+      assert.match(source, /data-shell-slot="overlay"/);
+    }
+
+    assert.match(mobile, /<div className="sd-page-shell" data-shell-slot="secondary">/);
+    assert.match(tablet, /<aside[\s\S]*data-shell-slot="secondary"/);
+    assert.match(desktop, /<aside data-shell-slot="secondary"/);
+  });
+
+  test('loading route avoids nested main landmarks and legacy page wrapper', () => {
+    const source = readFileSync(new URL('../frontend/src/route-containers/SessionLoadingRouteContainer.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /<RouteContainer[\s\S]*routeKey="loading"/);
+    assert.match(source, /<div className="sd-page-shell">/);
+    assert.doesNotMatch(source, /<main/);
+    assert.doesNotMatch(source, /className="page/);
+  });
 });

@@ -14,9 +14,13 @@ export default function DesktopShell({
     <div
       data-shell-family="desktop"
       data-shell-intent={routeIntent}
+      data-shell-header-mode={policy.headerMode}
       data-shell-primary-mode={policy.primaryMode}
       data-shell-secondary-mode={policy.secondaryMode}
+      data-shell-secondary-persistent={policy.secondaryPersistent ? 'true' : 'false'}
       data-shell-overlay-mode={policy.overlayMode}
+      data-shell-floating-mode={policy.floatingMode}
+      data-shell-slot-order={policy.slotOrder.join(' ')}
       className={cn('app-shell app-shell-desktop app-shell-family-desktop', `app-view-${routeKey}`, className)}
     >
       <div className="grid gap-[var(--sd-shell-section-gap)] py-[var(--sd-shell-padding-block)]">
