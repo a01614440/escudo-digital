@@ -1446,6 +1446,13 @@ body[data-theme='dark'] {
     gap: var(--sd-space-4);
   }
 
+  .sd-progress-summary-layout,
+  .sd-progress-summary-main,
+  .sd-progress-summary-aside {
+    display: grid;
+    gap: var(--sd-space-4);
+  }
+
   .sd-progress-summary-head {
     @apply flex flex-wrap items-start justify-between gap-3;
   }
@@ -1455,8 +1462,123 @@ body[data-theme='dark'] {
   }
 
   .sd-progress-summary-value {
-    @apply text-2xl font-display leading-none tracking-[-0.05em];
+    font-family: var(--sd-font-family-display);
+    font-size: var(--sd-type-size-title);
+    font-weight: var(--sd-type-weight-bold);
+    line-height: var(--sd-type-leading-title);
+    letter-spacing: var(--sd-type-tracking-title);
     color: inherit;
+  }
+
+  .sd-journey-stepper-shell {
+    display: block;
+  }
+
+  .sd-journey-stepper {
+    display: grid;
+    gap: var(--sd-space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sd-journey-stepper-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sd-journey-step {
+    min-width: 0;
+  }
+
+  .sd-journey-step-card {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: var(--sd-space-3);
+    border: 1px solid var(--sd-border);
+    border-radius: var(--sd-radius-md);
+    background: color-mix(in srgb, var(--sd-surface) 72%, transparent);
+    padding: var(--sd-space-3);
+    transition:
+      border-color var(--sd-motion-base) var(--sd-ease-standard),
+      background-color var(--sd-motion-base) var(--sd-ease-standard),
+      box-shadow var(--sd-motion-base) var(--sd-ease-standard);
+  }
+
+  .sd-journey-step-marker {
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--sd-border);
+    border-radius: var(--sd-radius-pill);
+    background: var(--sd-surface);
+    color: var(--sd-text-soft);
+    font-size: var(--sd-type-size-caption);
+    font-weight: var(--sd-type-weight-semibold);
+    line-height: 1;
+    letter-spacing: var(--sd-type-tracking-ui);
+    margin-top: 0.125rem;
+  }
+
+  .sd-journey-step-content {
+    display: grid;
+    min-width: 0;
+    gap: var(--sd-space-1);
+  }
+
+  .sd-journey-step-label {
+    color: var(--sd-text);
+    font-size: var(--sd-type-size-body-sm);
+    font-weight: var(--sd-type-weight-semibold);
+    line-height: var(--sd-type-leading-normal);
+    letter-spacing: var(--sd-type-tracking-none);
+  }
+
+  .sd-journey-step-state {
+    margin: 0;
+    color: var(--sd-text-soft);
+    font-size: var(--sd-type-size-caption);
+    font-weight: var(--sd-type-weight-medium);
+    line-height: var(--sd-type-leading-normal);
+    letter-spacing: var(--sd-type-tracking-none);
+  }
+
+  .sd-journey-step[data-state='current'] .sd-journey-step-card {
+    border-color: var(--sd-accent);
+    background: var(--sd-accent-soft);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--sd-accent) 18%, transparent),
+      var(--sd-shadow-sm);
+  }
+
+  .sd-journey-step[data-state='current'] .sd-journey-step-marker {
+    border-color: var(--sd-accent);
+    background: var(--sd-accent);
+    color: var(--sd-accent-contrast);
+  }
+
+  .sd-journey-step[data-state='done'] .sd-journey-step-card {
+    border-color: var(--sd-border-strong);
+    background: color-mix(in srgb, var(--sd-safe-action-soft) 72%, var(--sd-surface) 28%);
+  }
+
+  .sd-journey-step[data-state='done'] .sd-journey-step-marker {
+    border-color: color-mix(in srgb, var(--sd-safe-action) 38%, var(--sd-border));
+    background: var(--sd-safe-action);
+    color: var(--sd-safe-action-contrast);
+  }
+
+  @container (min-width: 34rem) {
+    .sd-journey-stepper {
+      grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    }
+
+    .sd-journey-stepper-compact {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   .sd-overlay-frame {
@@ -1570,7 +1692,7 @@ body[data-theme='dark'] {
   }
 
   @container (min-width: 54rem) {
-    .sd-progress-summary {
+    .sd-progress-summary-layout {
       grid-template-columns: minmax(0, 1.2fr) minmax(14rem, 0.8fr);
       align-items: end;
     }

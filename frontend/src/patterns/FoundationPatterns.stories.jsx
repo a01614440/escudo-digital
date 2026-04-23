@@ -2,6 +2,7 @@ import { Button, SurfaceCard } from '../components/ui/index.js';
 import {
   ActionCluster,
   EmptyState,
+  JourneyStepper,
   KeyValueBlock,
   PanelHeader,
   ProgressSummary,
@@ -95,6 +96,36 @@ export const EmptyAndSummary = {
           { key: 'a', eyebrow: 'Cobertura', value: '11', label: 'Primitives', hint: 'Base esencial cerrada.' },
           { key: 'b', eyebrow: 'Patterns', value: '10', label: 'Normados', hint: 'Listos para Fase 2-5.' },
           { key: 'c', eyebrow: 'Overlays', value: '4', label: 'Base', hint: 'Dialog, Drawer, Sheet y frame.' },
+        ]}
+      />
+    </div>
+  ),
+};
+
+export const JourneyAndProgress = {
+  render: () => (
+    <div className="grid gap-6">
+      <ProgressSummary
+        eyebrow="Foundation"
+        title="F1 closeout"
+        value="78%"
+        hint="Resumen con container query activa y layout interno estable."
+        progressValue={78}
+        aside={
+          <KeyValueBlock
+            items={[
+              { label: 'Estado', value: 'En cierre' },
+              { label: 'Bloque', value: 'F1.H' },
+            ]}
+          />
+        }
+      />
+      <JourneyStepper
+        steps={[
+          { id: 'typography', label: 'Typography', state: 'done' },
+          { id: 'a11y', label: 'A11y base', state: 'done' },
+          { id: 'patterns', label: 'Patterns', state: 'current' },
+          { id: 'closeout', label: 'Closeout', state: 'upcoming' },
         ]}
       />
     </div>

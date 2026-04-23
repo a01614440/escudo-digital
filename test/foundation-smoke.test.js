@@ -143,6 +143,35 @@ test('SurfaceCard supports inverse tone as a reusable foundation surface', () =>
   assert.match(story, /tone="inverse"/);
 });
 
+test('ProgressSummary enables its container layout query', () => {
+  const source = readFileSync(new URL('../frontend/src/patterns/ProgressSummary.jsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+
+  assert.match(source, /data-sd-container="true"/);
+  assert.match(source, /sd-progress-summary-layout/);
+  assert.match(source, /sd-progress-summary-main/);
+  assert.match(source, /sd-progress-summary-aside/);
+  assert.match(css, /@container \(min-width: 54rem\)\s*\{\s*\.sd-progress-summary-layout/s);
+  assert.match(css, /\.sd-progress-summary-value\s*\{[^}]*var\(--sd-type-size-title\)/s);
+  assert.doesNotMatch(css, /\.sd-progress-summary-value\s*\{[^}]*tracking-\[-/s);
+});
+
+test('JourneyStepper uses tokenized styles and semantic progress markup', () => {
+  const source = readFileSync(new URL('../frontend/src/patterns/JourneyStepper.jsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../frontend/src/styles/tailwind.css', import.meta.url), 'utf8');
+
+  assert.match(source, /<ol/);
+  assert.match(source, /aria-current=\{state === 'current' \? 'step' : undefined\}/);
+  assert.match(source, /normalizeStepState/);
+  assert.match(source, /sd-journey-stepper-shell/);
+  assert.match(source, /data-sd-container="true"/);
+  assert.doesNotMatch(source, /shadow-\[/);
+  assert.match(css, /\.sd-journey-step-card\s*\{/);
+  assert.match(css, /var\(--sd-shadow-sm\)/);
+  assert.match(css, /var\(--sd-safe-action\)/);
+  assert.match(css, /@container \(min-width: 34rem\)\s*\{\s*\.sd-journey-stepper/s);
+});
+
 test('foundation documents interaction and layout inventory', () => {
   assert.equal(motionTokens.enter, '480ms');
   assert.equal(zIndexTokens.scrim, 55);
