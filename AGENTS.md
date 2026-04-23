@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F5.H
+## Estado actual tras F6.A
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -150,8 +150,12 @@ La tesis obligatoria es:
 - F5.H confirmo sin coincidencias prohibidas para `legacy`, `WorkspaceLayout`, `activityRegistry` ni `useSimulationEngine` en superficies F5 cerradas.
 - F5.H actualizo `docs/rebuild/02-legacy-new-ownership-map.md` para reflejar F5 expandida cerrada.
 - F5 expandida queda cerrada localmente: ruta, transicion route->lesson, lesson shell, activity chrome, feedback y comfort responsive.
-- El siguiente frente recomendado es F6.A - WhatsApp / chat baseline audit.
-- No abrir F6.A/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario. F6.A debe iniciar con auditoria, no implementacion directa.
+- F6.A WhatsApp / chat baseline audit quedo cerrada localmente con `docs/rebuild/audit/F6.A-whatsapp-chat-baseline-audit.md`.
+- F6.A fue auditoria pura: leyo `signalActivities.jsx`, contratos de actividad, chrome comun, estilos y tests relevantes, pero no implemento cambios.
+- F6.A confirmo que `WhatsAppSimulation` es la fuente de F6.A y que sigue hibrida: implementacion activa `sd-chat-*` nueva, bloque legacy inaccesible `wa-*`, imports muertos y deuda responsive/a11y del canal.
+- F6.A confirmo que `ActivityRenderer.jsx`, `activityRegistry.js`, `requestSimulationTurn`, scoring, hooks de dominio, backend y contracts siguen congelados.
+- El siguiente frente recomendado es F6.A.1 - Thread + message layout cleanup.
+- No abrir F6.A.1/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto

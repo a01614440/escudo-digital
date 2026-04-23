@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F5.H F5 closeout validation cerrada localmente. F5 expandida queda cerrada. Siguiente frente recomendado: F6.A WhatsApp / chat baseline audit.**
+**F6.A WhatsApp / chat baseline audit cerrada localmente. Siguiente frente recomendado: F6.A.1 Thread + message layout cleanup.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -222,6 +222,11 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F5.H confirmo sin coincidencias prohibidas para `legacy`, `WorkspaceLayout`, `activityRegistry` ni `useSimulationEngine` en superficies F5 cerradas;
 - F5.H actualizo `docs/rebuild/02-legacy-new-ownership-map.md` para reflejar F5 expandida cerrada;
 - F5 expandida queda cerrada localmente: ruta, transicion route->lesson, lesson shell, activity chrome, feedback y comfort responsive;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.A - WhatsApp / chat baseline audit. F6.A debe iniciar con auditoria, no implementacion directa.
+- F6.A WhatsApp / chat baseline audit quedo cerrada localmente con `docs/rebuild/audit/F6.A-whatsapp-chat-baseline-audit.md`;
+- F6.A audito `signalActivities.jsx`, `ActivityRenderer.jsx`, `activityRegistry.js`, `sharedActivityUi.jsx`, `FeedbackPanel.jsx`, `tailwind.css`, `app.css`, `legacy.css`, contracts/docs y tests relevantes en lectura;
+- F6.A confirmo que `WhatsAppSimulation` ya tiene base `sd-chat-*` nueva y usa primitives/patterns, pero sigue hibrida por un segundo `return` legacy inaccesible `wa-*`, imports muertos y estilos heredados vivos;
+- F6.A confirmo que `ActivityRenderer.jsx`, `activityRegistry.js`, `requestSimulationTurn`, scoring, hooks, backend y contracts deben mantenerse congelados;
+- F6.A no implemento cambios en vistas, simulaciones, estilos ni logica; solo documento alcance, riesgos, matriz de problemas y plan F6.A.1-F6.A.5;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.A.1 - Thread + message layout cleanup.
 
-No abrir F6.A/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.A.1/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
