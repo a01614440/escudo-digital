@@ -45,24 +45,13 @@ describe('F4.B Courses dashboard information density guards', () => {
   });
 
   test('ModuleMissionBoard trims secondary stats and local layout overrides', () => {
-    const block = functionBlock('ModuleMissionBoard', 'RouteInsightRail');
+    const block = functionBlock('ModuleMissionBoard', 'ProgressScene');
 
-    assert.match(block, /key: 'progress'/);
+    assert.match(block, /<ProgressSummary/);
     assert.doesNotMatch(block, /key: 'time'/);
     assert.doesNotMatch(block, /key: 'visits'/);
     assert.doesNotMatch(block, /Objetivo claro, siguiente actividad visible/);
     assert.doesNotMatch(block, /!grid-cols-1/);
-  });
-
-  test('RouteInsightRail keeps only route progress, gap, unlock and admin context', () => {
-    const block = functionBlock('RouteInsightRail', 'ProgressScene');
-
-    assert.match(block, /key: 'gap'/);
-    assert.match(block, /key: 'next'/);
-    assert.doesNotMatch(block, /quickGuide/);
-    assert.doesNotMatch(block, /key: 'fortaleza'/);
-    assert.doesNotMatch(block, /selectedStats/);
-    assert.doesNotMatch(block, /Lectura del modulo seleccionado/);
   });
 
   test('Progress and settings heroes remove the least useful headline stats', () => {
@@ -91,30 +80,33 @@ describe('F4.E Courses progress, stats and adjustments guards', () => {
     assert.doesNotMatch(block, /Shield/);
   });
 
-  test('ProgressScene keeps snapshots conditional and makes the side rail actionable', () => {
+  test('ProgressScene keeps snapshots conditional and focuses signals without duplicating the gap', () => {
     const block = functionBlock('ProgressScene', 'SettingsScene');
 
     assert.match(block, /\{history\.length \? \(/);
     assert.match(block, /eyebrow="Historial reciente"/);
     assert.doesNotMatch(block, /Sin snapshots todavia/);
-    assert.match(block, /eyebrow="Siguiente foco"/);
-    assert.match(block, /title=\{weakestTopic \? CATEGORY_LABELS\[weakestTopic\[0\]\] : 'Sin gap dominante'\}/);
-    assert.match(block, /tone="warning"/);
     assert.match(block, /title="Senales de aprendizaje"/);
+    assert.doesNotMatch(block, /eyebrow="Siguiente foco"/);
+    assert.doesNotMatch(block, /tone="warning"/);
     assert.doesNotMatch(block, /key: 'prefs'/);
   });
 
-  test('SettingsScene treats adjustments as secondary controls with explicit regeneration CTA', () => {
+  test('SettingsScene treats adjustments as a single compact surface with explicit regeneration CTA', () => {
     const block = functionBlock('SettingsScene');
 
     assert.match(block, /const selectedTopicCount = Array\.isArray\(coursePrefs\?\.temas\) \? coursePrefs\.temas\.length : 0/);
-    assert.match(block, /tone="support"/);
     assert.match(block, /title="Ajustes de ruta sin perder progreso"/);
     assert.match(block, /variant="panel"/);
-    assert.match(block, /key: 'topics'/);
     assert.match(block, /data-sd-settings-cta="courses-regenerate"/);
     assert.match(block, /aria-label="Actualizar ruta con estas preferencias"/);
     assert.doesNotMatch(block, /variant="hero"/);
+    assert.doesNotMatch(block, /<SplitHeroLayout/);
+    assert.doesNotMatch(block, /<StageHero/);
+    assert.doesNotMatch(block, /<StatStrip/);
+    assert.doesNotMatch(block, /<SupportRail/);
+    assert.doesNotMatch(block, /settingsStrip/);
+    assert.doesNotMatch(block, /key: 'topics'/);
   });
 });
 
@@ -128,24 +120,26 @@ describe('F4.F Courses shell layout comfort guards', () => {
     assert.match(block, /<JourneyStepper[\s\S]*steps=\{journeySteps\}[\s\S]*compact=\{shellFamily !== 'desktop'\}/);
   });
 
-  test('CoursesView exposes explicit route layout modes and gives desktop more room for detail', () => {
+  test('CoursesView exposes explicit route layout modes and keeps desktop to two panes', () => {
     const block = coursesViewBlock();
 
     assert.match(block, /const routeLayoutMode = isMobile/);
     assert.match(block, /'mobile-stack'/);
     assert.match(block, /'tablet-two-pane'/);
-    assert.match(block, /'desktop-balanced'/);
+    assert.match(block, /'desktop-two-pane'/);
     assert.match(block, /data-sd-route-layout=\{routeLayoutMode\}/);
     assert.match(block, /lg:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.18fr\)\]/);
-    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.55fr\)_minmax\(16\.5rem,18\.5rem\)\]/);
-    assert.doesNotMatch(block, /minmax\(20\.5rem,22rem\)_minmax\(0,1\.32fr\)_minmax\(18\.75rem,20\.5rem\)/);
+    assert.match(block, /xl:grid-cols-\[minmax\(19rem,21rem\)_minmax\(0,1\.5fr\)\]/);
+    assert.doesNotMatch(block, /<WorkspaceLayout/);
+    assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.55fr\)_minmax\(16\.5rem,18\.5rem\)\]/);
+    assert.doesNotMatch(block, /<RouteInsightRail/);
   });
 
-  test('ModuleMissionBoard avoids cramped tablet nesting and only splits the detail on wide desktop', () => {
-    const block = functionBlock('ModuleMissionBoard', 'RouteInsightRail');
+  test('ModuleMissionBoard drops the nested two-pane layout and exposes a flat structure', () => {
+    const block = functionBlock('ModuleMissionBoard', 'ProgressScene');
 
-    assert.match(block, /data-sd-module-layout=\{shellFamily === 'desktop' \? 'desktop-comfort' : 'stacked-comfort'\}/);
-    assert.match(block, /2xl:grid-cols-\[minmax\(0,1fr\)_minmax\(17rem,0\.62fr\)\]/);
+    assert.match(block, /data-sd-module-layout=\{shellFamily === 'desktop' \? 'desktop-flat' : 'stacked-flat'\}/);
+    assert.doesNotMatch(block, /2xl:grid-cols-\[minmax\(0,1fr\)_minmax\(17rem,0\.62fr\)\]/);
     assert.doesNotMatch(block, /lg:grid-cols-\[minmax\(0,1\.04fr\)_minmax\(17rem,0\.96fr\)\]/);
     assert.doesNotMatch(block, /sticky=\{shellFamily === 'desktop'\}/);
   });
@@ -189,7 +183,7 @@ describe('F4.D Courses route navigator and module detail guards', () => {
   });
 
   test('ModuleMissionBoard connects selected detail to a local CTA before support metadata', () => {
-    const block = functionBlock('ModuleMissionBoard', 'RouteInsightRail');
+    const block = functionBlock('ModuleMissionBoard', 'ProgressScene');
     const actionIndex = block.indexOf('data-sd-module-cta="courses-detail"');
     const progressIndex = block.indexOf('<ProgressSummary');
 
@@ -260,5 +254,62 @@ describe('F5.B Route top / continuity / CTA unification guards', () => {
     assert.doesNotMatch(block, /quickGuide/);
     assert.doesNotMatch(block, /buildCourseQuickGuide/);
     assert.doesNotMatch(block, /EMPTY_STRIP/);
+  });
+});
+
+describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
+  test('RouteModulePill relies on border contrast without bg-sd-accent-soft washes', () => {
+    const block = functionBlock('RouteModulePill', 'RouteNavigatorRail');
+
+    assert.match(block, /'sd-route-pill /);
+    assert.match(block, /border-2 border-sd-accent/);
+    assert.match(block, /Siguiente recomendado/);
+    assert.doesNotMatch(block, /bg-sd-accent-soft/);
+    assert.doesNotMatch(block, /categoryLabel\} · \$\{levelLabel\}/);
+  });
+
+  test('ModuleActivityList renders a compact list without descriptive paragraphs', () => {
+    const block = functionBlock('ModuleActivityList', 'ModuleMissionBoard');
+
+    assert.match(block, /<ol className="sd-module-activity-list/);
+    assert.match(block, /border-l-4 bg-white/);
+    assert.doesNotMatch(block, /bg-sd-accent-soft/);
+    assert.doesNotMatch(block, /activity\?\.descripcion/);
+    assert.doesNotMatch(block, /bg-white\/72/);
+  });
+
+  test('ModuleMissionBoard flattens to a single panel with inline gap + next-unlock metadata and a collapsible activity list', () => {
+    const block = functionBlock('ModuleMissionBoard', 'ProgressScene');
+
+    assert.match(block, /className="sd-module-mission-board/);
+    assert.match(block, /weakestTopic/);
+    assert.match(block, /nextUnlockEntry/);
+    assert.match(block, /<details className="sd-module-activities-toggle/);
+    assert.match(block, /Ver actividades del modulo/);
+    assert.doesNotMatch(block, /<StageHero/);
+    assert.doesNotMatch(block, /<StatStrip/);
+    assert.doesNotMatch(block, /<SupportRail/);
+    assert.doesNotMatch(block, /<KeyValueBlock/);
+  });
+
+  test('ProgressScene flattens to a single column and removes duplicate side progress reading', () => {
+    const block = functionBlock('ProgressScene', 'SettingsScene');
+
+    assert.doesNotMatch(block, /eyebrow="Siguiente foco"/);
+    assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(17rem,0\.82fr\)\]/);
+    assert.doesNotMatch(block, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(16rem,0\.8fr\)\]/);
+    assert.match(block, /<SupportRail/);
+    assert.match(block, /<KeyValueBlock/);
+  });
+
+  test('CoursesView ruta body uses a single two-pane grid and no permanent insight column', () => {
+    const block = coursesViewBlock();
+
+    assert.match(block, /xl:grid-cols-\[minmax\(19rem,21rem\)_minmax\(0,1\.5fr\)\]/);
+    assert.doesNotMatch(block, /<WorkspaceLayout/);
+    assert.doesNotMatch(block, /<RouteInsightRail/);
+    assert.doesNotMatch(block, /function RouteInsightRail/);
+    assert.doesNotMatch(block, /buildJourneyProgress/);
+    assert.doesNotMatch(block, /journeySteps=\{journeySteps\}/);
   });
 });

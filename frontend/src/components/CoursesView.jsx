@@ -8,13 +8,9 @@ import {
   summarizeProgressInsights,
 } from '../lib/course.js';
 import { getLevelCopy, LEVEL_ORDER, TOPIC_ORDER } from '../lib/difficultyRules.js';
-import {
-  buildJourneyProgress,
-  getModuleObjective,
-} from '../lib/journeyGuidance.js';
+import { getModuleObjective } from '../lib/journeyGuidance.js';
 import { cn } from '../lib/ui.js';
 import { getShellFamily } from '../hooks/useResponsiveLayout.js';
-import { SplitHeroLayout, WorkspaceLayout } from '../layouts/index.js';
 import {
   ActionCluster,
   EmptyState,
@@ -353,8 +349,8 @@ function RouteModulePill({
       interactive
       selected={selected}
       className={cn(
-        'relative w-full overflow-hidden text-left transition',
-        selected ? 'border-sd-accent bg-sd-accent-soft' : '',
+        'sd-route-pill relative w-full overflow-hidden text-left transition',
+        selected ? 'border-2 border-sd-accent' : '',
         locked ? 'opacity-90' : ''
       )}
       aria-current={selected ? 'true' : undefined}
@@ -364,36 +360,28 @@ function RouteModulePill({
     >
       <div
         className={cn(
-          'pointer-events-none absolute inset-y-0 left-0 w-1',
-          selected ? 'bg-sd-accent' : recommended ? 'bg-sd-accent/60' : 'bg-transparent'
+          'pointer-events-none absolute inset-y-0 left-0',
+          selected ? 'w-1.5 bg-sd-accent' : recommended ? 'w-1 bg-sd-accent' : 'w-0 bg-transparent'
         )}
       />
-      <div className="grid gap-3 pl-1">
-        <div className="grid min-w-0 gap-3">
-          <div className="grid min-w-0 grid-cols-[auto_1fr] items-start gap-3">
-            <span className="rounded-full border border-sd-border bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-text-soft">
-              {String(entry.index + 1).padStart(2, '0')}
-            </span>
-            <div className="grid min-w-0 gap-2">
-              <strong className="break-words text-base leading-6 text-sd-text">
-                {displayModuleTitle(entry.module)}
-              </strong>
-              <span className="hidden" aria-hidden="true">
-                {(LEVEL_LABELS[normalizeModuleLevel(entry.module.nivel)] || 'Nivel') +
-                  ' · ' +
-                  (CATEGORY_LABELS[entry.module.categoria] || 'Ruta')}
-              </span>
-              <span className="text-sm leading-6 text-sd-text-soft">{`${categoryLabel} · ${levelLabel}`}</span>
-            </div>
-          </div>
+      <div className="grid gap-3 pl-2">
+        <div className="grid min-w-0 grid-cols-[auto_1fr_auto] items-center gap-3">
+          <span className="rounded-full border border-sd-border bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-text">
+            {String(entry.index + 1).padStart(2, '0')}
+          </span>
+          <strong className="break-words text-base leading-6 text-sd-text">
+            {displayModuleTitle(entry.module)}
+          </strong>
+          <Badge tone={statusTone}>{statusLabel}</Badge>
         </div>
 
         <ProgressBar value={entry.stats.pct} tone={locked ? 'warning' : 'accent'} />
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-sd-text-soft">
-          <Badge tone={statusTone}>{statusLabel}</Badge>
-          {recommended ? <Badge tone="accent">Siguiente</Badge> : null}
-        </div>
+        {recommended ? (
+          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-accent">
+            Siguiente recomendado
+          </span>
+        ) : null}
       </div>
     </SurfaceCard>
   );
@@ -465,52 +453,44 @@ function ModuleActivityList({ module, nextActivity, completedMap }) {
   const activities = Array.isArray(module?.actividades) ? module.actividades : [];
 
   return (
-    <div className="grid gap-3">
+    <ol className="sd-module-activity-list grid gap-2 p-0">
       {activities.map((activity, index) => {
         const completed = Boolean(completedMap?.[activity.id]);
         const isNext = nextActivity?.id === activity.id;
+        const stateLabel = completed ? 'Hecha' : isNext ? 'Siguiente' : activity?.tipo || 'Actividad';
 
         return (
-          <div
+          <li
             key={activity.id}
             className={cn(
-              'rounded-[18px] border px-4 py-4 transition',
+              'grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[14px] border px-3 py-2.5 transition',
               completed
-                ? 'border-emerald-200 bg-emerald-50/80'
+                ? 'border-emerald-300 bg-emerald-50/60'
                 : isNext
-                  ? 'border-sd-accent bg-sd-accent-soft'
-                  : 'border-sd-border bg-white/72'
+                  ? 'border-sd-accent border-l-4 bg-white'
+                  : 'border-sd-border bg-white'
             )}
             aria-current={isNext ? 'step' : undefined}
             data-activity-state={completed ? 'completed' : isNext ? 'next' : 'pending'}
           >
-            <div className="grid gap-3">
-              <div className="grid min-w-0 grid-cols-[auto_1fr] items-start gap-3">
-                <span className="rounded-full bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-muted">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <div className="grid min-w-0 gap-2">
-                  <strong className="text-sm leading-6 text-sd-text">{displayActivityTitle(activity)}</strong>
-                  <p className="m-0 text-sm leading-6 text-sd-muted">
-                    {cleanText(
-                      activity?.descripcion,
-                      completed
-                        ? 'Actividad completada dentro de este modulo.'
-                        : isNext
-                          ? 'Este es el siguiente bloque que retomaras al abrir el modulo.'
-                          : 'Bloque posterior dentro del recorrido del modulo.'
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="text-sm text-sd-text-soft">
-                {completed ? 'Hecha' : isNext ? 'Siguiente' : activity?.tipo || 'Actividad'}
-              </div>
-            </div>
-          </div>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sd-border bg-sd-canvas text-xs font-semibold text-sd-text">
+              {completed ? 'OK' : String(index + 1).padStart(2, '0')}
+            </span>
+            <strong className="min-w-0 truncate text-sm leading-6 text-sd-text">
+              {displayActivityTitle(activity)}
+            </strong>
+            <span
+              className={cn(
+                'text-xs font-semibold uppercase tracking-[0.06em]',
+                isNext ? 'text-sd-accent' : 'text-sd-text-soft'
+              )}
+            >
+              {stateLabel}
+            </span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -523,6 +503,8 @@ function ModuleMissionBoard({
   unlockMessage,
   onOpenModule,
   progressMap,
+  weakestTopic,
+  nextUnlockEntry,
 }) {
   if (!entry) {
     return (
@@ -539,168 +521,105 @@ function ModuleMissionBoard({
   const { module, index, stats } = entry;
   const moduleTitle = displayModuleTitle(module);
   const nextActivityTitle = displayActivityTitle(stats.nextActivity, 'Actividad pendiente');
+  const gapLabel = weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] : 'Sin gap dominante';
+  const nextUnlockLabel = nextUnlockEntry
+    ? displayModuleTitle(nextUnlockEntry.module)
+    : 'Ruta abierta completa';
+  const activities = Array.isArray(module?.actividades) ? module.actividades : [];
 
   return (
-    <div
-      className="grid gap-[var(--sd-shell-pane-gap)]"
+    <SurfaceCard
+      padding="lg"
+      variant="panel"
+      className="sd-module-mission-board grid gap-6"
       data-route-detail="module"
       data-selected-module-id={module.id}
+      data-sd-module-layout={shellFamily === 'desktop' ? 'desktop-flat' : 'stacked-flat'}
     >
-      <StageHero
-        tone={recommended ? 'spotlight' : 'editorial'}
-        eyebrow={`Modulo ${index + 1}`}
-        title={moduleTitle}
-        subtitle={cleanText(
-          module.descripcion,
-          'Modulo practico con siguiente actividad y salida clara.'
-        )}
-        actions={recommended ? <Badge tone="accent">Siguiente recomendado</Badge> : undefined}
-        meta={`${CATEGORY_LABELS[module.categoria] || 'Ruta'} · ${getModuleObjective(module)}`}
-        footer={
-          <StatStrip
-            compact={shellFamily === 'mobile'}
-            variant="support"
-            items={[
-              {
-                key: 'progress',
-                eyebrow: 'Avance',
-                value: formatPercent(stats.pct),
-                label: getModuleStatusLabel(stats.status),
-                hint: 'Porcentaje visible dentro del modulo.',
-                tone: getModuleStatusTone(stats.status),
-              },
-            ]}
-          />
-        }
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="sd-eyebrow m-0">{`Modulo ${index + 1}`}</span>
+          {recommended ? <Badge tone="accent">Siguiente recomendado</Badge> : null}
+        </div>
+        <h2 className="sd-title m-0">{moduleTitle}</h2>
+        <p className="m-0 text-sm leading-6 text-sd-text">
+          {cleanText(
+            module.descripcion,
+            'Modulo practico con siguiente actividad y salida clara.'
+          )}
+        </p>
+        <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-soft">
+          {`${CATEGORY_LABELS[module.categoria] || 'Ruta'} · ${getModuleObjective(module)}`}
+        </p>
+      </div>
+
+      <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          disabled={locked}
+          data-sd-module-cta="courses-detail"
+          aria-label={`${getModuleCtaLabel({ locked, adminAccess, stats })}: ${moduleTitle}`}
+          onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}
+        >
+          {getModuleCtaLabel({ locked, adminAccess, stats })}
+        </Button>
+      </ActionCluster>
+
+      <ProgressSummary
+        eyebrow="Avance del modulo"
+        title={nextActivityTitle}
+        value={formatPercent(stats.pct)}
+        hint={getModuleStatusLabel(stats.status)}
+        progressValue={stats.pct}
+        tone="accent"
+        variant="support"
       />
 
-      <div
-        className={cn(
-          'grid gap-[var(--sd-shell-pane-gap)]',
-          shellFamily === 'desktop'
-            ? '2xl:grid-cols-[minmax(0,1fr)_minmax(17rem,0.62fr)]'
-              : ''
-        )}
-        data-sd-module-layout={shellFamily === 'desktop' ? 'desktop-comfort' : 'stacked-comfort'}
-      >
-        <SurfaceCard padding="lg" variant="panel">
-          <PanelHeader
-            eyebrow="Ruta interna del modulo"
-            title={nextActivityTitle}
-            subtitle="Primero ves la actividad que sigue; debajo queda el resto de la secuencia."
-            divider
-          />
+      <dl className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-1 rounded-[14px] border border-sd-border bg-sd-canvas px-4 py-3">
+          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-soft">
+            Gap visible
+          </dt>
+          <dd className="m-0 text-sm font-semibold leading-6 text-sd-text">{gapLabel}</dd>
+        </div>
+        <div className="grid gap-1 rounded-[14px] border border-sd-border bg-sd-canvas px-4 py-3">
+          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-soft">
+            Siguiente desbloqueo
+          </dt>
+          <dd className="m-0 text-sm font-semibold leading-6 text-sd-text">{nextUnlockLabel}</dd>
+        </div>
+      </dl>
+
+      {locked ? (
+        <InlineMessage tone="warning" title="Este modulo aun esta bloqueado.">
+          {unlockMessage}
+        </InlineMessage>
+      ) : null}
+
+      {adminAccess ? (
+        <InlineMessage tone="info" title="Modo admin activo.">
+          Puedes abrir o repetir este modulo sin esperar el desbloqueo secuencial.
+        </InlineMessage>
+      ) : null}
+
+      <details className="sd-module-activities-toggle rounded-[18px] border border-sd-border bg-sd-canvas px-4 py-3">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-sd-text">
+          <span>{`Ver actividades del modulo (${activities.length})`}</span>
+          <span aria-hidden="true" className="text-xs uppercase tracking-[0.08em] text-sd-text-soft">
+            Colapsable
+          </span>
+        </summary>
+        <div className="mt-4">
           <ModuleActivityList
             module={module}
             nextActivity={stats.nextActivity}
             completedMap={progressMap?.completed || {}}
           />
-        </SurfaceCard>
-
-        <SupportRail
-          tone={recommended ? 'insight' : 'support'}
-          eyebrow="Apertura"
-          title="Abrir modulo"
-          subtitle="Accion directa para el modulo seleccionado."
-        >
-          <div className="grid gap-4">
-            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                disabled={locked}
-                data-sd-module-cta="courses-detail"
-                aria-label={`${getModuleCtaLabel({ locked, adminAccess, stats })}: ${moduleTitle}`}
-                onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}
-              >
-                {getModuleCtaLabel({ locked, adminAccess, stats })}
-              </Button>
-            </ActionCluster>
-
-            <ProgressSummary
-              eyebrow="Estado del modulo"
-              title={getModuleStatusLabel(stats.status)}
-              value={formatPercent(stats.pct)}
-              hint={`Siguiente actividad: ${nextActivityTitle}`}
-              progressValue={stats.pct}
-              tone="accent"
-              variant="support"
-            />
-
-            {locked ? (
-              <InlineMessage tone="warning" title="Este modulo aun esta bloqueado.">
-                {unlockMessage}
-              </InlineMessage>
-            ) : null}
-
-            {adminAccess ? (
-              <InlineMessage tone="info" title="Modo admin activo.">
-                Puedes abrir o repetir este modulo sin esperar el desbloqueo secuencial.
-              </InlineMessage>
-            ) : null}
-          </div>
-        </SupportRail>
-      </div>
-    </div>
-  );
-}
-
-function RouteInsightRail({
-  shellFamily,
-  routeLength,
-  completedModules,
-  selectedEntry,
-  weakestTopic,
-  nextUnlockEntry,
-  adminAccess,
-}) {
-  const selectedModule = selectedEntry?.module || null;
-  const routeCompletion = routeLength ? Math.round((completedModules / routeLength) * 100) : 0;
-
-  return (
-    <div className={cn('grid gap-4', shellFamily === 'desktop' ? 'xl:sticky xl:top-6' : '')}>
-      <SupportRail
-        tone={shellFamily === 'desktop' ? 'support' : 'insight'}
-        eyebrow="Lectura del recorrido"
-        title="La ruta se entiende de un vistazo"
-        subtitle="Progreso, foco y siguiente desbloqueo en un solo costado."
-      >
-        <div className="grid gap-4">
-          <ProgressSummary
-            eyebrow="Ruta total"
-            title={selectedModule ? displayModuleTitle(selectedModule) : 'Ruta activa'}
-            value={formatPercent(routeCompletion)}
-            hint={`${completedModules} de ${routeLength} modulos completos`}
-            progressValue={routeCompletion}
-            tone="accent"
-            variant="support"
-          />
-
-          <KeyValueBlock
-            items={[
-              {
-                key: 'gap',
-                label: 'Gap visible',
-                value: weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] : 'Sin gap dominante',
-              },
-              {
-                key: 'next',
-                label: 'Siguiente desbloqueo',
-                value: nextUnlockEntry ? displayModuleTitle(nextUnlockEntry.module) : 'Ruta abierta completa',
-              },
-            ]}
-          />
-
-          {adminAccess ? (
-            <InlineMessage tone="info" title="Modo admin activo">
-              Esta ruta permite abrir y repetir modulos sin esperar el desbloqueo secuencial.
-            </InlineMessage>
-          ) : null}
         </div>
-      </SupportRail>
-
-    </div>
+      </details>
+    </SurfaceCard>
   );
 }
 
@@ -767,112 +686,79 @@ function ProgressScene({
         }
       />
 
-      <div
-        className={cn(
-          'grid gap-[var(--sd-shell-pane-gap)]',
-          shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(17rem,0.82fr)]'
-            : shellFamily === 'tablet'
-              ? 'lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)]'
-              : ''
-        )}
+      <SurfaceCard padding="lg" variant="panel">
+        <PanelHeader
+          eyebrow="Competencias"
+          title="Tu blindaje por tema"
+          subtitle="Lee rapido que esta fuerte y que conviene reforzar."
+          divider
+        />
+        <div className="grid gap-4">
+          {TOPIC_ORDER.map((topic) => (
+            <div key={topic} className="grid gap-2">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-sd-text">{CATEGORY_LABELS[topic]}</span>
+                <strong className="text-sd-text">
+                  {formatPercent(computed.competencias?.[topic] || 0)}
+                </strong>
+              </div>
+              <ProgressBar value={computed.competencias?.[topic] || 0} />
+            </div>
+          ))}
+        </div>
+      </SurfaceCard>
+
+      <SupportRail
+        tone="support"
+        eyebrow="Lo importante"
+        title="Senales de aprendizaje"
+        subtitle="Errores y fortalezas que ayudan a decidir como seguir."
       >
-        <div className="grid gap-4">
-          <SurfaceCard padding="lg" variant="panel">
-            <PanelHeader
-              eyebrow="Competencias"
-              title="Tu blindaje por tema"
-              subtitle="Lee rapido que esta fuerte y que conviene reforzar."
-              divider
-            />
-            <div className="grid gap-4">
-              {TOPIC_ORDER.map((topic) => (
-                <div key={topic} className="grid gap-2">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-medium text-sd-text">{CATEGORY_LABELS[topic]}</span>
-                    <strong className="text-sd-text">
-                      {formatPercent(computed.competencias?.[topic] || 0)}
-                    </strong>
-                  </div>
-                  <ProgressBar value={computed.competencias?.[topic] || 0} />
-                </div>
-              ))}
-            </div>
-          </SurfaceCard>
+        <KeyValueBlock
+          items={[
+            {
+              key: 'mistakes',
+              label: 'Errores frecuentes',
+              value: insights.mistakes.length ? insights.mistakes.join(' / ') : 'Sin tropiezos claros',
+            },
+            {
+              key: 'strengths',
+              label: 'Senales fuertes',
+              value: insights.strengths.length ? insights.strengths.join(' / ') : 'Sin fortalezas destacadas aun',
+            },
+            {
+              key: 'plan',
+              label: 'Plan actual',
+              value: `v${coursePlan?.planVersion || 0} · ${coursePrefs?.estilo || 'mix'} · ${coursePrefs?.dificultad || 'auto'}`,
+            },
+          ]}
+        />
+      </SupportRail>
 
-          {history.length ? (
-            <SurfaceCard padding="lg" variant="editorial">
-            <PanelHeader
-              eyebrow="Historial reciente"
-              title="Evolucion de la ruta"
-              subtitle="Este historial sirve para retomar con contexto y no solo recordar “mas o menos como iba”."
-              divider
-            />
-            <div className="grid gap-3">
-              {history.map((item, index) => (
-                  <div
-                    key={`${item.timestamp || index}`}
-                    className="rounded-[22px] border border-sd-border bg-white/76 px-4 py-4"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <strong className="text-sm text-sd-text">{formatDate(item.timestamp)}</strong>
-                      <Badge tone="accent">{formatPercent(item.scoreTotal)}</Badge>
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-sd-muted">
-                      {`${item.completedCount} actividad(es) registradas en este snapshot.`}
-                    </p>
-                  </div>
-              ))}
-            </div>
-            </SurfaceCard>
-          ) : null}
-        </div>
-
-        <div className="grid gap-4">
-          <ProgressSummary
-            eyebrow="Siguiente foco"
-            title={weakestTopic ? CATEGORY_LABELS[weakestTopic[0]] : 'Sin gap dominante'}
-            value={weakestTopic ? formatPercent(weakestTopic[1]) : '0%'}
-            hint={
-              weakestTopic
-                ? 'Este tema merece prioridad en los siguientes modulos.'
-                : 'Aun no hay suficiente recorrido para detectar el gap principal.'
-            }
-            progressValue={weakestTopic?.[1] || 0}
-            variant="support"
-            tone="warning"
+      {history.length ? (
+        <SurfaceCard padding="lg" variant="editorial">
+          <PanelHeader
+            eyebrow="Historial reciente"
+            title="Evolucion de la ruta"
+            subtitle="Snapshots recientes para retomar con contexto real."
+            divider
           />
-
-          <SupportRail
-            tone="support"
-            eyebrow="Lo importante"
-            title="Senales de aprendizaje"
-            subtitle="Errores y fortalezas que ayudan a decidir como seguir."
-          >
-            <div className="grid gap-4">
-              <KeyValueBlock
-                items={[
-                  {
-                    key: 'mistakes',
-                    label: 'Errores frecuentes',
-                    value: insights.mistakes.length ? insights.mistakes.join(' / ') : 'Sin tropiezos claros',
-                  },
-                  {
-                    key: 'strengths',
-                    label: 'Senales fuertes',
-                    value: insights.strengths.length ? insights.strengths.join(' / ') : 'Sin fortalezas destacadas aun',
-                  },
-                  {
-                    key: 'plan',
-                    label: 'Plan actual',
-                    value: `v${coursePlan?.planVersion || 0} · ${coursePrefs?.estilo || 'mix'} · ${coursePrefs?.dificultad || 'auto'}`,
-                  },
-                ]}
-              />
-            </div>
-          </SupportRail>
-        </div>
-      </div>
+          <div className="grid gap-3">
+            {history.map((item, index) => (
+              <div
+                key={`${item.timestamp || index}`}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-sd-border bg-sd-canvas px-4 py-3"
+              >
+                <strong className="text-sm text-sd-text">{formatDate(item.timestamp)}</strong>
+                <div className="flex items-center gap-3 text-sm text-sd-text-soft">
+                  <span>{`${item.completedCount} actividad(es)`}</span>
+                  <Badge tone="accent">{formatPercent(item.scoreTotal)}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+      ) : null}
     </div>
   );
 }
@@ -899,161 +785,101 @@ function SettingsScene({
   };
   const selectedTopicCount = Array.isArray(coursePrefs?.temas) ? coursePrefs.temas.length : 0;
 
-  const settingsStrip = [
-    {
-      key: 'style',
-      eyebrow: 'Estilo',
-      value: coursePrefs?.estilo || 'mix',
-      label: 'Cabina actual',
-      hint: 'Solo cambia el ritmo de la ruta, no el dominio.',
-      tone: 'accent',
-    },
-    {
-      key: 'difficulty',
-      eyebrow: 'Dificultad',
-      value: coursePrefs?.dificultad || 'auto',
-      label: 'Escala visible',
-      hint: 'Sigue usando la misma logica de plan.',
-      tone: 'neutral',
-    },
-    {
-      key: 'topics',
-      eyebrow: 'Temas',
-      value: selectedTopicCount ? String(selectedTopicCount) : 'Auto',
-      label: selectedTopicCount ? 'Priorizados' : 'Sin filtro manual',
-      hint: 'Solo ordena el foco visible.',
-      tone: 'neutral',
-    },
-  ];
-
   return (
-    <SplitHeroLayout
-      shellFamily={shellFamily}
-      className={
-        shellFamily === 'tablet'
-          ? 'md:grid-cols-[minmax(0,0.95fr)_minmax(21rem,1.05fr)]'
-          : shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,0.98fr)_minmax(25rem,1.02fr)] 2xl:grid-cols-[minmax(0,1.06fr)_minmax(26rem,0.94fr)]'
-            : ''
-      }
-      hero={
-        <StageHero
-          tone="support"
-          eyebrow="Ajustes de cabina"
-          title="Ajustes de ruta sin perder progreso"
-          subtitle="Cambia ritmo, dificultad o temas antes de regenerar."
-          meta="No toca diagnostico, scoring ni avance guardado."
-          footer={<StatStrip items={settingsStrip} compact={shellFamily === 'mobile'} variant="support" />}
-        />
-      }
-      primary={
-        <SurfaceCard padding="lg" variant="panel">
-          <PanelHeader
-            eyebrow="Preferencias"
-            title="Preferencias de recorrido"
-            subtitle="Cambian como se presenta la ruta; no alteran tu progreso registrado."
-            divider
-          />
+    <SurfaceCard padding="lg" variant="panel" className="sd-settings-scene grid gap-6">
+      <PanelHeader
+        eyebrow="Ajustes de ruta"
+        title="Ajustes de ruta sin perder progreso"
+        subtitle="Cambia ritmo, dificultad o temas antes de regenerar. No toca diagnostico ni progreso."
+        divider
+      />
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Estilo">
-              <Select
-                value={coursePrefs?.estilo || 'mix'}
-                onChange={(event) => setField('estilo', event.target.value)}
-              >
-                <option value="mix">Mix</option>
-                <option value="guiado">Guiado</option>
-                <option value="practico">Practico</option>
-              </Select>
-            </Field>
-
-            <Field label="Dificultad">
-              <Select
-                value={coursePrefs?.dificultad || 'auto'}
-                onChange={(event) => setField('dificultad', event.target.value)}
-              >
-                <option value="auto">Auto</option>
-                <option value="facil">Facil</option>
-                <option value="normal">Normal</option>
-                <option value="avanzada">Avanzada</option>
-              </Select>
-            </Field>
-
-            <Field label="Duracion">
-              <Select
-                value={coursePrefs?.duracion || '5-10'}
-                onChange={(event) => setField('duracion', event.target.value)}
-              >
-                <option value="5-10">5-10 min</option>
-                <option value="10-15">10-15 min</option>
-                <option value="15-20">15-20 min</option>
-              </Select>
-            </Field>
-          </div>
-
-          <Field
-            className="mt-6"
-            label="Temas prioritarios"
-            hint="Elige temas solo si quieres reforzar una prioridad concreta."
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Field label="Estilo">
+          <Select
+            value={coursePrefs?.estilo || 'mix'}
+            onChange={(event) => setField('estilo', event.target.value)}
           >
-            <ActionCluster align="start" collapse="wrap">
-              {TOPIC_ORDER.map((topic) => {
-                const active = Array.isArray(coursePrefs?.temas)
-                  ? coursePrefs.temas.includes(topic)
-                  : false;
+            <option value="mix">Mix</option>
+            <option value="guiado">Guiado</option>
+            <option value="practico">Practico</option>
+          </Select>
+        </Field>
 
-                return (
-                  <Button
-                    key={topic}
-                    type="button"
-                    size="compact"
-                    variant={active ? 'primary' : 'quiet'}
-                    active={active}
-                    onClick={() => toggleTopic(topic)}
-                  >
-                    {CATEGORY_LABELS[topic]}
-                  </Button>
-                );
-              })}
-            </ActionCluster>
-          </Field>
-        </SurfaceCard>
-      }
-      secondary={
-        <SupportRail
-          tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
-          sticky={shellFamily === 'desktop'}
-          eyebrow="Aplicar cambios"
-          title="Actualizar ruta"
-          subtitle="Regenera solo cuando quieras reordenar modulos, ritmo y prioridad."
-        >
-          <div className="grid gap-4">
-            {error ? (
-              <InlineMessage tone="danger" title="No pudimos actualizar la ruta.">
-                {error}
-              </InlineMessage>
-            ) : (
-              <InlineMessage tone="info" title="Se conserva tu base">
-                Diagnostico, progreso y continuidad siguen intactos mientras se recalcula la ruta.
-              </InlineMessage>
-            )}
+        <Field label="Dificultad">
+          <Select
+            value={coursePrefs?.dificultad || 'auto'}
+            onChange={(event) => setField('dificultad', event.target.value)}
+          >
+            <option value="auto">Auto</option>
+            <option value="facil">Facil</option>
+            <option value="normal">Normal</option>
+            <option value="avanzada">Avanzada</option>
+          </Select>
+        </Field>
 
-            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+        <Field label="Duracion">
+          <Select
+            value={coursePrefs?.duracion || '5-10'}
+            onChange={(event) => setField('duracion', event.target.value)}
+          >
+            <option value="5-10">5-10 min</option>
+            <option value="10-15">10-15 min</option>
+            <option value="15-20">15-20 min</option>
+          </Select>
+        </Field>
+      </div>
+
+      <Field
+        label="Temas prioritarios"
+        hint={
+          selectedTopicCount
+            ? `${selectedTopicCount} tema(s) priorizados manualmente.`
+            : 'Elige temas solo si quieres reforzar una prioridad concreta.'
+        }
+      >
+        <ActionCluster align="start" collapse="wrap">
+          {TOPIC_ORDER.map((topic) => {
+            const active = Array.isArray(coursePrefs?.temas)
+              ? coursePrefs.temas.includes(topic)
+              : false;
+
+            return (
               <Button
+                key={topic}
                 type="button"
-                variant="primary"
-                data-sd-settings-cta="courses-regenerate"
-                aria-label="Actualizar ruta con estas preferencias"
-                onClick={onGenerateCourse}
-                loading={generating}
+                size="compact"
+                variant={active ? 'primary' : 'quiet'}
+                active={active}
+                onClick={() => toggleTopic(topic)}
               >
-                {generating ? 'Actualizando ruta...' : 'Actualizar ruta'}
+                {CATEGORY_LABELS[topic]}
               </Button>
-            </ActionCluster>
-          </div>
-        </SupportRail>
-      }
-    />
+            );
+          })}
+        </ActionCluster>
+      </Field>
+
+      {error ? (
+        <InlineMessage tone="danger" title="No pudimos actualizar la ruta.">
+          {error}
+        </InlineMessage>
+      ) : null}
+
+      <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          data-sd-settings-cta="courses-regenerate"
+          aria-label="Actualizar ruta con estas preferencias"
+          onClick={onGenerateCourse}
+          loading={generating}
+        >
+          {generating ? 'Actualizando ruta...' : 'Actualizar ruta'}
+        </Button>
+      </ActionCluster>
+    </SurfaceCard>
   );
 }
 
@@ -1120,17 +946,6 @@ export default function CoursesView({
   const [level, setLevel] = useState(defaultLevel);
   const [selectedModuleId, setSelectedModuleId] = useState(
     recommendedEntry?.module?.id || entries[0]?.module?.id || null
-  );
-
-  const journeySteps = useMemo(
-    () =>
-      buildJourneyProgress({
-        currentView,
-        surveyStage: 'results',
-        hasAssessment: Boolean(assessment),
-        hasCoursePlan: Boolean(coursePlan),
-      }),
-    [assessment, coursePlan, currentView]
   );
 
   const resumeTarget = useMemo(() => buildResumeTarget(entries), [entries]);
@@ -1226,7 +1041,7 @@ export default function CoursesView({
     ? 'mobile-stack'
     : shellFamily === 'tablet'
       ? 'tablet-two-pane'
-      : 'desktop-balanced';
+      : 'desktop-two-pane';
 
   return (
     <section
@@ -1250,128 +1065,45 @@ export default function CoursesView({
           shellFamily={shellFamily}
           activeTab={tab}
           onChange={setTab}
-          journeySteps={journeySteps}
         />
 
         {tab === 'ruta' ? (
-          <div className="min-w-0" data-sd-route-layout={routeLayoutMode}>
-            {isMobile ? (
-              <div className="grid gap-[var(--sd-shell-pane-gap)]">
-                <RouteNavigatorRail
-                  shellFamily={shellFamily}
-                  level={level}
-                  availableLevels={availableLevels}
-                  onLevelChange={setLevel}
-                  currentLevelEntries={currentLevelEntries}
-                  selectedEntry={selectedEntry}
-                  adminAccess={adminAccess}
-                  unlockedLimit={unlockedLimit}
-                  recommendedIndex={recommendedIndex}
-                  onSelectModule={setSelectedModuleId}
-                />
-
-                <ModuleMissionBoard
-                  shellFamily={shellFamily}
-                  entry={selectedEntry}
-                  locked={selectedLocked}
-                  recommended={selectedEntry?.index === recommendedIndex}
-                  adminAccess={adminAccess}
-                  unlockMessage={selectedUnlockMessage}
-                  onOpenModule={onOpenModule}
-                  progressMap={courseProgress}
-                />
-
-                <RouteInsightRail
-                  shellFamily={shellFamily}
-                  routeLength={route.length}
-                  completedModules={completedModules}
-                  selectedEntry={selectedEntry}
-                  weakestTopic={weakestTopic}
-                  nextUnlockEntry={nextUnlockEntry}
-                  adminAccess={adminAccess}
-                />
-              </div>
-            ) : shellFamily === 'tablet' ? (
-              <div className="grid gap-[var(--sd-shell-pane-gap)] lg:grid-cols-[minmax(18rem,20rem)_minmax(0,1.18fr)]">
-                <RouteNavigatorRail
-                  shellFamily={shellFamily}
-                  level={level}
-                  availableLevels={availableLevels}
-                  onLevelChange={setLevel}
-                  currentLevelEntries={currentLevelEntries}
-                  selectedEntry={selectedEntry}
-                  adminAccess={adminAccess}
-                  unlockedLimit={unlockedLimit}
-                  recommendedIndex={recommendedIndex}
-                  onSelectModule={setSelectedModuleId}
-                />
-
-                <div className="grid gap-[var(--sd-shell-pane-gap)]">
-                  <ModuleMissionBoard
-                    shellFamily={shellFamily}
-                    entry={selectedEntry}
-                    locked={selectedLocked}
-                    recommended={selectedEntry?.index === recommendedIndex}
-                    adminAccess={adminAccess}
-                    unlockMessage={selectedUnlockMessage}
-                    onOpenModule={onOpenModule}
-                    progressMap={courseProgress}
-                  />
-
-                  <RouteInsightRail
-                    shellFamily={shellFamily}
-                    routeLength={route.length}
-                    completedModules={completedModules}
-                    selectedEntry={selectedEntry}
-                    weakestTopic={weakestTopic}
-                    nextUnlockEntry={nextUnlockEntry}
-                    adminAccess={adminAccess}
-                  />
-                </div>
-              </div>
-            ) : (
-              <WorkspaceLayout
-                shellFamily={shellFamily}
-                className="xl:grid-cols-[minmax(18rem,20rem)_minmax(0,1.55fr)_minmax(16.5rem,18.5rem)] 2xl:grid-cols-[minmax(18.5rem,20.5rem)_minmax(0,1.7fr)_minmax(17rem,19rem)]"
-                command={
-                  <RouteNavigatorRail
-                    shellFamily={shellFamily}
-                    level={level}
-                    availableLevels={availableLevels}
-                    onLevelChange={setLevel}
-                    currentLevelEntries={currentLevelEntries}
-                    selectedEntry={selectedEntry}
-                    adminAccess={adminAccess}
-                    unlockedLimit={unlockedLimit}
-                    recommendedIndex={recommendedIndex}
-                    onSelectModule={setSelectedModuleId}
-                  />
-                }
-                main={
-                  <ModuleMissionBoard
-                    shellFamily={shellFamily}
-                    entry={selectedEntry}
-                    locked={selectedLocked}
-                    recommended={selectedEntry?.index === recommendedIndex}
-                    adminAccess={adminAccess}
-                    unlockMessage={selectedUnlockMessage}
-                    onOpenModule={onOpenModule}
-                    progressMap={courseProgress}
-                  />
-                }
-                insight={
-                  <RouteInsightRail
-                    shellFamily={shellFamily}
-                    routeLength={route.length}
-                    completedModules={completedModules}
-                    selectedEntry={selectedEntry}
-                    weakestTopic={weakestTopic}
-                    nextUnlockEntry={nextUnlockEntry}
-                    adminAccess={adminAccess}
-                  />
-                }
-              />
+          <div
+            className={cn(
+              'grid min-w-0 gap-[var(--sd-shell-pane-gap)]',
+              shellFamily === 'tablet'
+                ? 'lg:grid-cols-[minmax(18rem,20rem)_minmax(0,1.18fr)]'
+                : shellFamily === 'desktop'
+                  ? 'xl:grid-cols-[minmax(19rem,21rem)_minmax(0,1.5fr)] 2xl:grid-cols-[minmax(20rem,22rem)_minmax(0,1.6fr)]'
+                  : ''
             )}
+            data-sd-route-layout={routeLayoutMode}
+          >
+            <RouteNavigatorRail
+              shellFamily={shellFamily}
+              level={level}
+              availableLevels={availableLevels}
+              onLevelChange={setLevel}
+              currentLevelEntries={currentLevelEntries}
+              selectedEntry={selectedEntry}
+              adminAccess={adminAccess}
+              unlockedLimit={unlockedLimit}
+              recommendedIndex={recommendedIndex}
+              onSelectModule={setSelectedModuleId}
+            />
+
+            <ModuleMissionBoard
+              shellFamily={shellFamily}
+              entry={selectedEntry}
+              locked={selectedLocked}
+              recommended={selectedEntry?.index === recommendedIndex}
+              adminAccess={adminAccess}
+              unlockMessage={selectedUnlockMessage}
+              onOpenModule={onOpenModule}
+              progressMap={courseProgress}
+              weakestTopic={weakestTopic}
+              nextUnlockEntry={nextUnlockEntry}
+            />
           </div>
         ) : null}
 
