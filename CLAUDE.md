@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.D Fullscreen / stage-dominance / layout pass cerrada localmente. Siguiente frente recomendado: F6.E WhatsApp / Chat refine.**
+**F6.G Inbox / email refine cerrada localmente. Siguiente frente recomendado: F6.H WebLab / Web simulation refine.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -259,6 +259,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.F agrego `test/f6-sms-refine-smoke.test.js`;
 - F6.F valido `.\npm-local.cmd test` con 109/109, `.\npm-local.cmd run build` y `git diff --check`;
 - F6.F no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es abrir F6.G - Inbox / email refine.
+- F6.G Inbox / email refine quedo cerrada localmente con una rama de correo propia dentro de `InboxActivity.jsx`, un banner mail-specific, lector de correo mas claro y reglas CSS dedicadas para separar el canal de SMS;
+- F6.G agrego `test/f6-email-refine-smoke.test.js`;
+- F6.G valido `.\npm-local.cmd test`, `.\npm-local.cmd run build` y `git diff --check`;
+- F6.G no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es abrir F6.H - WebLab / Web simulation refine.
 
 No abrir F6.G/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
