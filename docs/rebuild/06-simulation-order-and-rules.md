@@ -3,6 +3,26 @@
 ## Objetivo
 Cerrar el orden oficial de simulaciones y las reglas visuales obligatorias antes de ejecutar el bloque inmersivo.
 
+## Actualizacion operativa F6 global
+
+El usuario redefinio la ejecucion de F6 como **Simulation Experience Refine** global. El orden por categoria de este documento sigue siendo referencia para no mezclar dos simulaciones complejas sin control, pero antes de los pases por canal se deben cerrar tres pases sistemicos:
+
+1. `F6.B - Contrast / readability / text-density system pass`
+2. `F6.C - Category identity / color semantics pass`
+3. `F6.D - Fullscreen / stage-dominance / layout pass`
+
+Despues de esos pases, el refinamiento por categoria se ejecuta como:
+
+1. `F6.E - WhatsApp / Chat refine`
+2. `F6.F - SMS refine`
+3. `F6.G - Inbox / Email refine`
+4. `F6.H - WebLab / Web simulation refine`
+5. `F6.I - Calls / ScenarioFlow / other simulation refine`
+6. `F6.J - Cross-simulation functionality + polish pass`
+7. `F6.K - F6 closeout validation`
+
+La auditoria global vigente es `docs/rebuild/audit/F6.A-simulation-baseline-audit.md`. La auditoria `docs/rebuild/audit/F6.A-whatsapp-chat-baseline-audit.md` queda como insumo especifico de WhatsApp/chat, no como el plan operativo completo de F6.
+
 ## Orden oficial y cerrado
 1. `6A — WhatsApp / chat`
 2. `6B — SMS`

@@ -151,11 +151,13 @@ La tesis obligatoria es:
 - F5.H actualizo `docs/rebuild/02-legacy-new-ownership-map.md` para reflejar F5 expandida cerrada.
 - F5 expandida queda cerrada localmente: ruta, transicion route->lesson, lesson shell, activity chrome, feedback y comfort responsive.
 - F6.A WhatsApp / chat baseline audit quedo cerrada localmente con `docs/rebuild/audit/F6.A-whatsapp-chat-baseline-audit.md`.
-- F6.A fue auditoria pura: leyo `signalActivities.jsx`, contratos de actividad, chrome comun, estilos y tests relevantes, pero no implemento cambios.
-- F6.A confirmo que `WhatsAppSimulation` es la fuente de F6.A y que sigue hibrida: implementacion activa `sd-chat-*` nueva, bloque legacy inaccesible `wa-*`, imports muertos y deuda responsive/a11y del canal.
-- F6.A confirmo que `ActivityRenderer.jsx`, `activityRegistry.js`, `requestSimulationTurn`, scoring, hooks de dominio, backend y contracts siguen congelados.
-- El siguiente frente recomendado es F6.A.1 - Thread + message layout cleanup.
-- No abrir F6.A.1/F6B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- Luego el usuario redefinio F6 como **Simulation Experience Refine** global para toda la familia de simulaciones.
+- F6.A Simulation baseline audit global quedo cerrada localmente con `docs/rebuild/audit/F6.A-simulation-baseline-audit.md`.
+- F6.A global fue auditoria pura: leyo simulaciones, wrappers comunes, estilos y tests relevantes, pero no implemento cambios.
+- F6.A global confirmo problemas sistemicos de contraste, sobrecarga de texto, falta de dominancia fullscreen, identidad desigual por categoria, feedback/completion pesado y demo-readiness insuficiente.
+- F6.A global confirmo que `ActivityRenderer.jsx`, `activityRegistry.js`, `requestSimulationTurn`, scoring, hooks de dominio, backend, services y contracts siguen congelados.
+- El siguiente frente recomendado es F6.B - Contrast / readability / text-density system pass.
+- No abrir F6.B/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
