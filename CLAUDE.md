@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.G Inbox / email refine cerrada localmente. Siguiente frente recomendado: F6.H WebLab / Web simulation refine.**
+**F6.H WebLab / web simulation refine cerrada localmente. Siguiente frente recomendado: F6.I Calls / other simulation refine.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -263,6 +263,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.G agrego `test/f6-email-refine-smoke.test.js`;
 - F6.G valido `.\npm-local.cmd test`, `.\npm-local.cmd run build` y `git diff --check`;
 - F6.G no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es abrir F6.H - WebLab / Web simulation refine.
+- F6.H WebLab / web simulation refine quedo cerrada localmente con una barra de navegador real, tema visual derivado del contenido, briefing mas browser-like y workbench mas inmersivo;
+- F6.H agrego `test/f6-weblab-refine-smoke.test.js`;
+- F6.H valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.H no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es abrir F6.I - Calls / other simulation refine.
 
-No abrir F6.G/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.I/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

@@ -62,7 +62,7 @@ describe('F6.D simulation fullscreen and stage-dominance guards', () => {
     assert.match(callSource, /data-sd-simulation-channel="call"[\s\S]*data-sd-stage-dominance="primary"/);
 
     assert.match(inboxSource, /className="sd-simulation-main-stage[\s\S]*data-sd-stage-layout="list-detail"/);
-    assert.match(webLabSource, /className="sd-simulation-briefing-strip[\s\S]*data-sd-stage-layout="briefing"/);
+    assert.match(webLabSource, /className="web-lab-mission sd-simulation-briefing-strip[\s\S]*data-sd-stage-layout="briefing"/);
     assert.match(webLabSource, /className="sd-simulation-main-stage[\s\S]*data-sd-stage-layout="weblab-workbench"/);
     assert.match(scenarioSource, /className="sd-simulation-main-stage[\s\S]*data-sd-stage-layout="scenario-flow"/);
   });

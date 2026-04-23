@@ -24,8 +24,18 @@ function getSelectionTone(target, flagged, neutralTargets, hotspotMap) {
   return 'idle';
 }
 
+function pickWebLabTheme(page) {
+  const haystack = `${page?.marca || ''} ${page?.dominio || ''} ${page?.browserTitle || ''} ${page?.heroTitle || ''}`.toLowerCase();
+  if (/(cyber|tech|lab|digital|secure|chrome)/.test(haystack)) return 'theme-neon';
+  if (/(eco|green|bio|natural|sage)/.test(haystack)) return 'theme-sage';
+  if (/(premium|pro|elite|lux|nova)/.test(haystack)) return 'theme-premium';
+  if (/(street|market|mart|outlet|bazaar)/.test(haystack)) return 'theme-street';
+  return 'theme-premium';
+}
+
 export default function WebLabActivity({ module, activity, startedAtRef, onComplete }) {
   const page = useMemo(() => buildWebLabPage(activity), [activity]);
+  const webLabTheme = useMemo(() => pickWebLabTheme(page), [page]);
   const hotspots = useMemo(() => buildWebLabHotspots(activity), [activity]);
   const hotspotMap = useMemo(() => new Map(hotspots.map((hotspot) => [hotspot.target, hotspot])), [hotspots]);
   const decisionOptions = useMemo(
@@ -189,10 +199,12 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
 
   return (
     <div
-      className={cn(getSimulationCategoryClass('web'), 'grid gap-4')}
+      className={cn(getSimulationCategoryClass('web'), 'web-lab-immersive', webLabTheme, 'grid gap-4')}
       data-sd-simulation-category="web"
       data-sd-simulation-channel="weblab"
       data-sd-stage-dominance="primary"
+      data-sd-web-lab-theme={webLabTheme}
+      data-sd-web-lab-stage={stage}
     >
       <ActivitySummaryBar
         items={[
@@ -215,10 +227,10 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
       />
 
       <section
-        className="sd-simulation-briefing-strip grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]"
+        className="web-lab-mission sd-simulation-briefing-strip grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]"
         data-sd-stage-layout="briefing"
       >
-        <ImmersivePanel className="bg-gradient-to-br from-white via-slate-50 to-rose-50/75">
+        <ImmersivePanel className="web-lab-brief">
           <p className="eyebrow">Antes de empezar</p>
           <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Marca solo las señales más peligrosas</h3>
           <p className="mt-3 max-w-[64ch] text-sm leading-6 text-sd-muted">
@@ -232,6 +244,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
         </ImmersivePanel>
 
         <ImmersiveAsidePanel
+          className="web-lab-hint neutral"
           eyebrow="Ejemplo resuelto"
           title={exampleHotspot?.label || 'Dominio visible'}
           body={exampleHotspot?.explicacion || 'Si el dominio no coincide con la marca o con una ruta oficial, esa sola señal ya merece detenerte.'}
@@ -243,30 +256,39 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
       </section>
 
       <section
-        className="sd-simulation-main-stage grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,0.9fr)]"
+        className="sd-simulation-main-stage web-lab-workbench grid gap-4 xl:grid-cols-[minmax(0,1.82fr)_minmax(16rem,0.68fr)]"
         data-sd-stage-layout="weblab-workbench"
       >
         <ImmersivePanel>
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="web-lab-browser-bar">
+            <div className="web-lab-browser-meta">
+              <div className="web-lab-browser-tabs" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <strong>{page.browserTitle || 'Vista del sitio'}</strong>
+            </div>
+            <button
+              className={cn(
+                'web-lab-domain',
+                getSelectionTone('domain', flagged, neutralTargets, hotspotMap) === 'critical'
+                  ? 'border-rose-300/70 text-rose-100'
+                  : ''
+              )}
+              type="button"
+              onClick={() => registerTarget('domain', 'El dominio visible es uno de los primeros puntos que conviene revisar.')}
+            >
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-80">Dominio</span>
+              <strong className="block text-sm font-semibold">{page.dominio}</strong>
+            </button>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="eyebrow">Laboratorio web</p>
               <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Explora una tienda antes de confiar</h3>
               <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-muted">{page.heroBody}</p>
-            </div>
-            <div className="grid gap-2 sm:text-right">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">{page.browserTitle}</span>
-              <button
-                className={cn(
-                  'rounded-full border px-4 py-2 text-sm font-medium',
-                  getSelectionTone('domain', flagged, neutralTargets, hotspotMap) === 'critical'
-                    ? 'border-rose-300 bg-rose-50 text-rose-800'
-                    : 'border-sd-border bg-white/85 text-sd-text'
-                )}
-                type="button"
-                onClick={() => registerTarget('domain', 'El dominio visible es uno de los primeros puntos que conviene revisar.')}
-              >
-                {page.dominio}
-              </button>
             </div>
           </div>
 
