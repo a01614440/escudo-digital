@@ -2254,7 +2254,8 @@ body[data-theme='dark'] {
   }
 
   .sd-chat-sim-desktop {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.72fr) minmax(18rem, 0.88fr);
+    align-items: start;
   }
 
   .sd-chat-surface {
@@ -2397,6 +2398,8 @@ body[data-theme='dark'] {
     min-height: clamp(26rem, 54vh, 42rem);
     max-height: clamp(34rem, 68vh, 54rem);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     padding: 0.35rem 0.2rem 0.25rem;
     overflow-wrap: normal;
     word-break: normal;
@@ -2512,6 +2515,13 @@ body[data-theme='dark'] {
     padding-top: 0.2rem;
   }
 
+  .sd-chat-composer-help {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--sd-text-soft);
+  }
+
   .sd-chat-composer-field .sd-input {
     min-height: 3.35rem;
     border-radius: 999px;
@@ -2536,41 +2546,12 @@ body[data-theme='dark'] {
     gap: 0.85rem;
   }
 
-  .sd-chat-support-card .sd-eyebrow,
   .sd-chat-compact-support .sd-eyebrow {
     display: none;
   }
 
   .sd-chat-compact-support .sd-panel-header {
     gap: 0.55rem;
-  }
-
-  .sd-chat-compact-support .sd-panel-header .sd-heading-sm {
-    font-size: 0;
-    line-height: 0;
-  }
-
-  .sd-chat-compact-support .sd-panel-header .sd-heading-sm::after {
-    content: 'Senales que si deben mover la decision';
-    display: block;
-    font-family: var(--font-display);
-    font-size: 1.28rem;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
-    color: var(--sd-text);
-  }
-
-  .sd-chat-compact-support .sd-panel-header .sd-copy-sm {
-    font-size: 0;
-    line-height: 0;
-  }
-
-  .sd-chat-compact-support .sd-panel-header .sd-copy-sm::after {
-    content: 'Solo dejamos lo minimo para no romper el foco del hilo.';
-    display: block;
-    font-size: 0.94rem;
-    line-height: 1.6;
-    color: var(--sd-text-soft);
   }
 
   .sd-chat-support-row {
@@ -2602,6 +2583,8 @@ body[data-theme='dark'] {
     display: grid;
     gap: var(--sd-space-4);
     align-content: start;
+    position: sticky;
+    top: clamp(1rem, 2vw, 1.5rem);
   }
 
   .sd-chat-inline-feedback {
@@ -2654,6 +2637,19 @@ body[data-theme='dark'] {
     .sd-chat-bubble {
       max-width: 92%;
     }
+
+    .sd-chat-composer {
+      position: sticky;
+      bottom: 0.75rem;
+      z-index: 1;
+      padding: 0.85rem;
+      border: 1px solid rgba(25, 41, 73, 0.08);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(249, 251, 255, 0.98), rgba(239, 244, 252, 0.98)),
+        radial-gradient(circle at top right, rgba(109, 141, 255, 0.06), transparent 24%);
+      box-shadow: 0 18px 34px -30px rgba(11, 24, 46, 0.26);
+    }
   }
 
   body[data-theme='dark'] .sd-chat-surface {
@@ -2692,6 +2688,13 @@ body[data-theme='dark'] {
     background: rgba(9, 15, 27, 0.96);
     border-color: rgba(159, 181, 221, 0.16);
     color: var(--sd-text);
+  }
+
+  body[data-theme='dark'] .sd-chat-composer {
+    background:
+      linear-gradient(180deg, rgba(12, 19, 32, 0.98), rgba(10, 16, 28, 0.98)),
+      radial-gradient(circle at top right, rgba(109, 141, 255, 0.08), transparent 24%);
+    border-color: rgba(159, 181, 221, 0.12);
   }
 }
 

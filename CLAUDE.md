@@ -251,6 +251,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.D agrego `test/f6-stage-dominance-smoke.test.js` y actualizo el guard de `test/f5-comfort-responsive-smoke.test.js`;
 - F6.D valido `.\npm-local.cmd test` con 105/105, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.D no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.E - WhatsApp / Chat refine.
+- F6.E WhatsApp / Chat refine quedo cerrada localmente con mejoras en el hilo del chat, composer persistente, panel de apoyo desktop y guardas de a11y para el stage;
+- F6.E agrego `test/f6-whatsapp-chat-smoke.test.js`;
+- F6.E ajusto `frontend/src/styles/tailwind.css` para que `sd-chat-sim-desktop` use dos columnas, `sd-chat-insight` quede sticky y el composer gane presencia en mobile;
+- F6.E no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es abrir F6.F - SMS refine.
 
-No abrir F6.E/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.F/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

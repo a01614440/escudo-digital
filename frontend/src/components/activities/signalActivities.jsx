@@ -211,6 +211,10 @@ export function WhatsAppSimulation({
   const turnsAllowed = Math.max(1, Number(activity.turnos_max) || 6);
   const turnsRemaining = Math.max(0, turnsAllowed - turns);
   const dominantSignal = signals[0]?.title || 'Canal no verificado';
+  const threadLabel = done ? 'Hilo de mensajes cerrado' : 'Hilo de mensajes de WhatsApp';
+  const composerHint = done
+    ? 'La conversación ya quedó cerrada.'
+    : 'Responde breve, firme y verifica por fuera si necesitas confirmar algo.';
   const contactPresence = busy && !done ? 'escribiendoâ€¦' : done ? 'chat cerrado' : contactStatus;
 
   const chatTimestamp = (index) => {
@@ -392,14 +396,25 @@ export function WhatsAppSimulation({
             </InlineMessage>
           ) : null}
 
-          <div className="sd-chat-thread" ref={threadRef} aria-live="polite">
+          <div
+            className="sd-chat-thread"
+            ref={threadRef}
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+            aria-atomic="false"
+            aria-label={threadLabel}
+          >
             <div className="sd-chat-thread-divider">Hoy · 11:22</div>
             {history.map((message, index) => (
               <div
                 className={cn('sd-chat-row', message.role === 'user' ? 'is-user' : 'is-scammer')}
                 key={`${message.role}-${index}`}
               >
-                <article className={cn('sd-chat-bubble', message.role === 'user' ? 'is-user' : 'is-scammer')}>
+                <article
+                  className={cn('sd-chat-bubble', message.role === 'user' ? 'is-user' : 'is-scammer')}
+                  aria-label={message.role === 'user' ? 'Tu mensaje' : 'Mensaje del contacto'}
+                >
                   <p>{repairPossibleMojibake(message.content)}</p>
                   <span>{chatTimestamp(index)}</span>
                 </article>
@@ -427,6 +442,7 @@ export function WhatsAppSimulation({
                   type="button"
                   disabled={busy}
                   className="justify-start"
+                  aria-label={`Enviar respuesta sugerida: ${repairPossibleMojibake(reply)}`}
                   onClick={() => sendMessage(reply)}
                 >
                   {repairPossibleMojibake(reply)}
@@ -449,7 +465,16 @@ export function WhatsAppSimulation({
           ) : null}
 
           {!done ? (
-            <div className="sd-chat-composer">
+            <div
+              className="sd-chat-composer"
+              role="group"
+              aria-label="Área de respuesta"
+              aria-describedby="sd-chat-composer-help"
+            >
+              <p className="sd-chat-composer-help" id="sd-chat-composer-help">
+                {composerHint}
+              </p>
+
               <div className="sd-chat-composer-field">
                 <Input
                   type="text"
@@ -459,6 +484,7 @@ export function WhatsAppSimulation({
                   placeholder="Escribe una respuesta breve, firme y segura"
                   disabled={busy}
                   aria-label="Escribe tu respuesta segura"
+                  aria-describedby="sd-chat-composer-help"
                 />
               </div>
 
@@ -513,6 +539,7 @@ export function WhatsAppSimulation({
     </div>
   );
 
+  /*
   return (
     <>
       <ActivitySummaryBar
@@ -645,6 +672,7 @@ export function WhatsAppSimulation({
       </div>
     </>
   );
+  */
 }
 
 export function CompareDomainsActivity({ module, activity, startedAtRef, onComplete }) {
