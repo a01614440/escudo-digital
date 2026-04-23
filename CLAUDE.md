@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.F cerradas localmente.**
+**F3 Auth + Survey refine cerrado localmente. F3.A-F3.G cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -129,8 +129,18 @@ F3.F cerro Results / perfil / CTA closeout de forma minima:
 - `courseError` usa fallback `Intentar abrir mi ruta de nuevo` y queda enlazado por `aria-describedby`;
 - wiring de `resolveActiveRoute.jsx` fue verificado en lectura y no se modifico.
 
+F3.G cerro F3 closeout validation:
+
+- genero `docs/rebuild/audit/F3.G-f3-closeout-validation.md`;
+- valido `.\npm-local.cmd test` con 53/53 tests pasando;
+- valido `.\npm-local.cmd run build`;
+- valido `.\npm-local.cmd run build-storybook`;
+- valido `git diff --check`;
+- confirmo que F3 solo toco Auth/Survey/patterns/docs/tests permitidos;
+- confirmo que no se tocaron vistas grandes posteriores, simulaciones, dominio, backend, contracts, hooks, `app.css` ni `legacy.css`.
+
 Proximo paso recomendado:
 
-- esperar autorizacion explicita del usuario para abrir F3.G - F3 closeout validation.
+- esperar autorizacion explicita del usuario para abrir F4.A - Dashboard / Courses baseline audit.
 
-No abrir F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.

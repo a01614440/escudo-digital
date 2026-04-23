@@ -37,7 +37,7 @@ La tesis obligatoria es:
 - `.\npm-local.cmd run build`: pasando
 - `vite.config.js`: `frontend/` como root, proxy `/api -> http://127.0.0.1:3000`, build a `dist/`
 
-## Estado actual tras F3.F
+## Estado actual tras F3.G
 - F0.1-F0.9 esta cerrada, commiteada y pusheada.
 - F0.9 identifico la fase real del rebuild como **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual no estaba cerrada.
 - La regresion disciplinada a F1 closeout ya quedo cerrada localmente en bloques F1.A-F1.I.
@@ -67,8 +67,12 @@ La tesis obligatoria es:
 - F3.F Results / perfil / CTA closeout quedo cerrado localmente con `docs/rebuild/audit/F3.F-results-profile-cta.md`.
 - F3.F migro results a `AssessmentLayout`, retiro `WorkspaceLayout`/grid local de results, tokenizo el perfil/riesgo, hizo semantica la lista de recomendaciones, y dejo `Ver mi ruta` como CTA primario `size="lg"` con fallback `courseError` accesible.
 - F3.F verifico el wiring de `resolveActiveRoute.jsx` en lectura, pero no lo modifico.
-- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F3.G - F3 closeout validation**.
-- No abrir F3.G/F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F3.G F3 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F3.G-f3-closeout-validation.md`.
+- F3.G valido `.\npm-local.cmd test` (53/53), `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`.
+- F3.G no implemento cambios nuevos en vistas ni logica; solo documento el cierre y actualizo contexto de agente.
+- F3 Auth + Survey refine queda cerrado localmente.
+- El siguiente bloque recomendado es pedir autorizacion humana para abrir **F4.A - Dashboard / Courses baseline audit**.
+- No abrir F4/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
