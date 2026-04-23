@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test, { describe } from 'node:test';
 
 import {
@@ -69,5 +70,14 @@ describe('shell architecture contracts', () => {
     assert.equal(desktop.secondaryMode, 'aside');
     assert.equal(desktop.secondaryPersistent, true);
     assert.deepEqual(desktop.slotOrder, ['header', 'primary', 'secondary', 'floating', 'overlay']);
+  });
+
+  test('DeviceShell renders shell components through JSX dispatcher', () => {
+    const source = readFileSync(new URL('../frontend/src/shells/DeviceShell.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /const Shell = SHELL_RENDERERS\[shellFamily\] \|\| SHELL_RENDERERS\.desktop/);
+    assert.match(source, /<Shell\s+[\s\S]*routeKey=\{routeKey\}/);
+    assert.match(source, /slots=\{\{\s*header,[\s\S]*overlay,[\s\S]*\}\}/);
+    assert.doesNotMatch(source, /return\s+renderShell\(/);
   });
 });

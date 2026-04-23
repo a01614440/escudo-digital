@@ -20,20 +20,22 @@ export default function DeviceShell({
   overlay,
   className,
 }) {
-  const renderShell = SHELL_RENDERERS[shellFamily] || SHELL_RENDERERS.desktop;
+  const Shell = SHELL_RENDERERS[shellFamily] || SHELL_RENDERERS.desktop;
   const policy = getShellLayoutPolicy(shellFamily);
 
-  return renderShell({
-    routeKey,
-    routeIntent,
-    policy,
-    className,
-    slots: {
-      header,
-      primary,
-      secondary,
-      floating,
-      overlay,
-    },
-  });
+  return (
+    <Shell
+      routeKey={routeKey}
+      routeIntent={routeIntent}
+      policy={policy}
+      className={className}
+      slots={{
+        header,
+        primary,
+        secondary,
+        floating,
+        overlay,
+      }}
+    />
+  );
 }
