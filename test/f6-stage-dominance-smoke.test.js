@@ -56,7 +56,7 @@ describe('F6.D simulation fullscreen and stage-dominance guards', () => {
 
   test('simulation roots expose stage dominance and layout intent without touching renderer contracts', () => {
     assert.match(signalActivitiesSource, /data-sd-simulation-channel="whatsapp"[\s\S]*data-sd-stage-dominance="primary"/);
-    assert.match(inboxSource, /data-sd-simulation-channel=\{kind === 'sms' \? 'sms' : 'email'\}[\s\S]*data-sd-stage-dominance="primary"/);
+    assert.match(inboxSource, /data-sd-simulation-channel=\{isSms \? 'sms' : 'email'\}[\s\S]*data-sd-stage-dominance="primary"/);
     assert.match(webLabSource, /data-sd-simulation-channel="weblab"[\s\S]*data-sd-stage-dominance="primary"/);
     assert.match(scenarioSource, /data-sd-simulation-channel="scenario-flow"[\s\S]*data-sd-stage-dominance="primary"/);
     assert.match(callSource, /data-sd-simulation-channel="call"[\s\S]*data-sd-stage-dominance="primary"/);

@@ -80,10 +80,11 @@ describe('F6.C simulation category identity and color semantics guards', () => {
     assert.match(signalActivitiesSource, /data-sd-simulation-category="chat"/);
     assert.match(signalActivitiesSource, /data-sd-simulation-channel="whatsapp"/);
 
-    assert.match(inboxSource, /const simulationCategory = kind === 'sms' \? 'sms' : 'email'/);
+    assert.match(inboxSource, /const isSms = kind === 'sms';/);
+    assert.match(inboxSource, /const simulationCategory = isSms \? 'sms' : 'email'/);
     assert.match(inboxSource, /getSimulationCategoryClass\(simulationCategory\)/);
     assert.match(inboxSource, /data-sd-simulation-category=\{simulationCategory\}/);
-    assert.match(inboxSource, /data-sd-simulation-channel=\{kind === 'sms' \? 'sms' : 'email'\}/);
+    assert.match(inboxSource, /data-sd-simulation-channel=\{isSms \? 'sms' : 'email'\}/);
 
     assert.match(webLabSource, /getSimulationCategoryClass\('web'\)/);
     assert.match(webLabSource, /data-sd-simulation-category="web"/);

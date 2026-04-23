@@ -255,6 +255,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.E agrego `test/f6-whatsapp-chat-smoke.test.js`;
 - F6.E ajusto `frontend/src/styles/tailwind.css` para que `sd-chat-sim-desktop` use dos columnas, `sd-chat-insight` quede sticky y el composer gane presencia en mobile;
 - F6.E no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es abrir F6.F - SMS refine.
+- F6.F SMS refine quedo cerrada localmente con una rama SMS propia dentro de `InboxActivity.jsx`, el skin `sms-*` activado y guardas de a11y/legibilidad para separar el canal de email;
+- F6.F agrego `test/f6-sms-refine-smoke.test.js`;
+- F6.F valido `.\npm-local.cmd test` con 109/109, `.\npm-local.cmd run build` y `git diff --check`;
+- F6.F no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es abrir F6.G - Inbox / email refine.
 
-No abrir F6.F/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.G/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
