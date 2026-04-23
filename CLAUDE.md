@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.D cerradas localmente.**
+**F3 Auth + Survey refine abierto en modo subfases. F3.A-F3.E cerradas localmente.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -110,8 +110,17 @@ F3.D cerro Survey layout / patterns pass de forma minima:
 - se retiraron overrides locales `!grid-cols` del progreso de la escena activa;
 - no se tocaron intro/loading/results ni flow.
 
+F3.E cerro Survey flow hardening de forma minima:
+
+- `shouldShowSurveyIntro` centraliza el gate de intro;
+- `introResetPendingRef` permite reabrir intro tras reinicio real desde results/loading, sin reaparecer por borrar respuestas;
+- `getSurveyScene` / `activeSurveyScene` aseguran una sola escena visible;
+- loading usa `role="status"`, `aria-live="polite"` y `aria-busy="true"`;
+- loading usa `SurfaceCard tone="inverse"` y tokens tipograficos, sin hacks locales `text-white` / shadow arbitrario;
+- no se tocaron results/CTA ni hooks de dominio.
+
 Proximo paso recomendado:
 
-- esperar autorizacion explicita del usuario para abrir F3.E - Survey flow hardening.
+- esperar autorizacion explicita del usuario para abrir F3.F - Results / perfil / CTA closeout.
 
-No abrir F3.E, F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
+No abrir F3.F, F3.G, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.

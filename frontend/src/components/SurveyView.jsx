@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeRiskLevel } from '../lib/course.js';
 import { buildJourneyProgress } from '../lib/journeyGuidance.js';
 import { getShellFamily } from '../hooks/useResponsiveLayout.js';
@@ -37,6 +37,17 @@ const LOADING_PIPELINE = [
   'Calculamos tu perfil.',
   'Preparamos tu ruta.',
 ];
+
+function shouldShowSurveyIntro({ assessment, surveyStage, surveyIndex, hasAnswers }) {
+  return !assessment && surveyStage === 'survey' && surveyIndex === 0 && !hasAnswers;
+}
+
+function getSurveyScene({ surveyStage, showIntro }) {
+  if (showIntro && surveyStage === 'survey') return 'intro';
+  if (surveyStage === 'loading') return 'loading';
+  if (surveyStage === 'results') return 'results';
+  return 'survey';
+}
 
 function getStageHeroModel({ showIntro, surveyStage, surveyIndex, total, assessment, progress }) {
   if (showIntro) {
@@ -511,13 +522,16 @@ function LoadingPrimaryPanel() {
         <SurfaceCard
           padding="md"
           variant="command"
-          className="shadow-[0_30px_80px_-42px_rgba(16,33,61,0.9)] [&_.text-sd-text]:text-white [&_.text-sd-muted]:text-white/76"
+          tone="inverse"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
         >
           <div className="flex items-start gap-4">
             <Spinner size="lg" />
             <div className="grid gap-2">
-              <strong className="text-base text-white">Analizando respuestas</strong>
-              <p className="m-0 text-sm leading-6 text-white/76">
+              <strong className="sd-heading-sm m-0">Analizando respuestas</strong>
+              <p className="sd-copy-sm m-0">
                 Conectamos habitos, exposicion y prioridad para abrir tu perfil.
               </p>
             </div>
@@ -788,10 +802,15 @@ export default function SurveyView({
       ),
     [answers]
   );
+  const canShowIntro = shouldShowSurveyIntro({
+    assessment,
+    surveyStage,
+    surveyIndex,
+    hasAnswers,
+  });
+  const introResetPendingRef = useRef(false);
 
-  const [showIntro, setShowIntro] = useState(
-    !assessment && surveyStage === 'survey' && surveyIndex === 0 && !hasAnswers
-  );
+  const [showIntro, setShowIntro] = useState(() => canShowIntro);
 
   const journeySteps = useMemo(
     () =>
@@ -805,10 +824,29 @@ export default function SurveyView({
   );
 
   useEffect(() => {
-    if (surveyStage !== 'survey' || surveyIndex > 0 || hasAnswers || assessment) {
+    if (surveyStage !== 'survey' || assessment) {
+      introResetPendingRef.current = true;
+      setShowIntro(false);
+      return;
+    }
+
+    if (canShowIntro && introResetPendingRef.current) {
+      introResetPendingRef.current = false;
+      setShowIntro(true);
+      return;
+    }
+
+    if (!canShowIntro) {
+      introResetPendingRef.current = false;
       setShowIntro(false);
     }
-  }, [assessment, hasAnswers, surveyIndex, surveyStage]);
+  }, [assessment, canShowIntro, surveyStage]);
+
+  const activeSurveyScene = getSurveyScene({
+    surveyStage,
+    showIntro: canShowIntro && showIntro,
+  });
+  const handleStartSurvey = () => setShowIntro(false);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -826,11 +864,11 @@ export default function SurveyView({
       className="sd-page-shell py-[var(--sd-shell-padding-block)]"
       data-sd-container="true"
     >
-      {showIntro ? (
-        <IntroScene shellFamily={shellFamily} journeySteps={journeySteps} onStart={() => setShowIntro(false)} />
+      {activeSurveyScene === 'intro' ? (
+        <IntroScene shellFamily={shellFamily} journeySteps={journeySteps} onStart={handleStartSurvey} />
       ) : null}
 
-      {surveyStage === 'survey' && !showIntro ? (
+      {activeSurveyScene === 'survey' ? (
         <SurveyStageScene
           shellFamily={shellFamily}
           answers={answers}
@@ -847,9 +885,11 @@ export default function SurveyView({
         />
       ) : null}
 
-      {surveyStage === 'loading' ? <LoadingScene shellFamily={shellFamily} journeySteps={journeySteps} /> : null}
+      {activeSurveyScene === 'loading' ? (
+        <LoadingScene shellFamily={shellFamily} journeySteps={journeySteps} />
+      ) : null}
 
-      {surveyStage === 'results' ? (
+      {activeSurveyScene === 'results' ? (
         <ResultsScene
           shellFamily={shellFamily}
           assessment={assessment}

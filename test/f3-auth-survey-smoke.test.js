@@ -77,4 +77,33 @@ describe('F3 Auth + Survey closeout guards', () => {
     assert.doesNotMatch(stageScene, /<WorkspaceLayout/);
     assert.doesNotMatch(stageScene, /xl:grid-cols-\[minmax\(16\.5rem,17\.5rem\)_minmax\(0,1\.28fr\)_minmax\(18\.5rem,19\.5rem\)\]/);
   });
+
+  test('SurveyView hardens intro reset and renders one survey scene at a time', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /function shouldShowSurveyIntro\(\{ assessment, surveyStage, surveyIndex, hasAnswers \}\)/);
+    assert.match(source, /function getSurveyScene\(\{ surveyStage, showIntro \}\)/);
+    assert.match(source, /const introResetPendingRef = useRef\(false\)/);
+    assert.match(source, /if \(surveyStage !== 'survey' \|\| assessment\) \{[\s\S]*introResetPendingRef\.current = true/);
+    assert.match(source, /if \(canShowIntro && introResetPendingRef\.current\) \{[\s\S]*setShowIntro\(true\)/);
+    assert.match(source, /if \(!canShowIntro\) \{[\s\S]*introResetPendingRef\.current = false[\s\S]*setShowIntro\(false\)/);
+    assert.match(source, /const activeSurveyScene = getSurveyScene\(\{/);
+    assert.match(source, /activeSurveyScene === 'intro'/);
+    assert.match(source, /activeSurveyScene === 'survey'/);
+    assert.match(source, /activeSurveyScene === 'loading'/);
+    assert.match(source, /activeSurveyScene === 'results'/);
+    assert.doesNotMatch(source, /\{showIntro \? \(/);
+    assert.doesNotMatch(source, /surveyStage === 'survey' && !showIntro/);
+  });
+
+  test('SurveyView announces loading as a busy live status without local inverse hacks', () => {
+    const source = readFileSync(new URL('../frontend/src/components/SurveyView.jsx', import.meta.url), 'utf8');
+
+    assert.match(source, /<SurfaceCard[\s\S]*variant="command"[\s\S]*tone="inverse"[\s\S]*role="status"[\s\S]*aria-live="polite"[\s\S]*aria-busy="true"/);
+    assert.match(source, /<strong className="sd-heading-sm m-0">Analizando respuestas<\/strong>/);
+    assert.match(source, /<p className="sd-copy-sm m-0">/);
+    assert.doesNotMatch(source, /shadow-\[0_30px_80px/);
+    assert.doesNotMatch(source, /\[&_\.text-sd-text\]:text-white/);
+    assert.doesNotMatch(source, /text-white\/76/);
+  });
 });
