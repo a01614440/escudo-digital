@@ -12,6 +12,7 @@ import {
 } from '../../lib/activityFeedback.js';
 import { getActivityInstructionMeta } from '../../lib/journeyGuidance.js';
 import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.js';
+import { cn } from '../../lib/ui.js';
 import { ActionCluster } from '../../patterns/index.js';
 import { Badge, SurfaceCard } from '../ui/index.js';
 import { getSimulationCategory, getSimulationCategoryClass } from './immersive/shared.js';

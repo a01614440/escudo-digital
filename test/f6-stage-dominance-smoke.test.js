@@ -48,6 +48,7 @@ describe('F6.D simulation fullscreen and stage-dominance guards', () => {
   test('ActivityChrome marks immersive simulations as the primary stage', () => {
     const block = exportedFunctionBlock(sharedActivityUiSource, 'ActivityChrome', 'completeActivity');
 
+    assert.match(sharedActivityUiSource, /import \{ cn \} from '\.\.\/\.\.\/lib\/ui\.js'/);
     assert.match(block, /data-sd-activity-chrome="immersive"/);
     assert.match(block, /data-sd-stage-dominance="primary"/);
     assert.match(block, /data-sd-stage-layout="fullscreen"/);
