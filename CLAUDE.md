@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F2 closeout / shell hardening en curso. F2.A-F2.E cerradas localmente.**
+**F2 closeout / shell hardening cerrado localmente. Esperando autorizacion humana para abrir F3.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -68,9 +68,10 @@ Subfases F2 cerradas localmente:
 - F2.C Responsive breakpoints + dataset policy
 - F2.D Shell contract + navigation hardening
 - F2.E Ownership map / docs
+- F2.F F2 closeout validation
 
-Proximo paso autorizado recomendado:
+Proximo paso recomendado:
 
-- F2.F - F2 closeout validation
+- esperar autorizacion explicita del usuario para abrir F3 refine (Auth + Survey), empezando por auditoria/scope de F3.
 
 No abrir F3, F4, F5, F6 ni F7 sin autorizacion explicita del usuario. No retomar WIP de simulaciones.
