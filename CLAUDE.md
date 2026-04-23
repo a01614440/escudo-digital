@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.C Category identity / color semantics pass cerrada localmente. Siguiente frente recomendado: F6.D Fullscreen / stage-dominance / layout pass.**
+**F6.D Fullscreen / stage-dominance / layout pass cerrada localmente. Siguiente frente recomendado: F6.E WhatsApp / Chat refine.**
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -242,6 +242,15 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.C agrego `test/f6-category-identity-smoke.test.js`;
 - F6.C valido `.\npm-local.cmd test` con 101/101, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.C no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.D - Fullscreen / stage-dominance / layout pass.
+- F6.D Fullscreen / stage-dominance / layout pass quedo cerrada localmente con `docs/rebuild/audit/F6.D-fullscreen-stage-dominance-layout.md`;
+- F6.D agrego `data-sd-stage-dominance="primary"` y `data-sd-stage-layout="fullscreen"` al `ActivityChrome` inmersivo;
+- F6.D marco roots de WhatsApp/chat, SMS/Inbox, WebLab, ScenarioFlow y CallSimulation como primary stage sin tocar scoring ni contratos;
+- F6.D agrego `sd-simulation-main-stage`, `sd-simulation-briefing-strip` y layouts declarativos `list-detail`, `weblab-workbench` y `scenario-flow`;
+- F6.D reforzo `frontend/src/styles/tailwind.css` para que el stage inmersivo use `--sd-simulation-stage-min-block: clamp(38rem, 80vh, 72rem)`, max-width de 96rem y reglas responsive de mayor dominancia;
+- F6.D ensancho `sd-chat-sim` de 46rem a 76rem y reemplazo limites fijos del thread por clamps mas amplios;
+- F6.D agrego `test/f6-stage-dominance-smoke.test.js` y actualizo el guard de `test/f5-comfort-responsive-smoke.test.js`;
+- F6.D valido `.\npm-local.cmd test` con 105/105, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.D no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es esperar autorizacion explicita para abrir F6.E - WhatsApp / Chat refine.
 
-No abrir F6.D/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.E/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

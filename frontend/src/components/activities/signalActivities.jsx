@@ -357,6 +357,7 @@ export function WhatsAppSimulation({
       data-sd-container="true"
       data-sd-simulation-category="chat"
       data-sd-simulation-channel="whatsapp"
+      data-sd-stage-dominance="primary"
     >
       <section className="sd-chat-surface">
         <header className="sd-chat-header">

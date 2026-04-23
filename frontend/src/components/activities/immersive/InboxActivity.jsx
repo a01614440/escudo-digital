@@ -48,6 +48,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
       className={cn(getSimulationCategoryClass(simulationCategory), 'grid gap-4')}
       data-sd-simulation-category={simulationCategory}
       data-sd-simulation-channel={kind === 'sms' ? 'sms' : 'email'}
+      data-sd-stage-dominance="primary"
     >
       <ActivitySummaryBar
         items={[
@@ -69,7 +70,10 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         ]}
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
+      <div
+        className="sd-simulation-main-stage grid gap-4 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]"
+        data-sd-stage-layout="list-detail"
+      >
         <ImmersivePanel>
           <div className="flex items-start justify-between gap-3">
             <div>

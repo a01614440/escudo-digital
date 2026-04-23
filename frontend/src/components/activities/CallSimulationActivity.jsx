@@ -418,6 +418,7 @@ export default function CallSimulationActivity({
       className={`call-immersive-shell difficulty-${difficulty} ${getSimulationCategoryClass('call')}`}
       data-sd-simulation-category="call"
       data-sd-simulation-channel="call"
+      data-sd-stage-dominance="primary"
     >
       {phase === 'incoming' ? (
         <section className="call-immersive-phone incoming">

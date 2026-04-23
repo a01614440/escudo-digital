@@ -83,6 +83,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
       className={`${getSimulationCategoryClass('scenario')} grid gap-4`}
       data-sd-simulation-category="scenario"
       data-sd-simulation-channel="scenario-flow"
+      data-sd-stage-dominance="primary"
     >
       <ActivitySummaryBar
         items={[
@@ -104,7 +105,10 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
         ]}
       />
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.85fr)]">
+      <section
+        className="sd-simulation-main-stage grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.85fr)]"
+        data-sd-stage-layout="scenario-flow"
+      >
         <ImmersivePanel>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>

@@ -84,6 +84,8 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
         data-sd-activity-chrome="immersive"
         data-sd-activity-type={activityType}
         data-sd-simulation-category={simulationCategory}
+        data-sd-stage-dominance="primary"
+        data-sd-stage-layout="fullscreen"
         data-sd-container="true"
       >
         {children}

@@ -192,6 +192,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
       className={cn(getSimulationCategoryClass('web'), 'grid gap-4')}
       data-sd-simulation-category="web"
       data-sd-simulation-channel="weblab"
+      data-sd-stage-dominance="primary"
     >
       <ActivitySummaryBar
         items={[
@@ -213,7 +214,10 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
         ]}
       />
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+      <section
+        className="sd-simulation-briefing-strip grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]"
+        data-sd-stage-layout="briefing"
+      >
         <ImmersivePanel className="bg-gradient-to-br from-white via-slate-50 to-rose-50/75">
           <p className="eyebrow">Antes de empezar</p>
           <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Marca solo las señales más peligrosas</h3>
@@ -238,7 +242,10 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
         </ImmersiveAsidePanel>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,0.9fr)]">
+      <section
+        className="sd-simulation-main-stage grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,0.9fr)]"
+        data-sd-stage-layout="weblab-workbench"
+      >
         <ImmersivePanel>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>

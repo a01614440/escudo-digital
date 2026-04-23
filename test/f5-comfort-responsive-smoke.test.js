@@ -69,6 +69,7 @@ describe('F5.G Comfort, playability, and responsive guards', () => {
     assert.match(tailwindSource, /\.sd-dashboard-stepper-toggle summary/);
     assert.match(tailwindSource, /\.sd-lesson-map-toggle summary/);
     assert.match(tailwindSource, /\.sd-lesson-stage-guided\[data-sd-stage-comfort='compact'\]/);
-    assert.match(tailwindSource, /\.sd-immersive-activity-shell \{[\s\S]*min-height: clamp\(34rem, 72vh, 58rem\)/);
+    assert.match(tailwindSource, /\.sd-immersive-activity-shell \{[\s\S]*--sd-simulation-stage-min-block: clamp\(38rem, 80vh, 72rem\)/);
+    assert.match(tailwindSource, /\.sd-immersive-activity-shell \{[\s\S]*min-height: var\(--sd-simulation-stage-min-block\)/);
   });
 });
