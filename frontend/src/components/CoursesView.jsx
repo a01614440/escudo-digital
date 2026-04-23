@@ -412,8 +412,10 @@ function DashboardSceneBar({
   shellFamily,
   activeTab,
   onChange,
+  journeySteps = [],
 }) {
   const copy = TABS.find((tab) => tab.id === activeTab) || TABS[0];
+  const hasJourneySteps = Array.isArray(journeySteps) && journeySteps.length > 0;
 
   return (
     <SurfaceCard
@@ -438,6 +440,19 @@ function DashboardSceneBar({
         />
         <DashboardTabs activeTab={activeTab} onChange={onChange} />
       </div>
+
+      {hasJourneySteps ? (
+        <div
+          className="mt-5 border-t border-sd-border pt-4"
+          data-sd-journey-stepper="courses-route"
+        >
+          <JourneyStepper
+            steps={journeySteps}
+            compact={shellFamily !== 'desktop'}
+            label="Progreso de encuesta a modulo"
+          />
+        </div>
+      ) : null}
     </SurfaceCard>
   );
 }
@@ -651,7 +666,11 @@ function ModuleMissionBoard({
   const nextActivityTitle = displayActivityTitle(stats.nextActivity, 'Actividad pendiente');
 
   return (
-    <div className="grid gap-5" data-route-detail="module" data-selected-module-id={module.id}>
+    <div
+      className="grid gap-[var(--sd-shell-pane-gap)]"
+      data-route-detail="module"
+      data-selected-module-id={module.id}
+    >
       <StageHero
         tone={recommended ? 'spotlight' : 'editorial'}
         eyebrow={`Modulo ${index + 1}`}
@@ -682,13 +701,12 @@ function ModuleMissionBoard({
 
       <div
         className={cn(
-          'grid gap-4',
+          'grid gap-[var(--sd-shell-pane-gap)]',
           shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1.12fr)_minmax(18rem,0.88fr)]'
-            : shellFamily === 'tablet'
-              ? 'lg:grid-cols-[minmax(0,1.04fr)_minmax(17rem,0.96fr)]'
+            ? '2xl:grid-cols-[minmax(0,1fr)_minmax(17rem,0.62fr)]'
               : ''
         )}
+        data-sd-module-layout={shellFamily === 'desktop' ? 'desktop-comfort' : 'stacked-comfort'}
       >
         <SurfaceCard padding="lg" variant="panel">
           <PanelHeader
@@ -706,7 +724,6 @@ function ModuleMissionBoard({
 
         <SupportRail
           tone={recommended ? 'insight' : 'support'}
-          sticky={shellFamily === 'desktop'}
           eyebrow="Apertura"
           title="Abrir modulo"
           subtitle="Accion directa para el modulo seleccionado."
@@ -877,11 +894,11 @@ function ProgressScene({
 
       <div
         className={cn(
-          'grid gap-4',
+          'grid gap-[var(--sd-shell-pane-gap)]',
           shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1.12fr)_minmax(19rem,0.88fr)]'
+            ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(17rem,0.82fr)]'
             : shellFamily === 'tablet'
-              ? 'lg:grid-cols-[minmax(0,1.04fr)_minmax(17rem,0.96fr)]'
+              ? 'lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)]'
               : ''
         )}
       >
@@ -1039,9 +1056,9 @@ function SettingsScene({
       shellFamily={shellFamily}
       className={
         shellFamily === 'tablet'
-          ? 'md:grid-cols-[minmax(0,1.02fr)_minmax(21rem,0.98fr)]'
+          ? 'md:grid-cols-[minmax(0,0.95fr)_minmax(21rem,1.05fr)]'
           : shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.92fr)] 2xl:grid-cols-[minmax(0,1.18fr)_minmax(25rem,0.88fr)]'
+            ? 'xl:grid-cols-[minmax(0,0.98fr)_minmax(25rem,1.02fr)] 2xl:grid-cols-[minmax(0,1.06fr)_minmax(26rem,0.94fr)]'
             : ''
       }
       hero={
@@ -1063,7 +1080,7 @@ function SettingsScene({
             divider
           />
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Estilo">
               <Select
                 value={coursePrefs?.estilo || 'mix'}
@@ -1181,7 +1198,6 @@ export default function CoursesView({
   onOpenModule,
 }) {
   const shellFamily = getShellFamily(viewport);
-  const isDesktop = shellFamily === 'desktop';
   const isMobile = shellFamily === 'mobile';
 
   const route = useMemo(
@@ -1340,6 +1356,11 @@ export default function CoursesView({
     entries[unlockedLimit]?.module?.titulo
       ? `Completa "${displayModuleTitle(entries[unlockedLimit].module)}" para desbloquear este bloque.`
       : 'Completa el bloque anterior para avanzar.';
+  const routeLayoutMode = isMobile
+    ? 'mobile-stack'
+    : shellFamily === 'tablet'
+      ? 'tablet-two-pane'
+      : 'desktop-balanced';
 
   return (
     <section
@@ -1352,9 +1373,9 @@ export default function CoursesView({
           shellFamily={shellFamily}
           className={
             shellFamily === 'tablet'
-              ? 'md:grid-cols-[minmax(0,1.08fr)_minmax(21rem,0.92fr)]'
+              ? 'md:grid-cols-[minmax(0,0.98fr)_minmax(22rem,1.02fr)]'
               : shellFamily === 'desktop'
-                ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(24rem,0.82fr)] 2xl:grid-cols-[minmax(0,1.28fr)_minmax(25rem,0.78fr)]'
+                ? 'xl:grid-cols-[minmax(0,1.02fr)_minmax(25rem,0.98fr)] 2xl:grid-cols-[minmax(0,1.08fr)_minmax(26rem,0.92fr)]'
                 : ''
           }
           hero={
@@ -1389,61 +1410,26 @@ export default function CoursesView({
           shellFamily={shellFamily}
           activeTab={tab}
           onChange={setTab}
+          journeySteps={journeySteps}
         />
 
         {tab === 'ruta' ? (
-          isMobile ? (
-            <div className="grid gap-[var(--sd-shell-pane-gap)]">
-              <RouteNavigatorRail
-                shellFamily={shellFamily}
-                level={level}
-                availableLevels={availableLevels}
-                onLevelChange={setLevel}
-                currentLevelEntries={currentLevelEntries}
-                selectedEntry={selectedEntry}
-                adminAccess={adminAccess}
-                unlockedLimit={unlockedLimit}
-                recommendedIndex={recommendedIndex}
-                onSelectModule={setSelectedModuleId}
-              />
-
-              <ModuleMissionBoard
-                shellFamily={shellFamily}
-                entry={selectedEntry}
-                locked={selectedLocked}
-                recommended={selectedEntry?.index === recommendedIndex}
-                adminAccess={adminAccess}
-                unlockMessage={selectedUnlockMessage}
-                onOpenModule={onOpenModule}
-                progressMap={courseProgress}
-              />
-
-              <RouteInsightRail
-                shellFamily={shellFamily}
-                routeLength={route.length}
-                completedModules={completedModules}
-                selectedEntry={selectedEntry}
-                weakestTopic={weakestTopic}
-                nextUnlockEntry={nextUnlockEntry}
-                adminAccess={adminAccess}
-              />
-            </div>
-          ) : shellFamily === 'tablet' ? (
-            <div className="grid gap-[var(--sd-shell-pane-gap)] lg:grid-cols-[minmax(20rem,21.5rem)_minmax(0,1fr)]">
-              <RouteNavigatorRail
-                shellFamily={shellFamily}
-                level={level}
-                availableLevels={availableLevels}
-                onLevelChange={setLevel}
-                currentLevelEntries={currentLevelEntries}
-                selectedEntry={selectedEntry}
-                adminAccess={adminAccess}
-                unlockedLimit={unlockedLimit}
-                recommendedIndex={recommendedIndex}
-                onSelectModule={setSelectedModuleId}
-              />
-
+          <div className="min-w-0" data-sd-route-layout={routeLayoutMode}>
+            {isMobile ? (
               <div className="grid gap-[var(--sd-shell-pane-gap)]">
+                <RouteNavigatorRail
+                  shellFamily={shellFamily}
+                  level={level}
+                  availableLevels={availableLevels}
+                  onLevelChange={setLevel}
+                  currentLevelEntries={currentLevelEntries}
+                  selectedEntry={selectedEntry}
+                  adminAccess={adminAccess}
+                  unlockedLimit={unlockedLimit}
+                  recommendedIndex={recommendedIndex}
+                  onSelectModule={setSelectedModuleId}
+                />
+
                 <ModuleMissionBoard
                   shellFamily={shellFamily}
                   entry={selectedEntry}
@@ -1465,12 +1451,8 @@ export default function CoursesView({
                   adminAccess={adminAccess}
                 />
               </div>
-            </div>
-          ) : (
-            <WorkspaceLayout
-              shellFamily={shellFamily}
-              className="xl:grid-cols-[minmax(20.5rem,22rem)_minmax(0,1.32fr)_minmax(18.75rem,20.5rem)] 2xl:grid-cols-[minmax(21rem,22.5rem)_minmax(0,1.4fr)_minmax(19.5rem,21rem)]"
-              command={
+            ) : shellFamily === 'tablet' ? (
+              <div className="grid gap-[var(--sd-shell-pane-gap)] lg:grid-cols-[minmax(18rem,20rem)_minmax(0,1.18fr)]">
                 <RouteNavigatorRail
                   shellFamily={shellFamily}
                   level={level}
@@ -1483,32 +1465,74 @@ export default function CoursesView({
                   recommendedIndex={recommendedIndex}
                   onSelectModule={setSelectedModuleId}
                 />
-              }
-              main={
-                <ModuleMissionBoard
-                  shellFamily={shellFamily}
-                  entry={selectedEntry}
-                  locked={selectedLocked}
-                  recommended={selectedEntry?.index === recommendedIndex}
-                  adminAccess={adminAccess}
-                  unlockMessage={selectedUnlockMessage}
-                  onOpenModule={onOpenModule}
-                  progressMap={courseProgress}
-                />
-              }
-              insight={
-                <RouteInsightRail
-                  shellFamily={shellFamily}
-                  routeLength={route.length}
-                  completedModules={completedModules}
-                  selectedEntry={selectedEntry}
-                  weakestTopic={weakestTopic}
-                  nextUnlockEntry={nextUnlockEntry}
-                  adminAccess={adminAccess}
-                />
-              }
-            />
-          )
+
+                <div className="grid gap-[var(--sd-shell-pane-gap)]">
+                  <ModuleMissionBoard
+                    shellFamily={shellFamily}
+                    entry={selectedEntry}
+                    locked={selectedLocked}
+                    recommended={selectedEntry?.index === recommendedIndex}
+                    adminAccess={adminAccess}
+                    unlockMessage={selectedUnlockMessage}
+                    onOpenModule={onOpenModule}
+                    progressMap={courseProgress}
+                  />
+
+                  <RouteInsightRail
+                    shellFamily={shellFamily}
+                    routeLength={route.length}
+                    completedModules={completedModules}
+                    selectedEntry={selectedEntry}
+                    weakestTopic={weakestTopic}
+                    nextUnlockEntry={nextUnlockEntry}
+                    adminAccess={adminAccess}
+                  />
+                </div>
+              </div>
+            ) : (
+              <WorkspaceLayout
+                shellFamily={shellFamily}
+                className="xl:grid-cols-[minmax(18rem,20rem)_minmax(0,1.55fr)_minmax(16.5rem,18.5rem)] 2xl:grid-cols-[minmax(18.5rem,20.5rem)_minmax(0,1.7fr)_minmax(17rem,19rem)]"
+                command={
+                  <RouteNavigatorRail
+                    shellFamily={shellFamily}
+                    level={level}
+                    availableLevels={availableLevels}
+                    onLevelChange={setLevel}
+                    currentLevelEntries={currentLevelEntries}
+                    selectedEntry={selectedEntry}
+                    adminAccess={adminAccess}
+                    unlockedLimit={unlockedLimit}
+                    recommendedIndex={recommendedIndex}
+                    onSelectModule={setSelectedModuleId}
+                  />
+                }
+                main={
+                  <ModuleMissionBoard
+                    shellFamily={shellFamily}
+                    entry={selectedEntry}
+                    locked={selectedLocked}
+                    recommended={selectedEntry?.index === recommendedIndex}
+                    adminAccess={adminAccess}
+                    unlockMessage={selectedUnlockMessage}
+                    onOpenModule={onOpenModule}
+                    progressMap={courseProgress}
+                  />
+                }
+                insight={
+                  <RouteInsightRail
+                    shellFamily={shellFamily}
+                    routeLength={route.length}
+                    completedModules={completedModules}
+                    selectedEntry={selectedEntry}
+                    weakestTopic={weakestTopic}
+                    nextUnlockEntry={nextUnlockEntry}
+                    adminAccess={adminAccess}
+                  />
+                }
+              />
+            )}
+          </div>
         ) : null}
 
         {tab === 'progreso' ? (

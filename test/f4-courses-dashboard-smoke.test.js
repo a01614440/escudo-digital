@@ -19,6 +19,12 @@ function functionBlock(name, nextName) {
   return source.slice(start, end);
 }
 
+function coursesViewBlock() {
+  const start = source.indexOf('export default function CoursesView');
+  assert.notEqual(start, -1, 'CoursesView should exist');
+  return source.slice(start);
+}
+
 describe('F4.B Courses dashboard information density guards', () => {
   test('RouteHero keeps only route and focus summary signals', () => {
     const block = functionBlock('RouteHero', 'ContinuityConsole');
@@ -137,6 +143,46 @@ describe('F4.E Courses progress, stats and adjustments guards', () => {
     assert.match(block, /data-sd-settings-cta="courses-regenerate"/);
     assert.match(block, /aria-label="Actualizar ruta con estas preferencias"/);
     assert.doesNotMatch(block, /variant="hero"/);
+  });
+});
+
+describe('F4.F Courses shell layout comfort guards', () => {
+  test('DashboardSceneBar resolves the previously unused journey steps as compact context', () => {
+    const block = functionBlock('DashboardSceneBar', 'RouteModulePill');
+
+    assert.match(block, /journeySteps = \[\]/);
+    assert.match(block, /const hasJourneySteps = Array\.isArray\(journeySteps\) && journeySteps\.length > 0/);
+    assert.match(block, /data-sd-journey-stepper="courses-route"/);
+    assert.match(block, /<JourneyStepper[\s\S]*steps=\{journeySteps\}[\s\S]*compact=\{shellFamily !== 'desktop'\}/);
+  });
+
+  test('CoursesView exposes explicit route layout modes and gives desktop more room for detail', () => {
+    const block = coursesViewBlock();
+
+    assert.match(block, /const routeLayoutMode = isMobile/);
+    assert.match(block, /'mobile-stack'/);
+    assert.match(block, /'tablet-two-pane'/);
+    assert.match(block, /'desktop-balanced'/);
+    assert.match(block, /data-sd-route-layout=\{routeLayoutMode\}/);
+    assert.match(block, /lg:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.18fr\)\]/);
+    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.55fr\)_minmax\(16\.5rem,18\.5rem\)\]/);
+    assert.doesNotMatch(block, /minmax\(20\.5rem,22rem\)_minmax\(0,1\.32fr\)_minmax\(18\.75rem,20\.5rem\)/);
+  });
+
+  test('ModuleMissionBoard avoids cramped tablet nesting and only splits the detail on wide desktop', () => {
+    const block = functionBlock('ModuleMissionBoard', 'RouteInsightRail');
+
+    assert.match(block, /data-sd-module-layout=\{shellFamily === 'desktop' \? 'desktop-comfort' : 'stacked-comfort'\}/);
+    assert.match(block, /2xl:grid-cols-\[minmax\(0,1fr\)_minmax\(17rem,0\.62fr\)\]/);
+    assert.doesNotMatch(block, /lg:grid-cols-\[minmax\(0,1\.04fr\)_minmax\(17rem,0\.96fr\)\]/);
+    assert.doesNotMatch(block, /sticky=\{shellFamily === 'desktop'\}/);
+  });
+
+  test('SettingsScene keeps tablet controls from collapsing into three tight columns', () => {
+    const block = functionBlock('SettingsScene');
+
+    assert.match(block, /md:grid-cols-2 xl:grid-cols-3/);
+    assert.doesNotMatch(block, /md:grid-cols-3/);
   });
 });
 

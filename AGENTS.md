@@ -91,8 +91,12 @@ La tesis obligatoria es:
 - F4.E priorizo stats accionables en `ProgressScene`: ruta, fortaleza y gap; retiro `Shield`, snapshots vacios y lecturas decorativas.
 - F4.E hizo que `SettingsScene` sea una superficie secundaria de control con `tone="support"`, `variant="panel"`, resumen de temas priorizados y CTA `data-sd-settings-cta="courses-regenerate"`.
 - F4.E amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (70/70).
-- El siguiente frente recomendado es F4.F - Shell/layout comfort pass.
-- No abrir F4.F/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+- F4.F Shell/layout comfort pass quedo cerrada localmente con `docs/rebuild/audit/F4.F-shell-layout-comfort.md`.
+- F4.F renderizo `JourneyStepper` desde `DashboardSceneBar`, marco `data-sd-route-layout`, balanceo columnas por shell y retiro el sticky interno incomodo de `ModuleMissionBoard`.
+- F4.F hizo que `SettingsScene` use `md:grid-cols-2 xl:grid-cols-3` para evitar tres selects apretados en tablet.
+- F4.F amplio `test/f4-courses-dashboard-smoke.test.js` y valido `.\npm-local.cmd test` (74/74).
+- El siguiente frente recomendado es F4.G - F4 closeout validation.
+- No abrir F4.G/F5/F6/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
 - Storybook ya existe en `package.json` (`storybook` y `build-storybook`) y hay configuracion en `.storybook/`.
 
 ## Núcleo funcional preservado por defecto
