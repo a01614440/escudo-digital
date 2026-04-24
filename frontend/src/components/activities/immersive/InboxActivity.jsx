@@ -3,7 +3,7 @@ import { feedbackToText } from '../../../lib/course.js';
 import { cn } from '../../../lib/ui.js';
 import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
-import { ActivitySummaryBar, completeActivity } from '../sharedActivityUi.jsx';
+import { ActivitySummaryBar, SimulationCloseout, completeActivity } from '../sharedActivityUi.jsx';
 import { ImmersivePanel } from './immersivePrimitives.jsx';
 import { classifyInbox, getAvatarLabel, getInboxStatus, normalizeInboxMessages } from './inboxActivityUtils.js';
 import { cleanText, getSimulationCategoryClass } from './shared.js';
@@ -611,11 +611,12 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         ) : null}
       </div>
 
-      <div className="col-span-full">
-        <FeedbackPanel feedback={feedback} />
-      </div>
+      <SimulationCloseout className="sd-simulation-closeout">
+        <div className="col-span-full">
+          <FeedbackPanel feedback={feedback} />
+        </div>
 
-      {result ? (
+        {result ? (
         <div className="review-grid col-span-full">
           {result.review.map((item) => (
             <article className={`review-card ${item.status} ${isSms ? 'sms-review-card' : 'email-review-card'}`.trim()} key={item.id}>
@@ -633,41 +634,42 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         </div>
       ) : null}
 
-      <div className="activity-actions col-span-full">
-        {!result ? (
-          <Button variant="primary" type="button" onClick={evaluate}>
-            Evaluar clasificacion
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant="primary"
-              type="button"
-              onClick={() =>
-                completeActivity(startedAtRef, onComplete, result.score, feedbackToText(result.feedback), {
-                  selections,
-                  review: result.review,
-                })
-              }
-            >
-              Continuar
+        <div className="activity-actions col-span-full">
+          {!result ? (
+            <Button variant="primary" type="button" onClick={evaluate}>
+              Evaluar clasificacion
             </Button>
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => {
-                setResult(null);
-                setFeedback(null);
-                setSelections({});
-                setSelectedId(messages[0]?.id || '');
-                setShowDetails(false);
-              }}
-            >
-              Reintentar clasificacion
-            </Button>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <Button
+                variant="primary"
+                type="button"
+                onClick={() =>
+                  completeActivity(startedAtRef, onComplete, result.score, feedbackToText(result.feedback), {
+                    selections,
+                    review: result.review,
+                  })
+                }
+              >
+                Continuar
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => {
+                  setResult(null);
+                  setFeedback(null);
+                  setSelections({});
+                  setSelectedId(messages[0]?.id || '');
+                  setShowDetails(false);
+                }}
+              >
+                Reintentar clasificacion
+              </Button>
+            </>
+          )}
+        </div>
+      </SimulationCloseout>
     </div>
   );
 }

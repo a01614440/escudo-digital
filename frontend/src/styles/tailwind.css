@@ -756,6 +756,14 @@ body[data-theme='dark'] {
     @apply grid gap-4;
   }
 
+  .sd-simulation-closeout {
+    @apply grid gap-4;
+  }
+
+  .sd-simulation-closeout-actions {
+    @apply mt-0;
+  }
+
   .sd-feedback-copy {
     @apply grid gap-2 text-sm leading-6 text-sd-text;
   }

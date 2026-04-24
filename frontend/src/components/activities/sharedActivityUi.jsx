@@ -14,6 +14,7 @@ import { getActivityInstructionMeta } from '../../lib/journeyGuidance.js';
 import { getSimulationGuide, moduleThemeMeta } from '../../lib/scenarioSelector.js';
 import { cn } from '../../lib/ui.js';
 import { ActionCluster } from '../../patterns/index.js';
+import FeedbackPanel from '../FeedbackPanel.jsx';
 import { Badge, SurfaceCard } from '../ui/index.js';
 import { getSimulationCategory, getSimulationCategoryClass } from './immersive/shared.js';
 
@@ -190,5 +191,25 @@ export function ActivitySummaryBar({ items = [] }) {
         </SurfaceCard>
       ))}
     </div>
+  );
+}
+
+export function SimulationCloseout({ feedback = null, actions = null, className = '', children = null }) {
+  const hasChildren = Boolean(children);
+  const hasActions = Boolean(actions);
+  const hasFeedback = Boolean(feedback);
+
+  if (!hasChildren && !hasActions && !hasFeedback) return null;
+
+  return (
+    <section
+      className={cn('sd-simulation-closeout grid gap-4', className)}
+      data-sd-simulation-closeout="true"
+      data-sd-text-density="compact"
+    >
+      {hasFeedback ? <FeedbackPanel feedback={feedback} /> : null}
+      {hasChildren ? children : null}
+      {hasActions ? <div className="activity-actions sd-simulation-closeout-actions">{actions}</div> : null}
+    </section>
   );
 }

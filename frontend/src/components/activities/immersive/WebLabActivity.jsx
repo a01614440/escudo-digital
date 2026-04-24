@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { feedbackToText } from '../../../lib/course.js';
 import { getDecisionRatingLabel } from '../../../lib/activityScoring.js';
 import { cn } from '../../../lib/ui.js';
-import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
 import { ActivitySummaryBar, buildActivityFeedback, completeActivity } from '../sharedActivityUi.jsx';
 import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';
 import { cleanText, getSimulationCategoryClass, TARGET_LABELS } from './shared.js';
 import { buildWebLabHotspots, buildWebLabPage, scoreHotspots } from './webLabActivityUtils.js';
+import { SimulationCloseout } from '../sharedActivityUi.jsx';
 
 function formatCountdown(seconds) {
   return `${String(Math.floor(Math.max(0, seconds) / 60)).padStart(2, '0')}:${String(
@@ -471,9 +471,10 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
         </aside>
       </section>
 
-      <FeedbackPanel feedback={feedback} />
+      <SimulationCloseout className="sd-simulation-closeout">
+        <FeedbackPanel feedback={feedback} />
 
-      {result ? (
+        {result ? (
         <div className="review-grid">
           <article className="review-card correct">
             <div className="review-card-head">
@@ -499,7 +500,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
         </div>
       ) : null}
 
-      <div className="activity-actions">
+        <div className="activity-actions">
         {result ? (
           <>
             <Button
@@ -531,7 +532,8 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
             </Button>
           </>
         ) : null}
-      </div>
+        </div>
+      </SimulationCloseout>
     </div>
   );
 }

@@ -9,7 +9,6 @@ import {
 import { cn } from '../../lib/ui.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
 import { ActionCluster, PanelHeader } from '../../patterns/index.js';
-import FeedbackPanel from '../FeedbackPanel.jsx';
 import { Badge, Button, InlineMessage, Input, SurfaceCard } from '../ui/index.js';
 import { getSimulationCategoryClass } from './immersive/shared.js';
 import {
@@ -17,6 +16,7 @@ import {
   buildActivityFeedback,
   completeActivity,
   formatPercent,
+  SimulationCloseout,
 } from './sharedActivityUi.jsx';
 
 function getChatFeedbackTone(feedback) {
@@ -751,44 +751,45 @@ export function CompareDomainsActivity({ module, activity, startedAtRef, onCompl
         </div>
       </SurfaceCard>
 
-      <FeedbackPanel feedback={feedback} />
-
-      <div className="activity-actions">
-        {feedback ? (
-          <>
-            <button
-              className="btn primary"
-              type="button"
-              onClick={() =>
-                completeActivity(
-                  startedAtRef,
-                  onComplete,
-                  Number(feedback.score) || 0.6,
-                  feedbackToText(feedback),
-                  {
-                    selectedDomain: domains[selectedIndex] || '',
-                    correctDomain: domains[correctIndex] || '',
-                  }
-                )
-              }
-            >
-              Continuar
-            </button>
-            {selectedIndex !== correctIndex ? (
+      <SimulationCloseout
+        feedback={feedback}
+        actions={
+          feedback ? (
+            <>
               <button
-                className="btn ghost"
+                className="btn primary"
                 type="button"
-                onClick={() => {
-                  setSelectedIndex(null);
-                  setFeedback(null);
-                }}
+                onClick={() =>
+                  completeActivity(
+                    startedAtRef,
+                    onComplete,
+                    Number(feedback.score) || 0.6,
+                    feedbackToText(feedback),
+                    {
+                      selectedDomain: domains[selectedIndex] || '',
+                      correctDomain: domains[correctIndex] || '',
+                    }
+                  )
+                }
               >
-                Reintentar
+                Continuar
               </button>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+              {selectedIndex !== correctIndex ? (
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setSelectedIndex(null);
+                    setFeedback(null);
+                  }}
+                >
+                  Reintentar
+                </button>
+              ) : null}
+            </>
+          ) : null
+        }
+      />
     </>
   );
 }
@@ -898,43 +899,45 @@ export function SignalHuntActivity({ module, activity, startedAtRef, onComplete 
           })}
         </div>
       </SurfaceCard>
-      <FeedbackPanel feedback={feedback} />
-      <div className="activity-actions">
-        {!result ? (
-          <button className="btn primary" type="button" onClick={evaluate}>
-            Evaluar
-          </button>
-        ) : (
-          <>
-            <button
-              className="btn primary"
-              type="button"
-              onClick={() =>
-                completeActivity(
-                  startedAtRef,
-                  onComplete,
-                  result.score,
-                  feedbackToText(feedback),
-                  { selectedSignals: result.selectedSignals }
-                )
-              }
-            >
-              Continuar
+      <SimulationCloseout
+        feedback={feedback}
+        actions={
+          !result ? (
+            <button className="btn primary" type="button" onClick={evaluate}>
+              Evaluar
             </button>
-            <button
-              className="btn ghost"
-              type="button"
-              onClick={() => {
-                setSelected(new Set());
-                setResult(null);
-                setFeedback(null);
-              }}
-            >
-              Reintentar
-            </button>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <button
+                className="btn primary"
+                type="button"
+                onClick={() =>
+                  completeActivity(
+                    startedAtRef,
+                    onComplete,
+                    result.score,
+                    feedbackToText(feedback),
+                    { selectedSignals: result.selectedSignals }
+                  )
+                }
+              >
+                Continuar
+              </button>
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={() => {
+                  setSelected(new Set());
+                  setResult(null);
+                  setFeedback(null);
+                }}
+              >
+                Reintentar
+              </button>
+            </>
+          )
+        }
+      />
     </>
   );
 }

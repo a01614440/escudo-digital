@@ -8,6 +8,7 @@ import {
   buildActivityFeedback,
   completeActivity,
   formatPercent,
+  SimulationCloseout,
 } from '../sharedActivityUi.jsx';
 import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';
 import { cleanText, getSimulationCategoryClass } from './shared.js';
@@ -185,7 +186,8 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
         </aside>
       </section>
 
-      <FeedbackPanel feedback={feedback} />
+      <SimulationCloseout className="sd-simulation-closeout">
+        <FeedbackPanel feedback={feedback} />
 
       {finished ? (
         <div className="review-grid">
@@ -213,7 +215,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
         </div>
       ) : null}
 
-      <div className="activity-actions">
+        <div className="activity-actions">
         {feedback && pendingNext ? (
           <Button variant="primary" type="button" onClick={pendingNext}>
             Siguiente
@@ -244,7 +246,8 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
             Continuar
           </Button>
         ) : null}
-      </div>
+        </div>
+      </SimulationCloseout>
     </div>
   );
 }

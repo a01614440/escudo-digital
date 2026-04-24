@@ -32,7 +32,14 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.I Calls / other simulation refine cerrada localmente. Siguiente frente recomendado: F6.J Cross-simulation functionality + polish pass.**
+**F6.J Cross-simulation functionality + polish pass cerrada localmente. Siguiente frente recomendado: F6.K F6 closeout validation.**
+
+F6.J cerró el borde transversal compartido de las simulaciones:
+
+- `SimulationCloseout` unifica el tramo final de feedback, resumen y acciones.
+- `basicActivities`, `signalActivities`, `WebLabActivity`, `InboxActivity`, `ScenarioFlowActivity` y `CallSimulationActivity` comparten el mismo contenedor de cierre.
+- `test/f6-cross-simulation-closeout-smoke.test.js` protege el wrapper y sus consumos.
+- La capa compartida de estilos expone `sd-simulation-closeout` para mantener la misma densidad visual en todos los finales.
 
 F0.9 identifico que la fase real del rebuild era **F1.9**: habia trabajo acumulado de F1 a F6A, pero la foundation visual estaba incompleta.
 
@@ -271,6 +278,10 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.I agrego `test/f6-call-other-refine-smoke.test.js`;
 - F6.I valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.I no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es abrir F6.J - Cross-simulation functionality + polish pass.
+- F6.J Cross-simulation functionality + polish pass quedo cerrada localmente con `SimulationCloseout` y el wrapper transversal de feedback/resumen/acciones;
+- F6.J agrego `test/f6-cross-simulation-closeout-smoke.test.js`;
+- F6.J valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.J no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- el siguiente paso recomendado es abrir F6.K - F6 closeout validation.
 
-No abrir F6.J/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F6.K/F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.

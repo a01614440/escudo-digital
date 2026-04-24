@@ -3,7 +3,7 @@ import { feedbackToText } from '../../lib/course.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
 import { getSimulationCategoryClass } from './immersive/shared.js';
-import { completeActivity } from './sharedActivityUi.jsx';
+import { SimulationCloseout, completeActivity } from './sharedActivityUi.jsx';
 import {
   DEFAULT_CALL_STARTER_CHOICES,
   VOICE_HINTS,
@@ -728,7 +728,8 @@ export default function CallSimulationActivity({
             </article>
           </div>
 
-          <FeedbackPanel feedback={summary.feedback} />
+          <SimulationCloseout className="sd-simulation-closeout">
+            <FeedbackPanel feedback={summary.feedback} />
 
           {summary.transcriptPreview.length ? (
             <section className="result-card">
@@ -751,27 +752,28 @@ export default function CallSimulationActivity({
             </section>
           ) : null}
 
-          <button
-            className="call-control-btn primary wide"
-            type="button"
-            onClick={() =>
-              completeActivity(
-                startedAtRef,
-                onComplete,
-                summary.avgScore,
-                feedbackToText(summary.feedback),
-                {
-                  mode,
-                  transcript: transcriptRef.current,
-                  analyses: analysesRef.current,
-                  callerName,
-                  fraudType,
-                }
-              )
-            }
-          >
-            Continuar
-          </button>
+            <button
+              className="call-control-btn primary wide"
+              type="button"
+              onClick={() =>
+                completeActivity(
+                  startedAtRef,
+                  onComplete,
+                  summary.avgScore,
+                  feedbackToText(summary.feedback),
+                  {
+                    mode,
+                    transcript: transcriptRef.current,
+                    analyses: analysesRef.current,
+                    callerName,
+                    fraudType,
+                  }
+                )
+              }
+            >
+              Continuar
+            </button>
+          </SimulationCloseout>
         </section>
       ) : null}
     </div>

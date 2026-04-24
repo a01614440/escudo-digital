@@ -3,12 +3,12 @@ import { feedbackRatingLabel, feedbackToText, repairPossibleMojibake } from '../
 import { getDecisionRatingLabel, scoreChoiceDecision } from '../../lib/activityScoring.js';
 import { clampScore } from '../../lib/feedbackRules.js';
 import { gradeOpenAnswer } from '../../services/courseService.js';
-import FeedbackPanel from '../FeedbackPanel.jsx';
 import {
   ActivitySummaryBar,
   buildActivityFeedback,
   completeActivity,
   Paragraphs,
+  SimulationCloseout,
 } from './sharedActivityUi.jsx';
 
 export function ConceptActivity({ activity, startedAtRef, onComplete }) {
@@ -101,41 +101,40 @@ export function ConceptActivity({ activity, startedAtRef, onComplete }) {
         </section>
       ) : null}
 
-      {takeawayItems.length ? (
-        <section className="result-card concept-takeaways">
-          <div className="feedback-head">
-            <div>
-              <p className="eyebrow">Antes de continuar</p>
-              <h3>Qué te conviene llevarte de esta idea</h3>
-            </div>
-            <div className="feedback-pill">Resumen útil</div>
-          </div>
-          <div className="summary-list">
-            {takeawayItems.map((item) => (
-              <div className="summary-item concept-takeaway-item" key={item}>
-                <p>{repairPossibleMojibake(item)}</p>
+      <SimulationCloseout
+        actions={
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() =>
+              completeActivity(startedAtRef, onComplete, 1, 'Actividad completada.', {
+                viewed: true,
+              })
+            }
+          >
+            Continuar
+          </button>
+        }
+      >
+        {takeawayItems.length ? (
+          <section className="result-card concept-takeaways">
+            <div className="feedback-head">
+              <div>
+                <p className="eyebrow">Antes de continuar</p>
+                <h3>Qué te conviene llevarte de esta idea</h3>
               </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <div className="activity-actions">
-        <p className="activity-inline-note">
-          Cuando esta idea ya te quede clara, pasa a la práctica para convertirla en hábito.
-        </p>
-        <button
-          className="btn primary"
-          type="button"
-          onClick={() =>
-            completeActivity(startedAtRef, onComplete, 1, 'Actividad completada.', {
-              viewed: true,
-            })
-          }
-        >
-          Continuar
-        </button>
-      </div>
+              <div className="feedback-pill">Resumen útil</div>
+            </div>
+            <div className="summary-list">
+              {takeawayItems.map((item) => (
+                <div className="summary-item concept-takeaway-item" key={item}>
+                  <p>{repairPossibleMojibake(item)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </SimulationCloseout>
     </>
   );
 }
@@ -218,46 +217,47 @@ export function QuizActivity({ module, activity, startedAtRef, onComplete }) {
         })}
       </div>
 
-      <FeedbackPanel feedback={feedback} />
-
-      <div className="activity-actions">
-        {feedback ? (
-          <>
-            <button
-              className="btn primary"
-              type="button"
-              onClick={() =>
-                completeActivity(
-                  startedAtRef,
-                  onComplete,
-                  Number(feedback.score) || 0.6,
-                  feedbackToText(feedback),
-                  {
-                    selectedIndex: selection,
-                    selectedText: options[selection] || '',
-                    correctIndex,
-                    correctText: options[correctIndex] || '',
-                  }
-                )
-              }
-            >
-              Continuar
-            </button>
-            {selection !== correctIndex ? (
+      <SimulationCloseout
+        feedback={feedback}
+        actions={
+          feedback ? (
+            <>
               <button
-                className="btn ghost"
+                className="btn primary"
                 type="button"
-                onClick={() => {
-                  setSelection(null);
-                  setFeedback(null);
-                }}
+                onClick={() =>
+                  completeActivity(
+                    startedAtRef,
+                    onComplete,
+                    Number(feedback.score) || 0.6,
+                    feedbackToText(feedback),
+                    {
+                      selectedIndex: selection,
+                      selectedText: options[selection] || '',
+                      correctIndex,
+                      correctText: options[correctIndex] || '',
+                    }
+                  )
+                }
               >
-                Reintentar
+                Continuar
               </button>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+              {selection !== correctIndex ? (
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setSelection(null);
+                    setFeedback(null);
+                  }}
+                >
+                  Reintentar
+                </button>
+              ) : null}
+            </>
+          ) : null
+        }
+      />
     </>
   );
 }
@@ -337,12 +337,10 @@ export function ChecklistActivity({ activity, startedAtRef, onComplete }) {
           </label>
         ))}
       </div>
-      <FeedbackPanel feedback={feedback} />
-      <div className="activity-actions">
-        <button className="btn primary" type="button" onClick={submit}>
-          Listo
-        </button>
-      </div>
+      <SimulationCloseout
+        feedback={feedback}
+        actions={<button className="btn primary" type="button" onClick={submit}>Listo</button>}
+      />
     </>
   );
 }
@@ -430,41 +428,45 @@ export function OpenAnswerActivity({
         onChange={(event) => setAnswer(event.target.value)}
         placeholder="Escribe tu respuesta. Evita compartir datos reales."
       />
-      <FeedbackPanel feedback={feedback} />
-      <div className="activity-actions">
-        <button className="btn primary" type="button" onClick={submit} disabled={busy}>
-          {busy ? 'Analizando...' : 'Enviar'}
-        </button>
-        {feedback ? (
+      <SimulationCloseout
+        feedback={feedback}
+        actions={
           <>
-            <button
-              className="btn ghost"
-              type="button"
-              onClick={() => {
-                setFeedback(null);
-                setGradedScore(null);
-              }}
-            >
-              Mejorar respuesta
+            <button className="btn primary" type="button" onClick={submit} disabled={busy}>
+              {busy ? 'Analizando...' : 'Enviar'}
             </button>
-            <button
-              className="btn primary"
-              type="button"
-              onClick={() =>
-                completeActivity(
-                  startedAtRef,
-                  onComplete,
-                  gradedScore ?? 0.7,
-                  feedbackToText(feedback),
-                  { answer: answer.trim().slice(0, 600) }
-                )
-              }
-            >
-              Continuar
-            </button>
+            {feedback ? (
+              <>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setFeedback(null);
+                    setGradedScore(null);
+                  }}
+                >
+                  Mejorar respuesta
+                </button>
+                <button
+                  className="btn primary"
+                  type="button"
+                  onClick={() =>
+                    completeActivity(
+                      startedAtRef,
+                      onComplete,
+                      gradedScore ?? 0.7,
+                      feedbackToText(feedback),
+                      { answer: answer.trim().slice(0, 600) }
+                    )
+                  }
+                >
+                  Continuar
+                </button>
+              </>
+            ) : null}
           </>
-        ) : null}
-      </div>
+        }
+      />
     </>
   );
 }
