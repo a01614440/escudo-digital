@@ -34,7 +34,7 @@ describe('F6.E WhatsApp/chat refine guards', () => {
   });
 
   test('WhatsApp/chat styles make desktop two-column and keep composer and insight persistent', () => {
-    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 1\.72fr\) minmax\(18rem, 0\.88fr\);/);
+    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 2\.25fr\) minmax\(16rem, 0\.65fr\);/);
     assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*overscroll-behavior: contain;[\s\S]*scrollbar-gutter: stable;/);
     assert.match(tailwindSource, /\.sd-chat-composer-help \{/);
     assert.match(tailwindSource, /\.sd-chat-insight \{[\s\S]*position: sticky;[\s\S]*top: clamp\(1rem, 2vw, 1\.5rem\);/);

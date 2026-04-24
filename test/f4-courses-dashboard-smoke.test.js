@@ -40,18 +40,20 @@ describe('F4.B Courses dashboard information density guards', () => {
     const block = functionBlock('RouteNavigatorRail', 'ModuleActivityList');
 
     assert.doesNotMatch(block, /visibles/);
-    assert.match(block, /Escanea estado, prioridad y detalle seleccionado\./);
-    assert.match(block, /Filtra sin romper el orden\./);
+    assert.match(block, /Cambia de modulo sin perder foco\./);
+    assert.doesNotMatch(block, /Filtra sin romper la continuidad\./);
   });
 
   test('ModuleMissionBoard trims secondary stats and local layout overrides', () => {
     const block = functionBlock('ModuleMissionBoard', 'ProgressScene');
 
-    assert.match(block, /<ProgressSummary/);
+    assert.match(block, /data-sd-module-flow="converged"/);
+    assert.match(block, /const supportFacts = \[/);
     assert.doesNotMatch(block, /key: 'time'/);
     assert.doesNotMatch(block, /key: 'visits'/);
     assert.doesNotMatch(block, /Objetivo claro, siguiente actividad visible/);
     assert.doesNotMatch(block, /!grid-cols-1/);
+    assert.doesNotMatch(block, /<ProgressSummary/);
   });
 
   test('Progress and settings heroes remove the least useful headline stats', () => {
@@ -125,11 +127,10 @@ describe('F4.F Courses shell layout comfort guards', () => {
 
     assert.match(block, /const routeLayoutMode = isMobile/);
     assert.match(block, /'mobile-stack'/);
-    assert.match(block, /'tablet-two-pane'/);
-    assert.match(block, /'desktop-two-pane'/);
+    assert.match(block, /'tablet-stack'/);
+    assert.match(block, /'desktop-detail-first'/);
     assert.match(block, /data-sd-route-layout=\{routeLayoutMode\}/);
-    assert.match(block, /lg:grid-cols-\[minmax\(17rem,19rem\)_minmax\(0,1fr\)\]/);
-    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1fr\)\]/);
+    assert.match(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
     assert.doesNotMatch(block, /<WorkspaceLayout/);
     assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.55fr\)_minmax\(16\.5rem,18\.5rem\)\]/);
     assert.doesNotMatch(block, /<RouteInsightRail/);
@@ -157,7 +158,8 @@ describe('F4.D Courses route navigator and module detail guards', () => {
     const block = functionBlock('RouteNavigatorRail', 'ModuleActivityList');
 
     assert.match(block, /variant="support"/);
-    assert.match(block, /title="Ruta por modulos"/);
+    assert.match(block, /title="Explora tu ruta"/);
+    assert.match(block, /data-sd-route-rail="secondary"/);
     assert.doesNotMatch(block, /bg-\[linear-gradient/);
     assert.doesNotMatch(block, /text-white/);
     assert.doesNotMatch(block, /shadow-\[0_36px_90px/);
@@ -185,15 +187,15 @@ describe('F4.D Courses route navigator and module detail guards', () => {
   test('ModuleMissionBoard connects selected detail to a local CTA before support metadata', () => {
     const block = functionBlock('ModuleMissionBoard', 'ProgressScene');
     const actionIndex = block.indexOf('data-sd-module-cta="courses-detail"');
-    const progressIndex = block.indexOf('<ProgressSummary');
+    const supportIndex = block.indexOf('sd-module-support-facts');
 
     assert.match(block, /data-route-detail="module"/);
     assert.match(block, /data-selected-module-id=\{module\.id\}/);
     assert.match(block, /const moduleTitle = displayModuleTitle\(module\)/);
     assert.match(block, /const nextActivityTitle = displayActivityTitle\(stats\.nextActivity, 'Actividad pendiente'\)/);
     assert.ok(actionIndex > -1, 'Module detail should expose a local CTA marker');
-    assert.ok(progressIndex > -1, 'Module detail should keep supporting progress');
-    assert.ok(actionIndex < progressIndex, 'local CTA should appear before supporting progress');
+    assert.ok(supportIndex > -1, 'Module detail should keep supporting facts');
+    assert.ok(supportIndex < actionIndex, 'supporting facts should frame the CTA before the action closes the block');
     assert.match(block, /aria-label=\{`\$\{getModuleCtaLabel\(\{ locked, adminAccess, stats \}\)\}: \$\{moduleTitle\}`\}/);
     assert.doesNotMatch(block, /<KeyValueBlock/);
     assert.doesNotMatch(block, /Ultimo cierre/);
@@ -210,8 +212,10 @@ describe('F5.B Route top / continuity / CTA unification guards', () => {
     assert.match(block, /tone="inverse"/);
     assert.match(block, /className="sd-route-briefing/);
     assert.match(block, /data-sd-container="true"/);
+    assert.match(block, /data-sd-route-shelf="integrated"/);
     assert.match(block, /Tu ruta ya esta lista para continuar\./);
     assert.match(block, /const primaryLabel = target\?\.stats\.completedCount \? 'Continuar mi ruta' : 'Abrir modulo recomendado'/);
+    assert.match(block, /<DashboardSceneBar/);
     assert.match(block, /data-sd-primary-cta="courses-continuity"/);
     assert.match(block, /aria-label=\{`\$\{primaryLabel\}: \$\{moduleTitle\}`\}/);
     assert.match(block, /Ver en la ruta/);
@@ -246,8 +250,11 @@ describe('F5.B Route top / continuity / CTA unification guards', () => {
     const block = coursesViewBlock();
 
     assert.match(block, /<RouteBriefing[\s\S]+target=\{nextRouteTarget\}/);
+    assert.match(block, /activeTab=\{tab\}/);
     assert.match(block, /onContinue=\{onOpenModule\}/);
     assert.match(block, /onShowInRoute=\{handleShowInRoute\}/);
+    assert.match(block, /onTabChange=\{setTab\}/);
+    assert.doesNotMatch(block, /<DashboardSceneBar[\s\S]+activeTab=\{tab\}[\s\S]+onChange=\{setTab\}[\s\S]+\/>/);
     assert.doesNotMatch(block, /<RouteHero\b/);
     assert.doesNotMatch(block, /<ContinuityConsole\b/);
     assert.doesNotMatch(block, /<TopSupportBand\b/);
@@ -272,7 +279,9 @@ describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
     const block = functionBlock('ModuleActivityList', 'ModuleMissionBoard');
 
     assert.match(block, /<ol className="sd-module-activity-list/);
-    assert.match(block, /border-l-4 bg-white/);
+    assert.match(block, /sd-module-activity-row/);
+    assert.match(block, /const stateTone = completed \? 'success' : isNext \? 'accent' : 'soft'/);
+    assert.match(block, /shadow-\[0_18px_42px_-34px_rgba\(47,99,255,0\.34\)\]/);
     assert.doesNotMatch(block, /bg-sd-accent-soft/);
     assert.doesNotMatch(block, /activity\?\.descripcion/);
     assert.doesNotMatch(block, /bg-white\/72/);
@@ -284,12 +293,15 @@ describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
     assert.match(block, /className="sd-module-mission-board/);
     assert.match(block, /weakestTopic/);
     assert.match(block, /nextUnlockEntry/);
+    assert.match(block, /data-sd-module-flow="converged"/);
+    assert.match(block, /sd-module-support-facts/);
     assert.match(block, /<details className="sd-module-activities-toggle/);
-    assert.match(block, /Ver actividades del modulo/);
+    assert.match(block, /Mapa de actividades/);
     assert.doesNotMatch(block, /<StageHero/);
     assert.doesNotMatch(block, /<StatStrip/);
     assert.doesNotMatch(block, /<SupportRail/);
     assert.doesNotMatch(block, /<KeyValueBlock/);
+    assert.doesNotMatch(block, /<ProgressSummary/);
   });
 
   test('ProgressScene flattens to a single column and removes duplicate side progress reading', () => {
@@ -304,9 +316,14 @@ describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
 
   test('CoursesView ruta body uses a single two-pane grid and no permanent insight column', () => {
     const block = coursesViewBlock();
+    const detailIndex = block.indexOf('<ModuleMissionBoard');
+    const railIndex = block.indexOf('<RouteNavigatorRail');
 
-    assert.match(block, /data-sd-route-comfort="balanced-two-pane"/);
-    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1fr\)\]/);
+    assert.match(block, /data-sd-route-comfort=\{shellFamily === 'desktop' \? 'detail-first' : 'stacked'\}/);
+    assert.match(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\] xl:items-start/);
+    assert.ok(detailIndex > -1, 'CoursesView should render module detail inside the route body');
+    assert.ok(railIndex > -1, 'CoursesView should keep the route rail available');
+    assert.ok(detailIndex < railIndex, 'module detail should render before the secondary route rail');
     assert.doesNotMatch(block, /<WorkspaceLayout/);
     assert.doesNotMatch(block, /<RouteInsightRail/);
     assert.doesNotMatch(block, /function RouteInsightRail/);

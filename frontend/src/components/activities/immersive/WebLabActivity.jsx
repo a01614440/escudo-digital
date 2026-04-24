@@ -185,15 +185,15 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
               ? 'border-amber-300 bg-amber-50/90'
               : tone === 'neutral'
                 ? 'border-slate-300 bg-slate-50/90'
-                : 'border-sd-border bg-white/78 hover:-translate-y-0.5 hover:bg-white',
+                : 'border-sd-border-strong bg-sd-surface hover:-translate-y-0.5 hover:bg-sd-surface-raised',
           className
         )}
         type="button"
         onClick={() => registerTarget(target, body)}
       >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-muted">{title}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-text-soft">{title}</span>
         <strong className="mt-2 block text-base text-sd-text">{targetLabels[target] || title}</strong>
-        <p className="mt-2 text-sm leading-6 text-sd-muted">{body}</p>
+        <p className="mt-2 text-sm leading-6 text-sd-text-soft">{body}</p>
       </button>
     );
   };
@@ -234,9 +234,8 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
         <ImmersivePanel className="web-lab-brief">
           <p className="eyebrow">Antes de empezar</p>
           <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Marca solo las señales más peligrosas</h3>
-          <p className="mt-3 max-w-[64ch] text-sm leading-6 text-sd-muted">
-            No hace falta tocar todo. Aquí importa distinguir entre una señal sospechosa y una crítica:
-            dominio, pagos, políticas y presión al momento de pagar pesan más que un detalle visual aislado.
+          <p className="mt-3 max-w-[64ch] text-sm leading-6 text-sd-text">
+            Prioriza dominio, pagos, politicas y presion de compra.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full bg-rose-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-700">Señal crítica</span>
@@ -246,18 +245,20 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
 
         <ImmersiveAsidePanel
           className="web-lab-hint neutral"
+          data-sd-stage-rail="subordinate"
           eyebrow="Ejemplo resuelto"
           title={exampleHotspot?.label || 'Dominio visible'}
-          body={exampleHotspot?.explicacion || 'Si el dominio no coincide con la marca o con una ruta oficial, esa sola señal ya merece detenerte.'}
+          body={exampleHotspot?.explicacion || 'Un dominio raro basta para frenar.'}
         >
           <div className="rounded-[18px] border border-emerald-200 bg-emerald-50/85 px-4 py-3 text-sm text-emerald-900">
-            Primero detecta lo que sí cambiaría tu decisión real. Después revisa detalles secundarios.
+            Primero lo critico; luego lo secundario.
           </div>
         </ImmersiveAsidePanel>
       </section>
 
       <section
         className="sd-simulation-main-stage web-lab-workbench grid gap-4 xl:grid-cols-[minmax(0,1.82fr)_minmax(16rem,0.68fr)]"
+        data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="weblab-workbench"
       >
         <ImmersivePanel>
@@ -289,7 +290,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
             <div>
               <p className="eyebrow">Laboratorio web</p>
               <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">Explora una tienda antes de confiar</h3>
-              <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-muted">{page.heroBody}</p>
+              <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-text">{page.heroBody}</p>
             </div>
           </div>
 
@@ -314,7 +315,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sd-accent">{page.sealLabel}</p>
                       <h4 className="mt-2 font-display text-2xl tracking-[-0.04em] text-sd-text">{page.heroTitle}</h4>
                     </div>
-                    {renderSelectableCard('banner', 'Termina en', formatCountdown(countdown), 'bg-white/80')}
+                    {renderSelectableCard('banner', 'Termina en', formatCountdown(countdown), 'bg-sd-surface')}
                   </div>
                 </div>
                 <div className="grid gap-3">
@@ -325,7 +326,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {page.productos.map((product, index) => (
-                  <article className="rounded-[24px] border border-sd-border bg-white/80 p-4" key={`${product.nombre}-${index}`}>
+                  <article className="rounded-[24px] border border-sd-border-strong bg-sd-surface p-4" key={`${product.nombre}-${index}`}>
                     <button
                       className="flex h-36 w-full items-center justify-center rounded-[20px] border border-sd-border bg-slate-50 text-4xl font-display text-sd-text"
                       type="button"
@@ -338,7 +339,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
                         <strong className="text-base text-sd-text">{product.nombre}</strong>
                         <span className="rounded-full bg-sd-accent-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-accent">{product.badge}</span>
                       </div>
-                      <p className="mt-2 flex items-center gap-2 text-sm text-sd-muted">
+                      <p className="mt-2 flex items-center gap-2 text-sm text-sd-text-soft">
                         {product.antes ? <span className="line-through">{product.antes}</span> : null}
                         <strong className="text-lg text-sd-text">{product.precio}</strong>
                       </p>
@@ -367,15 +368,15 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
 
           {stage === 'cart' ? (
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.9fr)]">
-              <section className="rounded-[24px] border border-sd-border bg-white/80 p-4">
+              <section className="rounded-[24px] border border-sd-border-strong bg-sd-surface p-4">
                 <p className="eyebrow">Carrito reservado</p>
                 <div className="mt-4 space-y-3">
                   {cartPreview.map((item, index) => (
-                    <article className="flex items-center gap-4 rounded-[22px] border border-sd-border bg-white/70 px-4 py-4" key={item.cartId || `${item.nombre}-${index}`}>
+                    <article className="flex items-center gap-4 rounded-[22px] border border-sd-border-strong bg-sd-surface-raised px-4 py-4" key={item.cartId || `${item.nombre}-${index}`}>
                       <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-slate-100 text-lg font-display text-sd-text">{(item.nombre || 'P').slice(0, 1)}</div>
                       <div className="min-w-0 flex-1">
                         <strong className="block truncate text-sd-text">{item.nombre}</strong>
-                        <span className="text-sm text-sd-muted">{item.precio}</span>
+                        <span className="text-sm text-sd-text-soft">{item.precio}</span>
                       </div>
                     </article>
                   ))}
@@ -390,12 +391,12 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
 
           {stage === 'checkout' ? (
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.95fr)]">
-              <section className="rounded-[24px] border border-sd-border bg-white/80 p-4">
+              <section className="rounded-[24px] border border-sd-border-strong bg-sd-surface p-4">
                 <p className="eyebrow">Checkout</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {['Nombre completo', 'Dirección', 'Teléfono', 'Referencias'].map((field) => (
                     <button
-                      className="rounded-[20px] border border-sd-border bg-white/70 px-4 py-4 text-left text-sm text-sd-text"
+                      className="rounded-[20px] border border-sd-border-strong bg-sd-surface-raised px-4 py-4 text-left text-sm text-sd-text"
                       key={field}
                       type="button"
                       onClick={() => registerTarget('address_form', 'Pedir datos de envío es normal. La alerta principal suele estar en pagos, urgencia y políticas.')}
@@ -414,7 +415,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
           ) : null}
         </ImmersivePanel>
 
-        <aside className="grid gap-4">
+        <aside className="grid gap-4" data-sd-stage-rail="subordinate">
           <ImmersiveAsidePanel eyebrow="Pista activa" title={targetLabels[selectedTarget] || 'Selecciona una parte del sitio'} body={selectedNote}>
             {selectedHotspot ? (
               <div
@@ -436,7 +437,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
             ) : null}
           </ImmersiveAsidePanel>
 
-          <ImmersiveAsidePanel eyebrow="Hallazgos" title={`${flagged.size}/${goalCount} señales marcadas`} body="Busca precisión: primero lo crítico, luego lo dudoso.">
+          <ImmersiveAsidePanel eyebrow="Hallazgos" title={`${flagged.size}/${goalCount} señales marcadas`} body="Primero lo critico.">
             {foundLabels.length ? (
               <div className="flex flex-wrap gap-2">
                 {foundLabels.map((label) => (
@@ -446,11 +447,11 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
                 ))}
               </div>
             ) : (
-              <p className="text-sm leading-6 text-sd-muted">Aún no has marcado una señal importante.</p>
+              <p className="text-sm leading-6 text-sd-text">Aún no has marcado una señal importante.</p>
             )}
           </ImmersiveAsidePanel>
 
-          <ImmersiveAsidePanel eyebrow="Decisión final" title="¿Seguirías con esta compra?" body="Tu decisión debe reflejar lo que harías en la vida real después de revisar el sitio.">
+          <ImmersiveAsidePanel eyebrow="Decisión final" title="¿Seguirías con esta compra?" body="Decide como en la vida real.">
             <div className="grid gap-3">
               {decisionOptions.map((option, index) => (
                 <Button key={option} variant={decision === index ? 'primary' : 'ghost'} type="button" onClick={() => setDecision(index)} disabled={Boolean(result)}>
@@ -482,7 +483,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
               <strong>Score final</strong>
               <span>{`${Math.round(result.score * 100)}%`}</span>
             </div>
-            <p>Se premió más haber detectado las señales críticas que haber marcado todo por duda.</p>
+            <p>Pesan mas las senales criticas.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
@@ -496,7 +497,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
               <strong>Decisión final</strong>
               <span>{result.decisionLabel}</span>
             </div>
-            <p>La decisión final importa, pero no debería borrar un análisis razonable del sitio.</p>
+            <p>La decision confirma tu criterio.</p>
           </article>
         </div>
       ) : null}

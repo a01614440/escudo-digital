@@ -103,6 +103,14 @@ export default function FeedbackPanel({ feedback }) {
   const missed = Array.isArray(feedback.missed)
     ? feedback.missed.map((item) => repairPossibleMojibake(item)).filter(Boolean)
     : [];
+  const primaryItems = [
+    { title: 'Que viste', body: signal },
+    { title: 'Accion real', body: action },
+  ].filter((item) => item.body);
+  const secondaryItems = [
+    { title: 'Que falto', body: risk },
+    { title: 'Siguiente paso', body: extra },
+  ].filter((item) => item.body);
 
   return (
     <SurfaceCard
@@ -118,7 +126,7 @@ export default function FeedbackPanel({ feedback }) {
       <PanelHeader
         eyebrow="Retroalimentacion"
         title={title || 'Lectura del resultado'}
-        subtitle="Criterio y siguiente accion."
+        subtitle="Resultado breve."
         meta={
           <div className="flex flex-wrap gap-2">
             {scoreLabel ? (
@@ -136,24 +144,37 @@ export default function FeedbackPanel({ feedback }) {
         title={tone === 'good' ? 'Buen criterio' : tone === 'risk' ? 'Corrige el criterio' : 'Hay margen de mejora'}
       >
         {tone === 'good'
-          ? 'La decision general fue segura; conserva esa misma rutina.'
+          ? 'Conserva esa rutina.'
           : tone === 'risk'
-            ? 'La lectura del riesgo quedo corta; revisa esta devolucion antes de avanzar.'
-            : 'La decision rescato parte del contexto, pero todavia conviene afinar la rutina.'}
+            ? 'Revisa el ajuste antes de avanzar.'
+            : 'Afina la rutina y sigue.'}
       </InlineMessage>
 
-      <div className="sd-feedback-summary-grid">
-        <FeedbackItem title="Que viste" body={signal} />
-        <FeedbackItem title="Que falto" body={risk} />
-        <FeedbackItem title="Accion real" body={action} />
-        <FeedbackItem title="Siguiente paso" body={extra} />
-      </div>
-
-      {detected.length || missed.length ? (
-        <div className="sd-feedback-signal-grid">
-          <FeedbackList title="Senales detectadas" items={detected} />
-          <FeedbackList title="Falto revisar" items={missed} />
+      {primaryItems.length ? (
+        <div className="sd-feedback-summary-grid" data-sd-feedback-visible="primary">
+          {primaryItems.map((item) => (
+            <FeedbackItem key={item.title} title={item.title} body={item.body} />
+          ))}
         </div>
+      ) : null}
+
+      {secondaryItems.length || detected.length || missed.length ? (
+        <details className="sd-feedback-secondary" data-sd-feedback-secondary="collapsed">
+          <summary>Ver detalle</summary>
+          {secondaryItems.length ? (
+            <div className="sd-feedback-summary-grid">
+              {secondaryItems.map((item) => (
+                <FeedbackItem key={item.title} title={item.title} body={item.body} />
+              ))}
+            </div>
+          ) : null}
+          {detected.length || missed.length ? (
+            <div className="sd-feedback-signal-grid">
+              <FeedbackList title="Senales detectadas" items={detected} />
+              <FeedbackList title="Falto revisar" items={missed} />
+            </div>
+          ) : null}
+        </details>
       ) : null}
     </SurfaceCard>
   );

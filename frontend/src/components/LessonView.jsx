@@ -6,18 +6,12 @@ import {
   normalizeModuleTitleForDisplay,
   repairPossibleMojibake,
 } from '../lib/course.js';
-import { getActivityInstructionMeta, getModuleObjective } from '../lib/journeyGuidance.js';
+import { getActivityInstructionMeta } from '../lib/journeyGuidance.js';
 import { cn } from '../lib/ui.js';
 import { getShellFamily } from '../hooks/useResponsiveLayout.js';
-import { SplitHeroLayout } from '../layouts/index.js';
 import {
   ActionCluster,
-  KeyValueBlock,
   PanelHeader,
-  ProgressSummary,
-  StageHero,
-  StatStrip,
-  SupportRail,
 } from '../patterns/index.js';
 import ActivityRenderer from './activities/ActivityRenderer.jsx';
 import {
@@ -46,6 +40,19 @@ function getActivityTitle(activity, activityIndex = 0) {
 
 function formatPercentLabel(value) {
   return `${Math.round(Number(value) || 0)}%`;
+}
+
+function formatLastAccessLabel(value) {
+  if (!value) return '';
+
+  try {
+    return new Date(value).toLocaleString('es-MX', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  } catch {
+    return '';
+  }
 }
 
 const IMMERSIVE_ACTIVITY_TYPES = new Set(['sim_chat', 'inbox', 'web_lab', 'call_sim', 'scenario_flow']);
@@ -101,85 +108,52 @@ function buildModuleSummary(module, courseProgress) {
 function ModuleEmptyState({ shellFamily, title, body, onBack }) {
   return (
     <section className="sd-page-shell py-[var(--sd-shell-padding-block)]" data-sd-container="true">
-      <SplitHeroLayout
-        shellFamily={shellFamily}
-        className={
-          shellFamily === 'tablet'
-            ? 'md:grid-cols-[minmax(0,1.08fr)_minmax(21rem,0.92fr)]'
-            : shellFamily === 'desktop'
-              ? 'xl:grid-cols-[minmax(0,1.16fr)_minmax(23rem,0.84fr)] 2xl:grid-cols-[minmax(0,1.24fr)_minmax(24rem,0.8fr)]'
-              : ''
-        }
-        hero={
-          <StageHero
-            tone="editorial"
-            eyebrow="Cabina de práctica"
-            title={title}
-            subtitle={body}
-            meta="La práctica vive dentro de un shell inmersivo y vuelve a la ruta cuando no encuentra el módulo."
-            footer={
-              <StatStrip
-                compact={shellFamily === 'mobile'}
-                items={[
-                  {
-                    key: 'context',
-                    eyebrow: 'Estado',
-                    value: 'Sin módulo',
-                    label: 'No encontramos la práctica actual',
-                    hint: 'Vuelve a la ruta para reubicarte.',
-                    tone: 'accent',
-                  },
-                  {
-                    key: 'action',
-                    eyebrow: 'Salida',
-                    value: 'Ruta',
-                    label: 'Regresa a la cabina principal',
-                    hint: 'El handoff permanece intacto.',
-                    tone: 'neutral',
-                  },
-                ]}
-                variant="support"
-              />
-            }
-          >
-            <p className="m-0 text-sm leading-7 text-sd-text-soft">
-              Esta vista ya no debe improvisar estructura ni depender del dashboard para seguir siendo clara.
-            </p>
-          </StageHero>
-        }
-        primary={
-          <SurfaceCard padding="lg" variant="spotlight">
-            <PanelHeader
-              eyebrow="Siguiente acción"
-              title="Volver a la ruta"
-              subtitle="Regresa al tablero principal para retomar el módulo correcto sin perder continuidad."
-              divider
-            />
+      <div className="grid gap-[var(--sd-shell-section-gap)]">
+        <SurfaceCard
+          padding="xl"
+          variant="command"
+          tone="inverse"
+          className="sd-lesson-briefing sd-lesson-shell-command"
+          data-sd-container="true"
+          data-sd-lesson-shell="empty"
+        >
+          <div className="grid gap-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="sd-eyebrow m-0">Cabina de practica</span>
+              <Badge tone="soft">Reubicar</Badge>
+            </div>
+
+            <div className="grid gap-3">
+              <h1 className="sd-title-display m-0">{title}</h1>
+              <p className="sd-copy m-0 max-w-[52ch]">{body}</p>
+              <p className="m-0 text-sm leading-6 text-sd-text-inverse">
+                La continuidad sigue intacta; solo necesitamos devolverte a la ruta correcta.
+              </p>
+            </div>
+
+            <div className="sd-lesson-shell-status grid gap-2 rounded-[22px] border border-white/12 bg-white/[0.06] px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <span className="text-sd-text-inverse">Estado actual</span>
+                <strong className="sd-copy-strong m-0">Sin modulo activo</strong>
+              </div>
+              <ProgressBar value={0} tone="accent" size="lg" />
+            </div>
+
             <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-              <Button variant="hero" size="lg" type="button" onClick={onBack}>
-                Ir a mi ruta
+              <Button variant="primary" size="lg" type="button" onClick={onBack}>
+                Volver a mi ruta
               </Button>
             </ActionCluster>
-          </SurfaceCard>
-        }
-        secondary={
-          <SupportRail
-            tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
-            sticky={shellFamily === 'desktop'}
-            eyebrow="Qué pasó"
-            title="El shell sigue vivo, solo cambió la posición"
-            subtitle="No tocamos dominio ni progreso; solo te falta volver a ubicar el módulo actual."
-          >
-            <InlineMessage tone="info" title="Estado preservado">
-              El lesson no encontró la actividad visible, pero tu ruta y tu progreso no se han perdido.
-            </InlineMessage>
-          </SupportRail>
-        }
-      />
+          </div>
+        </SurfaceCard>
+
+        <InlineMessage tone="info" title="Ruta y progreso preservados">
+          El lesson no encontro la actividad visible, pero tu ruta y tu avance siguen intactos.
+        </InlineMessage>
+      </div>
     </section>
   );
 }
-
 function LessonMissionHero({
   shellFamily,
   module,
@@ -199,10 +173,7 @@ function LessonMissionHero({
   const activityLabel = ACTIVITY_LABELS[activity?.tipo] || 'Práctica';
   const modulePositionPct = Math.round(((activityIndex + 1) / Math.max(totalActivities, 1)) * 100);
   const routeProgressPct = Math.round((completedModules / Math.max(routeLength, 1)) * 100);
-  const subtitle = cleanText(
-    activity?.intro || activity?.escenario || activity?.prompt,
-    'Practica en una pantalla dedicada: tarea principal primero, contexto breve despues.'
-  );
+
   const progressHint = moduleSummary.completedCount
     ? `${moduleSummary.completedCount} completada(s) en este módulo`
     : `${routeProgressPct}% de ruta cerrada`;
@@ -225,9 +196,8 @@ function LessonMissionHero({
 
         <div className="grid gap-3">
           <h1 className="sd-title-display m-0">{activityTitle}</h1>
-          <p className="sd-copy m-0 max-w-[54ch]">{subtitle}</p>
-          <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-inverse-soft">
-            {`${categoryLabel} · ${levelLabel} · ${getModuleObjective(module)}`}
+          <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-inverse">
+            {`${categoryLabel} · ${levelLabel}`}
           </p>
         </div>
 
@@ -247,7 +217,7 @@ function LessonMissionHero({
 
         <div className="sd-lesson-briefing-progress grid gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <span className="text-sd-text-inverse-soft">
+            <span className="text-sd-text-inverse">
               {`Actividad ${activityIndex + 1}/${Math.max(totalActivities, 1)} · Módulo ${moduleIndex + 1}/${Math.max(routeLength, 1)}`}
             </span>
             <strong className="sd-copy-strong m-0">{progressHint}</strong>
@@ -292,7 +262,7 @@ function ActivityMapList({ module, activityIndex, courseProgress }) {
                     ? 'border-sd-accent bg-sd-accent text-sd-accent-contrast'
                     : isDone
                       ? 'border-sd-border-strong bg-sd-surface-subtle text-sd-text'
-                      : 'border-sd-border bg-white text-sd-text-soft'
+                      : 'border-sd-border-strong bg-sd-surface text-sd-text'
                 )}
               >
                 {isDone ? 'OK' : String(index + 1).padStart(2, '0')}
@@ -300,7 +270,7 @@ function ActivityMapList({ module, activityIndex, courseProgress }) {
 
               <div className="grid min-w-0 gap-1">
                 <strong className="text-sm leading-5 text-sd-text">{getActivityTitle(activity, index)}</strong>
-                <p className="m-0 text-sm leading-6 text-sd-text-soft">{stateNote}</p>
+                <p className="m-0 text-sm leading-6 text-sd-text">{stateNote}</p>
               </div>
             </div>
           </SurfaceCard>
@@ -323,93 +293,51 @@ function LessonCommandRail({
   const moduleSummary = buildModuleSummary(module, courseProgress);
   const moduleProgressPct = Math.round((moduleSummary.completedCount / Math.max(activities.length, 1)) * 100);
   const mapContent = <ActivityMapList module={module} activityIndex={activityIndex} courseProgress={courseProgress} />;
-
-  if (compact) {
-    return (
-      <SurfaceCard
-        padding="md"
-        variant="support"
-        className="sd-lesson-context-card border-sd-border-strong"
-        data-sd-lesson-context="compact-map"
-      >
-        <div className="grid gap-4">
-          <PanelHeader
-            eyebrow="Mapa del modulo"
-            title={`${activities.length} actividades`}
-            subtitle="El recorrido queda disponible sin robarle ancho a la practica."
-            meta={<Badge tone="accent">{formatPercentLabel(moduleProgressPct)}</Badge>}
-            divider
-          />
-
-          <details
-            className="sd-lesson-map-toggle rounded-[20px] border border-sd-border-strong bg-white p-4"
-            data-sd-lesson-map="secondary"
-          >
-            <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
-              Ver recorrido del modulo
-            </summary>
-            <div className="mt-4">{mapContent}</div>
-          </details>
-
-          <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-            <Button variant="secondary" type="button" onClick={onBack}>
-              Volver a la ruta
-            </Button>
-            <Button variant="quiet" type="button" onClick={onRestart}>
-              Reiniciar modulo
-            </Button>
-          </ActionCluster>
-        </div>
-      </SurfaceCard>
-    );
-  }
+  const progressLabel = moduleSummary.completedCount
+    ? `${moduleSummary.completedCount}/${Math.max(activities.length, 1)} actividades cerradas`
+    : 'Todavia no cierras actividades en este modulo.';
 
   return (
-    <SupportRail
-      tone={shellFamily === 'desktop' ? 'support' : 'editorial'}
-      sticky={false}
-      eyebrow="Mapa del módulo"
-      title={`${activities.length} actividades en esta práctica`}
-      subtitle="El orden ya está resuelto: solo necesitas ver dónde estás y qué sigue."
-      footer={
+    <SurfaceCard
+      padding={compact ? 'md' : 'lg'}
+      variant="support"
+      className="sd-lesson-support-card border-sd-border-strong"
+      data-sd-lesson-context={compact ? 'compact-map' : 'mission'}
+    >
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="grid min-w-0 gap-1">
+            <p className="sd-eyebrow m-0">Mapa del modulo</p>
+            <h2 className="sd-heading-sm m-0">{getModuleTitle(module)}</h2>
+            <p className="m-0 text-sm leading-6 text-sd-text">{progressLabel}</p>
+          </div>
+          <Badge tone="accent">{formatPercentLabel(moduleProgressPct)}</Badge>
+        </div>
+
+        <ProgressBar value={moduleProgressPct} tone="accent" size="lg" />
+
+        <details
+          className="sd-lesson-map-toggle rounded-[20px] border border-sd-border-strong bg-white px-4 py-4"
+          data-sd-lesson-map="secondary"
+        >
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+            {compact ? 'Ver recorrido del modulo' : 'Abrir mapa del modulo'}
+          </summary>
+          <div className="mt-4">{mapContent}</div>
+        </details>
+
         <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
           <Button variant="secondary" type="button" onClick={onBack}>
             Volver a la ruta
           </Button>
           <Button variant="quiet" type="button" onClick={onRestart}>
-            Reiniciar módulo
+            Reiniciar modulo
           </Button>
         </ActionCluster>
-      }
-    >
-      <div className="grid gap-4">
-        <ProgressSummary
-          eyebrow="Avance real"
-          title={getModuleTitle(module)}
-          value={formatPercentLabel(moduleProgressPct)}
-          hint={
-            moduleSummary.completedCount
-              ? `${moduleSummary.completedCount} de ${Math.max(activities.length, 1)} actividades ya quedaron cerradas.`
-              : 'Todavía no completas actividades dentro de este módulo.'
-          }
-          progressValue={moduleProgressPct}
-          variant="support"
-        />
-
-        <details
-          className="sd-lesson-map-toggle rounded-[24px] border border-sd-border-strong bg-white/84 p-4"
-          data-sd-lesson-map="secondary"
-        >
-          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
-            Ver mapa completo
-          </summary>
-          <div className="mt-4">{mapContent}</div>
-        </details>
       </div>
-    </SupportRail>
+    </SurfaceCard>
   );
 }
-
 function LessonActivityStage({
   shellFamily,
   stageMode = 'guided',
@@ -441,6 +369,7 @@ function LessonActivityStage({
         className="sd-lesson-stage sd-lesson-stage-immersive"
         data-sd-lesson-stage="immersive"
         data-sd-activity-type={String(activity?.tipo || '')}
+        data-sd-stage-comfort="fullscreen"
       >
         <div className="sr-only">
           <h2>{getActivityTitle(activity, activityIndex)}</h2>
@@ -452,245 +381,206 @@ function LessonActivityStage({
   }
 
   return (
-    <SurfaceCard
-      padding="md"
-      variant="spotlight"
-      className="sd-lesson-stage sd-lesson-stage-guided overflow-hidden border-sd-border-strong"
+    <section
+      className="sd-lesson-stage sd-lesson-stage-guided overflow-hidden rounded-[26px] border border-sd-border-strong bg-sd-surface-raised px-4 py-4 shadow-[0_30px_76px_-56px_rgba(15,27,51,0.42)]"
       data-sd-lesson-stage="guided"
       data-sd-briefing-source="activity-chrome"
-      data-sd-stage-comfort="compact"
+      data-sd-stage-comfort="dominant"
     >
-      <PanelHeader
-        eyebrow="Actividad actual"
-        title={getActivityTitle(activity, activityIndex)}
-        subtitle={cleanText(
-          activity?.intro || activity?.escenario || activity?.prompt,
-          instructionMeta.quickTip
-        )}
-        meta={<Badge tone="accent">{ACTIVITY_LABELS[activity?.tipo] || 'Práctica'}</Badge>}
-        divider
-      />
+      <div className="sd-lesson-stage-head flex flex-wrap items-start justify-between gap-3">
+        <div className="grid min-w-0 flex-1 gap-1">
+          <p className="sd-eyebrow m-0">Actividad actual</p>
+          <h2 className="m-0 text-[1.2rem] leading-tight font-semibold text-sd-text">
+            {getActivityTitle(activity, activityIndex)}
+          </h2>
 
-      <div className="sd-lesson-renderer-frame mt-4 overflow-hidden rounded-[22px] border border-sd-border-strong bg-white p-2 md:p-3">
+        </div>
+        <Badge tone="accent">{ACTIVITY_LABELS[activity?.tipo] || 'Practica'}</Badge>
+      </div>
+
+      <div className="sd-lesson-renderer-frame mt-4 overflow-hidden rounded-[24px] border border-sd-border-strong bg-white p-2 md:p-3">
         {renderer}
       </div>
-    </SurfaceCard>
+    </section>
   );
 }
-
 function LessonInsightRail({ shellFamily, module, activity, courseProgress, moduleSummary }) {
   if (!moduleSummary.completedCount && !courseProgress?.lastAccessAt) return null;
   const instructionMeta = getActivityInstructionMeta(activity?.tipo, module);
   const categoryLabel = CATEGORY_LABELS[module?.categoria] || 'Ruta';
   const levelLabel = LEVEL_LABELS[module?.nivel] || cleanText(module?.nivel, 'Nivel');
-  const activityType = ACTIVITY_LABELS[activity?.tipo] || 'Práctica';
+  const activityType = ACTIVITY_LABELS[activity?.tipo] || 'Practica';
+  const lastAccessLabel = formatLastAccessLabel(courseProgress?.lastAccessAt);
 
   return (
-    <SupportRail
-      tone={shellFamily === 'desktop' ? 'editorial' : 'insight'}
-      sticky={shellFamily === 'desktop'}
-      eyebrow="Briefing"
-      title="Lo mínimo para practicar bien"
-      subtitle="Contexto corto, criterio claro y lectura del módulo sin llenar la pantalla."
+    <SurfaceCard
+      padding="md"
+      variant="support"
+      className="sd-lesson-support-card border-sd-border-strong"
+      data-sd-lesson-context="insight"
     >
       <div className="grid gap-4">
-        <KeyValueBlock
-          items={[
-            { key: 'category', label: 'Categoría', value: categoryLabel },
-            { key: 'level', label: 'Nivel', value: levelLabel },
-            { key: 'type', label: 'Formato', value: activityType },
-          ]}
+        <PanelHeader
+          eyebrow="Briefing breve"
+          title="Lo justo para entrar bien"
+
+          divider
         />
 
-        <SurfaceCard padding="compact" variant="subtle">
-          <strong className="block text-sm text-sd-text">Objetivo del módulo</strong>
-          <p className="mt-2 text-sm leading-6 text-sd-text-soft">{instructionMeta.objective}</p>
-        </SurfaceCard>
+        <ActionCluster collapse="wrap">
+          <Badge tone="soft">{categoryLabel}</Badge>
+          <Badge tone="neutral">{levelLabel}</Badge>
+          <Badge tone="neutral">{activityType}</Badge>
+        </ActionCluster>
 
-        <ProgressSummary
-          eyebrow="Lectura del módulo"
-          title={
-            moduleSummary.completedCount
-              ? 'Ya hay una señal clara de cómo vas'
-              : 'Todavía estás abriendo este bloque'
-          }
-          value={moduleSummary.completedCount ? formatPercentLabel(moduleSummary.avgScore) : '0%'}
-          hint={
-            moduleSummary.completedCount
-              ? `Promedio actual sobre ${moduleSummary.completedCount} actividades registradas.`
-              : 'El resumen aparecerá en cuanto cierres las primeras actividades.'
-          }
-          progressValue={moduleSummary.completedCount ? moduleSummary.avgScore : 0}
-          variant="support"
-        />
+        <details className="rounded-[18px] border border-sd-border bg-sd-canvas px-4 py-3" data-sd-lesson-objective="collapsed">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">Objetivo</summary>
+          <p className="mt-2 mb-0 text-sm leading-6 text-sd-text">{instructionMeta.objective}</p>
+        </details>
 
-        {moduleSummary.completedCount ? (
-          <div className="grid gap-3">
-            <SurfaceCard padding="compact" variant="subtle">
-              <strong className="block text-sm text-sd-text">Lo que ya sostienes</strong>
-              <p className="mt-2 text-sm leading-6 text-sd-text-soft">
-                {moduleSummary.strengths.length
-                  ? moduleSummary.strengths.join(' · ')
-                  : 'Todavía no hay fortalezas suficientemente claras para resumirlas.'}
+        <details
+          className="sd-lesson-insight-toggle rounded-[20px] border border-sd-border-strong bg-sd-canvas px-4 py-4"
+          data-sd-lesson-insight="secondary"
+        >
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+            Ver lectura del modulo
+          </summary>
+
+          <div className="mt-4 grid gap-3">
+            {moduleSummary.completedCount ? (
+              <>
+                <div className="grid gap-1 rounded-[16px] border border-sd-border bg-white px-4 py-3">
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text">
+                    Lo que ya sostienes
+                  </span>
+                  <p className="m-0 text-sm leading-6 text-sd-text">
+                    {moduleSummary.strengths.length
+                      ? moduleSummary.strengths.join(' � ')
+                      : 'Aun no hay fortalezas suficientemente claras para resumirlas.'}
+                  </p>
+                </div>
+
+                <div className="grid gap-1 rounded-[16px] border border-sd-border bg-white px-4 py-3">
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text">
+                    Que conviene repetir
+                  </span>
+                  <p className="m-0 text-sm leading-6 text-sd-text">
+                    {moduleSummary.improvementAreas.length
+                      ? moduleSummary.improvementAreas.join(' � ')
+                      : 'No se ven tropiezos relevantes: puedes seguir con la practica actual.'}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <InlineMessage tone="info" title="Aun no hay suficiente historial">
+                Completa una o dos actividades y este resumen te devolvera una lectura mas util del modulo.
+              </InlineMessage>
+            )}
+
+            {lastAccessLabel ? (
+              <p className="m-0 text-sm leading-6 text-sd-text">
+                <strong className="text-sd-text">Ultima reentrada:</strong> {lastAccessLabel}
               </p>
-            </SurfaceCard>
-
-            <SurfaceCard padding="compact" variant="subtle">
-              <strong className="block text-sm text-sd-text">Qué conviene repetir</strong>
-              <p className="mt-2 text-sm leading-6 text-sd-text-soft">
-                {moduleSummary.improvementAreas.length
-                  ? moduleSummary.improvementAreas.join(' · ')
-                  : 'No se ven tropiezos relevantes: puedes seguir con la práctica actual.'}
-              </p>
-            </SurfaceCard>
+            ) : null}
           </div>
-        ) : (
-          <InlineMessage tone="info" title="Aún no hay suficiente historial">
-            Completa una o dos actividades y este rail te devolverá una lectura mucho más útil del módulo.
-          </InlineMessage>
-        )}
-
-        {courseProgress?.lastAccessAt ? (
-          <SurfaceCard padding="compact" variant="subtle">
-            <strong className="block text-sm text-sd-text">Última reentrada</strong>
-            <p className="mt-2 text-sm leading-6 text-sd-text-soft">
-              {cleanText(
-                new Date(courseProgress.lastAccessAt).toLocaleString('es-MX', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }),
-                'Registro no disponible'
-              )}
-            </p>
-          </SurfaceCard>
-        ) : null}
+        </details>
       </div>
-    </SupportRail>
+    </SurfaceCard>
   );
 }
-
 function ModuleComplete({ shellFamily, module, courseProgress, onBack, onRetry }) {
   const moduleSummary = buildModuleSummary(module, courseProgress);
   const moduleTitle = getModuleTitle(module);
   const activities = Array.isArray(module?.actividades) ? module.actividades : [];
+  const completionLabel = moduleSummary.completedCount
+    ? `${moduleSummary.completedCount}/${Math.max(activities.length, 1)} actividades registradas`
+    : 'Aun no hay suficiente historial para leer el modulo';
+  const nextActionLabel = moduleSummary.improvementAreas.length
+    ? `Conviene repetir: ${moduleSummary.improvementAreas.join(' � ')}.`
+    : 'Puedes volver a la ruta y abrir el siguiente modulo recomendado.';
 
   return (
     <section className="sd-page-shell py-[var(--sd-shell-padding-block)]" data-sd-container="true">
-      <SplitHeroLayout
-        shellFamily={shellFamily}
-        className={
-          shellFamily === 'tablet'
-            ? 'md:grid-cols-[minmax(0,1.08fr)_minmax(21rem,0.92fr)]'
-            : shellFamily === 'desktop'
-              ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(24rem,0.82fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(25rem,0.78fr)]'
-              : ''
-        }
-        hero={
-          <StageHero
-            tone="spotlight"
-            eyebrow="Módulo completado"
-            title={`Cerraste ${moduleTitle}`}
-            subtitle="La práctica ya terminó; ahora te devolvemos una lectura corta de lo que sostuviste y qué conviene repetir."
-            meta={`${activities.length} actividades recorridas`}
-            aside={
-              <ProgressSummary
-                eyebrow="Resultado del módulo"
-                title="Lectura acumulada"
-                value={moduleSummary.completedCount ? formatPercentLabel(moduleSummary.avgScore) : '0%'}
-                hint={
-                  moduleSummary.completedCount
-                    ? `Promedio sobre ${moduleSummary.completedCount} actividades completadas.`
-                    : 'Aún no hay suficientes registros para calcular promedio.'
-                }
-                progressValue={moduleSummary.avgScore}
-                variant="support"
-              />
-            }
-            footer={
-              <StatStrip
-                compact={shellFamily === 'mobile'}
-                items={[
-                  {
-                    key: 'completed',
-                    eyebrow: 'Completadas',
-                    value: `${moduleSummary.completedCount}`,
-                    label: 'Actividades registradas',
-                    hint: 'Cada cierre alimenta tu historial real.',
-                    tone: 'accent',
-                  },
-                  {
-                    key: 'focus',
-                    eyebrow: 'Refuerzo',
-                    value: moduleSummary.improvementAreas.length ? 'Sí' : 'Bajo',
-                    label: moduleSummary.improvementAreas.length ? 'Hay puntos para repetir' : 'Sin tropiezos fuertes',
-                    hint: 'Puedes volver al módulo o regresar a la ruta.',
-                    tone: 'neutral',
-                  },
-                ]}
-                variant="support"
-              />
-            }
-          >
-            <p className="m-0 text-sm leading-7 text-sd-text-soft">{getModuleObjective(module)}</p>
-          </StageHero>
-        }
-        primary={
-          <SurfaceCard padding="lg" variant="spotlight">
-            <PanelHeader
-              eyebrow="Lectura breve"
-              title="Qué deja este módulo"
-              subtitle="Resumen corto para salir de la práctica con una idea clara de continuidad."
-              divider
-            />
-
-            <div className="grid gap-3">
-              <SurfaceCard padding="compact" variant="subtle">
-                <strong className="block text-sm text-sd-text">Fortalezas visibles</strong>
-                <p className="mt-2 text-sm leading-6 text-sd-text-soft">
-                  {moduleSummary.strengths.length
-                    ? moduleSummary.strengths.join(' · ')
-                    : 'El módulo quedó completado, pero todavía no hay señales fuertes para resumir fortalezas específicas.'}
-                </p>
-              </SurfaceCard>
-
-              <SurfaceCard padding="compact" variant="subtle">
-                <strong className="block text-sm text-sd-text">Siguiente decisión</strong>
-                <p className="mt-2 text-sm leading-6 text-sd-text-soft">
-                  {moduleSummary.improvementAreas.length
-                    ? `Conviene repetir: ${moduleSummary.improvementAreas.join(' · ')}.`
-                    : 'Puedes volver a la ruta y abrir el siguiente módulo recomendado.'}
-                </p>
-              </SurfaceCard>
+      <div className="grid gap-[var(--sd-shell-section-gap)]">
+        <SurfaceCard
+          padding="xl"
+          variant="command"
+          tone="inverse"
+          className="sd-lesson-briefing sd-lesson-shell-command"
+          data-sd-container="true"
+          data-sd-lesson-shell="complete"
+        >
+          <div className="grid gap-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="sd-eyebrow m-0">Modulo completado</span>
+              <Badge tone="soft">{`${activities.length} actividades`}</Badge>
             </div>
 
-            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'} className="mt-6">
-              <Button variant="hero" size="lg" type="button" onClick={onBack}>
+            <div className="grid gap-3">
+              <h1 className="sd-title-display m-0">{`Cerraste ${moduleTitle}`}</h1>
+              <p className="sd-copy m-0 max-w-[54ch]">
+                La practica ya termino; sales con una lectura breve y el siguiente paso claro.
+              </p>
+            </div>
+
+            <div className="sd-lesson-shell-status grid gap-3 rounded-[22px] border border-white/12 bg-white/[0.06] px-4 py-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="grid gap-1">
+                  <span className="text-sm text-sd-text-inverse">Lectura acumulada</span>
+                  <strong className="text-[1.85rem] leading-none font-semibold text-sd-text-inverse">
+                    {moduleSummary.completedCount ? formatPercentLabel(moduleSummary.avgScore) : '0%'}
+                  </strong>
+                </div>
+                <div className="grid gap-1 text-sm text-sd-text-inverse">
+                  <span>{completionLabel}</span>
+                  <span>
+                    {moduleSummary.improvementAreas.length ? 'Hay puntos para repetir' : 'Listo para volver a la ruta'}
+                  </span>
+                </div>
+              </div>
+              <ProgressBar value={moduleSummary.avgScore} tone="accent" size="lg" />
+            </div>
+
+            <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+              <Button variant="primary" size="lg" type="button" onClick={onBack}>
                 Volver a mi ruta
               </Button>
               <Button variant="secondary" type="button" onClick={onRetry}>
-                Repasar módulo
+                Repasar modulo
               </Button>
             </ActionCluster>
+          </div>
+        </SurfaceCard>
+
+        <div
+          className={cn(
+            'sd-lesson-secondary-grid grid gap-[var(--sd-shell-pane-gap)]',
+            shellFamily === 'mobile' ? '' : 'md:grid-cols-2'
+          )}
+          data-sd-lesson-secondary="complete"
+        >
+          <SurfaceCard padding="md" variant="support" className="border-sd-border-strong">
+            <div className="grid gap-2">
+              <p className="sd-eyebrow m-0">Fortalezas visibles</p>
+              <p className="m-0 text-sm leading-6 text-sd-text">
+                {moduleSummary.strengths.length
+                  ? moduleSummary.strengths.join(' � ')
+                  : 'Todavia no hay se�ales fuertes para resumir fortalezas especificas.'}
+              </p>
+            </div>
           </SurfaceCard>
-        }
-        secondary={
-          <SupportRail
-            tone={shellFamily === 'desktop' ? 'editorial' : 'support'}
-            sticky={shellFamily === 'desktop'}
-            eyebrow="Continuidad"
-            title="El siguiente paso ya no depende del renderer"
-            subtitle="Sales de la práctica con cierre breve y vuelves a la ruta sin perder contexto."
-          >
-            <InlineMessage tone="success" title="Handoff intacto">
-              La lógica de curso, progreso y reentrada permanece arriba; esta pantalla solo reorganiza el chrome visual.
-            </InlineMessage>
-          </SupportRail>
-        }
-      />
+
+          <SurfaceCard padding="md" variant="support" className="border-sd-border-strong">
+            <div className="grid gap-2">
+              <p className="sd-eyebrow m-0">Siguiente decision</p>
+              <p className="m-0 text-sm leading-6 text-sd-text">{nextActionLabel}</p>
+            </div>
+          </SurfaceCard>
+        </div>
+      </div>
     </section>
   );
 }
-
 export default function LessonView({
   viewport = 'desktop',
   coursePlan,
@@ -703,7 +593,6 @@ export default function LessonView({
   onCompleteActivity,
 }) {
   const shellFamily = getShellFamily(viewport);
-  const isMobile = shellFamily === 'mobile';
   const route = Array.isArray(coursePlan?.ruta) ? coursePlan.ruta : [];
   const moduleIndex = currentLesson?.moduleIndex || 0;
   const activityIndex = currentLesson?.activityIndex || 0;
@@ -713,8 +602,8 @@ export default function LessonView({
     return (
       <ModuleEmptyState
         shellFamily={shellFamily}
-        title="No encontramos este módulo"
-        body="Puede que la ruta haya cambiado o que esta práctica ya no exista. Vuelve a la ruta para retomar el bloque correcto."
+        title="No encontramos este modulo"
+        body="Vuelve a la ruta para retomar el bloque correcto."
         onBack={onBackToCourses}
       />
     );
@@ -791,20 +680,6 @@ export default function LessonView({
     />
   );
 
-  const contextRail = (
-    <div className="sd-lesson-context grid gap-[var(--sd-shell-pane-gap)]">
-      {commandRail}
-      {isImmersive ? insightRail : null}
-    </div>
-  );
-
-  const mobileContextRail = (
-    <div className="sd-lesson-context grid gap-[var(--sd-shell-pane-gap)]">
-      {commandRail}
-      {insightRail}
-    </div>
-  );
-
   return (
     <section
       id="lessonView"
@@ -816,38 +691,26 @@ export default function LessonView({
       <div className="grid gap-[var(--sd-shell-section-gap)]">
         {hero}
 
-        {isMobile ? (
-          <div className="grid gap-[var(--sd-shell-pane-gap)]">
-            {activityStage}
-            {mobileContextRail}
-          </div>
-        ) : (
+        <div
+          className="sd-lesson-flow grid gap-[var(--sd-shell-pane-gap)]"
+          data-sd-lesson-layout={isImmersive ? 'immersive-stack' : 'guided-stack'}
+          data-sd-lesson-comfort="stage-first"
+        >
+          <div className="sd-lesson-primary min-w-0">{activityStage}</div>
+
           <div
             className={cn(
-              'sd-lesson-layout grid gap-[var(--sd-shell-pane-gap)]',
-              isImmersive
-                ? 'sd-lesson-layout-immersive'
-                : 'sd-lesson-layout-guided md:grid-cols-[minmax(15.5rem,18rem)_minmax(0,1fr)]'
+              'sd-lesson-secondary-grid grid gap-[var(--sd-shell-pane-gap)]',
+              shellFamily === 'mobile'
+                ? ''
+                : 'md:grid-cols-2 xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] xl:items-start'
             )}
-            data-sd-lesson-layout={isImmersive ? 'immersive-fullscreen' : 'guided-two-pane'}
-            data-sd-lesson-comfort="content-first"
+            data-sd-lesson-secondary="subordinate"
           >
-            {isImmersive ? (
-              <>
-                <div className="sd-lesson-primary min-w-0">{activityStage}</div>
-                {contextRail}
-              </>
-            ) : (
-              <>
-                {contextRail}
-                <div className="sd-lesson-primary grid min-w-0 gap-[var(--sd-shell-pane-gap)]">
-                  {activityStage}
-                  {insightRail}
-                </div>
-              </>
-            )}
+            {commandRail}
+            {insightRail}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );

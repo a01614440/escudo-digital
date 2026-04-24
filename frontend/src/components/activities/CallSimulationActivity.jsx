@@ -419,6 +419,7 @@ export default function CallSimulationActivity({
       data-sd-simulation-category="call"
       data-sd-simulation-channel="call"
       data-sd-stage-dominance="primary"
+      data-sd-stage-focus="fullscreen"
     >
       {phase === 'incoming' ? (
         <section className="call-immersive-phone incoming">
@@ -476,8 +477,7 @@ export default function CallSimulationActivity({
               <p className="call-immersive-kicker">Elige cómo responder</p>
               <h3>Mantén el control sin salir de la simulación</h3>
               <p>
-                Puedes hablar, usar respuestas rápidas o escribir. En los tres modos la meta es la misma:
-                cortar la presión y verificar por otro canal.
+                Elige modo, corta la presión y verifica por otro canal.
               </p>
             </div>
             <div className="call-stage-meta">
@@ -489,32 +489,32 @@ export default function CallSimulationActivity({
           <div className="call-mode-grid">
             <button className="call-mode-card voice" type="button" onClick={requestVoiceMode}>
               <strong>Modo voz</strong>
-              <span>Hablas por micrófono y la IA responde con voz.</span>
+              <span>Habla por micrófono.</span>
             </button>
             <button className="call-mode-card" type="button" onClick={() => startConversation('choices')}>
               <strong>Respuestas rápidas</strong>
-              <span>Eliges botones cortos y seguros sin perder la interfaz de llamada.</span>
+              <span>Elige botones seguros.</span>
             </button>
             <button className="call-mode-card" type="button" onClick={() => startConversation('chat')}>
               <strong>Modo texto</strong>
-              <span>Escribes si no quieres usar voz o tu navegador falla.</span>
+              <span>Escribe una respuesta corta.</span>
             </button>
           </div>
           <div className="call-dashboard-row">
             <article className="call-info-card">
               <span>Recomendación</span>
               <strong>Respuesta breve</strong>
-              <p>No necesitas convencer al atacante. Solo salir del canal.</p>
+              <p>Solo sal del canal.</p>
             </article>
             <article className="call-info-card">
               <span>Señal crítica</span>
               <strong>Códigos, dinero o presión</strong>
-              <p>Si aparecen, cortar es mejor que seguir validando.</p>
+              <p>Si aparecen, corta.</p>
             </article>
             <article className="call-info-card">
               <span>Qué sigue</span>
               <strong>Verificación externa</strong>
-              <p>App oficial, número público o contacto real que tú busques.</p>
+              <p>Usa un canal oficial.</p>
             </article>
           </div>
           {voices.length ? (
@@ -586,12 +586,12 @@ export default function CallSimulationActivity({
             <article className="call-info-card">
               <span>Promedio actual</span>
               <strong>{turnAverage}</strong>
-              <p>Se recalcula con cada decisión.</p>
+              <p>Promedio vivo.</p>
             </article>
             <article className="call-info-card">
               <span>Indicador</span>
               <strong>{isSpeaking ? 'Hablando' : isListening ? 'Escuchando' : busy ? 'Procesando' : 'En pausa'}</strong>
-              <p>{busy ? 'La IA está generando la siguiente respuesta.' : 'Puedes colgar en cualquier momento.'}</p>
+              <p>{busy ? 'Generando respuesta.' : 'Puedes colgar.'}</p>
             </article>
           </div>
 
@@ -732,11 +732,12 @@ export default function CallSimulationActivity({
             <FeedbackPanel feedback={summary.feedback} />
 
           {summary.transcriptPreview.length ? (
-            <section className="result-card">
+            <details className="result-card" data-sd-call-transcript-preview="collapsed">
+              <summary className="cursor-pointer list-none text-sm font-semibold">Ver ultimos momentos</summary>
               <div className="feedback-head">
                 <div>
                   <p className="eyebrow">Últimos momentos de la llamada</p>
-                  <h3>Revisa dónde mantuviste el control y dónde se abrió el riesgo</h3>
+                  <h3>Control y riesgo</h3>
                 </div>
                 <div className="feedback-pill">Repaso rápido</div>
               </div>
@@ -749,7 +750,7 @@ export default function CallSimulationActivity({
                   </div>
                 ))}
               </div>
-            </section>
+            </details>
           ) : null}
 
             <button

@@ -108,6 +108,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
 
       <section
         className="sd-simulation-main-stage grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.85fr)]"
+        data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="scenario-flow"
       >
         <ImmersivePanel>
@@ -117,15 +118,15 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
               <h3 className="font-display text-2xl tracking-[-0.04em] text-sd-text">
                 Convierte criterio en una rutina repetible
               </h3>
-              <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-muted">
-                {cleanText(activity?.intro || 'Cada situación cambia, pero tu secuencia segura debe mantenerse estable.')}
+              <p className="mt-2 max-w-[60ch] text-sm leading-6 text-sd-text">
+                {cleanText(activity?.intro || 'Mantén una secuencia segura.')}
               </p>
             </div>
             <span className="sd-badge sd-badge-soft">{`${safeChoices}/${scores.length || 0} decisiones firmes`}</span>
           </div>
 
           {currentStep ? (
-            <div className="mt-5 rounded-[24px] border border-sd-border bg-white/75 p-5">
+            <div className="mt-5 rounded-[24px] border border-sd-border-strong bg-sd-surface p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="eyebrow">Situación actual</p>
@@ -137,7 +138,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
               <div className="mt-5 grid gap-3">
                 {(Array.isArray(currentStep?.opciones) ? currentStep.opciones : []).map((option) => (
                   <button
-                    className="rounded-[20px] border border-sd-border bg-white/80 px-4 py-4 text-left text-sm font-medium text-sd-text transition hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-[20px] border border-sd-border-strong bg-sd-surface-raised px-4 py-4 text-left text-sm font-medium text-sd-text transition hover:-translate-y-0.5 hover:bg-sd-surface disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={Boolean(feedback)}
                     key={option?.id || option?.texto}
                     type="button"
@@ -149,38 +150,36 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
               </div>
             </div>
           ) : (
-            <div className="mt-5 rounded-[24px] border border-sd-border bg-white/75 p-5">
-              <p className="text-sm leading-6 text-sd-muted">
+            <div className="mt-5 rounded-[24px] border border-sd-border-strong bg-sd-surface p-5">
+              <p className="text-sm leading-6 text-sd-text">
                 Terminaste este escenario. Ya puedes registrar tu resultado y volver al tablero.
               </p>
             </div>
           )}
         </ImmersivePanel>
 
-        <aside className="grid gap-4">
+        <aside className="grid gap-4" data-sd-stage-rail="subordinate">
           <ImmersiveAsidePanel eyebrow="Bitácora de decisiones">
             <div className="space-y-3">
               {flowChoices.length ? (
                 flowChoices.map((entry, index) => (
-                  <article className="rounded-[18px] border border-sd-border bg-white/80 px-4 py-3" key={`${entry.step}-${index}`}>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-muted">
+                  <article className="rounded-[18px] border border-sd-border-strong bg-sd-surface px-4 py-3" key={`${entry.step}-${index}`}>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sd-text-soft">
                       Paso {index + 1}
                     </span>
                     <p className="mt-2 text-sm font-medium text-sd-text">{entry.choice}</p>
-                    <p className="mt-2 text-xs leading-5 text-sd-muted">{entry.step}</p>
+                    <p className="mt-2 text-xs leading-5 text-sd-text-soft">{entry.step}</p>
                   </article>
                 ))
               ) : (
-                <p className="text-sm leading-6 text-sd-muted">Aún no has tomado decisiones dentro del flujo.</p>
+                <p className="text-sm leading-6 text-sd-text">Aún no has tomado decisiones dentro del flujo.</p>
               )}
             </div>
           </ImmersiveAsidePanel>
 
           <ImmersiveAsidePanel eyebrow="Rutina segura">
-            <div className="space-y-3 text-sm leading-6 text-sd-muted">
-              <p>1. Pausa aunque el escenario parezca cotidiano.</p>
-              <p>2. Verifica por un canal que tú controles.</p>
-              <p>3. No compartas datos ni avances por costumbre.</p>
+            <div className="space-y-3 text-sm leading-6 text-sd-text">
+              <p>Pausa, verifica y no compartas datos por costumbre.</p>
             </div>
           </ImmersiveAsidePanel>
         </aside>
@@ -196,14 +195,14 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
               <strong>Promedio de criterio</strong>
               <span>{formatPercent(finalScore)}</span>
             </div>
-            <p>Tu mejor defensa fue mantener la rutina incluso cuando el escenario parecía cotidiano o creíble.</p>
+            <p>Mantuviste la rutina segura.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">
               <strong>Decisiones seguras</strong>
               <span>{`${safeChoices}/${scores.length || 0}`}</span>
             </div>
-            <p>Las decisiones firmes son las que cortan la prisa y te sacan del canal sospechoso.</p>
+            <p>Las decisiones firmes cortan la prisa.</p>
           </article>
           <article className="review-card">
             <div className="review-card-head">

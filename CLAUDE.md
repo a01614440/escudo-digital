@@ -32,7 +32,9 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F7.A Chat + Admin baseline audit abierta localmente. Siguiente frente recomendado: F7.B Chat drawer accessibility pass.**
+**F6.R9 Fullscreen stage dominance pass cerrada localmente. F6 sigue reabierta a nivel visual/UX aunque su cierre tecnico previo siga siendo valido. Siguiente frente recomendado: F6.R10 Specific simulation passes.**
+
+F7 queda en pausa hasta que termine la rearmada visible de F6.
 
 F6.J cerró el borde transversal compartido de las simulaciones:
 
@@ -282,6 +284,35 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.J agrego `test/f6-cross-simulation-closeout-smoke.test.js`;
 - F6.J valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.J no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
+- F6.R6 Contrast and readability pass quedo cerrada localmente con `docs/rebuild/audit/F6.R6-contrast-readability-pass.md`;
+- F6.R6 reforzo tokens `--sd-text-soft`, `--sd-muted` y `--sd-text-inverse-soft`, y agrego overrides de lectura para briefing de ruta/lesson, command decks y categorias de simulacion;
+- F6.R6 subio contraste en Survey, Courses, Lesson y simulaciones inmersivas sin tocar dominio ni flujos;
+- F6.R6 retiro `text-sd-muted` y washes `bg-white/65-80` de Inbox/WebLab/Scenario en superficies criticas;
+- F6.R6 agrego `test/f6-contrast-readability-pass-smoke.test.js`;
+- F6.R6 valido `.\npm-local.cmd test`, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R6 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `app.css` ni `legacy.css`;
+- F6.R7 Text density reduction pass quedo cerrada localmente con `docs/rebuild/audit/F6.R7-text-density-reduction-pass.md`;
+- F6.R7 redujo texto visible simultaneo en Survey, Mi ruta/Courses, Lesson, feedback y simulaciones sin cambiar dominio ni flujos;
+- F6.R7 movio detalle secundario a `details`, limito summary bars/support/reviews y dejo visible solo lo necesario para actuar;
+- F6.R7 agrego `test/f6-text-density-reduction-smoke.test.js` y actualizo expectations antiguas de copy reducido en tests F3/F4/F6;
+- F6.R7 valido `.\npm-local.cmd test` con 143/143, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R7 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `app.css` ni `legacy.css`;
+- F6.R8 Category identity pass quedo cerrada localmente con `docs/rebuild/audit/F6.R8-category-identity-pass.md`;
+- F6.R8 amplio `SIMULATION_CATEGORY_META` con `signature`, `cue`, `rhythm` y agrego la categoria visual `concept`;
+- F6.R8 agrego `SimulationIdentityBand` en `ActivityChrome` para stages guiados e inmersivos;
+- F6.R8 reforzo tokens `--sd-simulation-category-ink`, `--sd-simulation-category-rail` y `--sd-simulation-category-pattern`;
+- F6.R8 conecto variables de categoria a chat, SMS, email, WebLab, calls, scenario, concept y analysis sin tocar renderer ni dominio;
+- F6.R8 agrego `test/f6-category-identity-pass-smoke.test.js`;
+- F6.R8 valido `.\npm-local.cmd test` con 147/147, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R8 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `SurveyView.jsx`, `app.css` ni `legacy.css`;
+- F6.R9 Fullscreen stage dominance pass quedo cerrada localmente con `docs/rebuild/audit/F6.R9-fullscreen-stage-dominance-pass.md`;
+- F6.R9 subio el stage inmersivo a `--sd-simulation-stage-min-block: clamp(42rem, 86vh, 82rem)` y agrego `--sd-simulation-stage-max-inline: 104rem`;
+- F6.R9 agrego `data-sd-stage-focus="fullscreen"` en `ActivityChrome`, WhatsApp/chat, Inbox/SMS/email, WebLab, ScenarioFlow y CallSimulation;
+- F6.R9 agrego `data-sd-stage-rail="subordinate"` para que insight/sidebar/hints/aside sean secundarios y no compitan con el stage;
+- F6.R9 ensancho chat a `94rem`, ajusto desktop a `2.25fr / 0.65fr`, amplio thread/surface y subio CallSimulation a `92rem`;
+- F6.R9 agrego `test/f6-fullscreen-stage-dominance-pass-smoke.test.js` y actualizo guards heredados F5/F6;
+- F6.R9 valido `.\npm-local.cmd test` con 152/152, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R9 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `SurveyView.jsx`, `app.css` ni `legacy.css`;
 - F6.K F6 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F6.K-f6-closeout-validation.md`;
 - F6.K confirmo como referencia tecnica el cierre de fase ya validado en F6.J: `.\npm-local.cmd test` con 119/119, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.K no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;

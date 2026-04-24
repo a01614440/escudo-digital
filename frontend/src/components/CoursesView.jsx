@@ -17,7 +17,6 @@ import {
   JourneyStepper,
   KeyValueBlock,
   PanelHeader,
-  ProgressSummary,
   StageHero,
   StatStrip,
   SupportRail,
@@ -77,14 +76,22 @@ function getModuleCtaLabel({ locked, adminAccess, stats }) {
   return 'Abrir modulo';
 }
 
-function DashboardTabs({ activeTab, onChange }) {
+function DashboardTabs({ activeTab, onChange, tone = 'default' }) {
   return (
     <ActionCluster collapse="wrap">
       {TABS.map((tab) => (
         <Button
           key={tab.id}
           type="button"
-          variant={activeTab === tab.id ? 'hero' : 'quiet'}
+          variant={
+            activeTab === tab.id
+              ? tone === 'inverse'
+                ? 'primary'
+                : 'hero'
+              : tone === 'inverse'
+                ? 'ghost'
+                : 'quiet'
+          }
           size="compact"
           active={activeTab === tab.id}
           onClick={() => onChange(tab.id)}
@@ -144,7 +151,7 @@ function DashboardEmptyState({
             </h1>
             <p className="sd-copy m-0 max-w-[60ch]">
               {generating
-                ? 'Estamos ordenando modulos y prioridad para dejarte un siguiente paso claro.'
+                ? 'Ordenando tu siguiente paso.'
                 : body}
             </p>
           </div>
@@ -155,8 +162,8 @@ function DashboardEmptyState({
                 <Spinner size="lg" />
                 <div className="grid gap-1">
                   <strong className="sd-copy-strong m-0">Ordenando la ruta</strong>
-                  <p className="m-0 text-sm leading-6 text-sd-text-inverse-soft">
-                    Estamos priorizando que sigue sin perder contexto.
+                  <p className="m-0 text-sm leading-6 text-sd-text-inverse">
+                    Priorizando continuidad.
                   </p>
                 </div>
               </div>
@@ -193,11 +200,13 @@ function RouteBriefing({
   shellFamily,
   target,
   adminAccess,
+  activeTab,
   prioritySummary,
   completedModules,
   routeLength,
   onContinue,
   onShowInRoute,
+  onTabChange,
 }) {
   const routePct = routeLength ? Math.round((completedModules / routeLength) * 100) : 0;
   const hasTarget = Boolean(target);
@@ -206,6 +215,7 @@ function RouteBriefing({
   const nextActivityTitle = hasTarget
     ? displayActivityTitle(target.nextActivity, 'siguiente bloque')
     : null;
+  const activeCopy = TABS.find((tab) => tab.id === activeTab) || TABS[0];
 
   return (
     <SurfaceCard
@@ -214,59 +224,99 @@ function RouteBriefing({
       tone="inverse"
       className="sd-route-briefing relative overflow-hidden border-sd-border-strong"
       data-sd-container="true"
+      data-sd-route-shelf="integrated"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
 
-      <div className="grid gap-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="sd-eyebrow m-0">Ruta personalizada</span>
-          {adminAccess ? <Badge tone="soft">Modo admin</Badge> : null}
-        </div>
-
-        <div className="grid gap-3">
-          <h1 className="sd-title-display m-0">
-            {hasTarget ? moduleTitle : 'Tu ruta ya esta lista para continuar.'}
-          </h1>
-          <p className="sd-copy m-0 max-w-[56ch]">
-            {hasTarget ? `Siguiente actividad: ${nextActivityTitle}.` : prioritySummary}
-          </p>
-        </div>
-
-        {hasTarget ? (
-          <ActionCluster
-            align="start"
-            collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
-          >
-            <Button
-              type="button"
-              variant="primary"
-              size="lg"
-              data-sd-primary-cta="courses-continuity"
-              aria-label={`${primaryLabel}: ${moduleTitle}`}
-              onClick={() =>
-                onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
-              }
-            >
-              {primaryLabel}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onShowInRoute(target.module.id)}
-            >
-              Ver en la ruta
-            </Button>
-          </ActionCluster>
-        ) : (
-          <InlineMessage tone="info" title="Sin continuidad activa">
-            En cuanto tengas una ruta disponible, esta region te muestra el siguiente paso con CTA directo.
-          </InlineMessage>
+      <div
+        className={cn(
+          'grid gap-6',
+          shellFamily === 'desktop'
+            ? 'xl:grid-cols-[minmax(0,1.16fr)_minmax(18rem,0.84fr)] xl:items-start'
+            : ''
         )}
+      >
+        <div className="grid gap-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="sd-eyebrow m-0">Ruta personalizada</span>
+            <Badge tone="soft">{activeCopy.label}</Badge>
+            {adminAccess ? <Badge tone="soft">Modo admin</Badge> : null}
+          </div>
 
-        {routeLength > 0 ? (
-          <div className="sd-route-briefing-progress grid gap-2">
+          <div className="grid gap-2">
+            <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-inverse">
+              {activeCopy.title}
+            </p>
+            <h1 className="sd-title-display m-0">
+              {hasTarget ? moduleTitle : 'Tu ruta ya esta lista para continuar.'}
+            </h1>
+            <p className="sd-copy m-0 max-w-[60ch]">
+              {hasTarget
+                ? `Siguiente actividad: ${nextActivityTitle}.`
+                : prioritySummary}
+            </p>
+          </div>
+
+          {hasTarget ? (
+            <div className="grid gap-2 rounded-[22px] border border-white/12 bg-white/[0.08] px-4 py-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="accent">Siguiente paso</Badge>
+                <span className="text-sm font-medium text-sd-text-inverse">
+                  {getModuleStatusLabel(target.stats.status)}
+                </span>
+              </div>
+              <strong className="text-base font-semibold leading-6 text-sd-text-inverse">
+                {moduleTitle}
+              </strong>
+              <p className="m-0 text-sm leading-6 text-sd-text-inverse">
+                {nextActivityTitle}
+              </p>
+            </div>
+          ) : (
+            <InlineMessage tone="info" title="Sin continuidad activa">
+              Cuando exista ruta, aqui aparece el siguiente paso.
+            </InlineMessage>
+          )}
+
+          {hasTarget ? (
+            <ActionCluster
+              align="start"
+              collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
+            >
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                data-sd-primary-cta="courses-continuity"
+                aria-label={`${primaryLabel}: ${moduleTitle}`}
+                onClick={() =>
+                  onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
+                }
+              >
+                {primaryLabel}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onShowInRoute(target.module.id)}
+              >
+                Ver en la ruta
+              </Button>
+            </ActionCluster>
+          ) : null}
+        </div>
+
+        <div className="grid gap-4">
+          <DashboardSceneBar
+            shellFamily={shellFamily}
+            activeTab={activeTab}
+            onChange={onTabChange}
+          />
+
+          {routeLength > 0 ? (
+            <div className="sd-route-briefing-progress grid gap-2 rounded-[22px] border border-white/12 bg-white/[0.06] px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <span className="text-sd-text-inverse-soft">Avance total de tu ruta</span>
+              <span className="text-sd-text-inverse">Avance total de tu ruta</span>
               <strong className="sd-copy-strong m-0">
                 {`${completedModules}/${routeLength} modulos · ${routePct}%`}
               </strong>
@@ -274,6 +324,7 @@ function RouteBriefing({
             <ProgressBar value={routePct} tone="accent" size="lg" />
           </div>
         ) : null}
+        </div>
       </div>
     </SurfaceCard>
   );
@@ -289,35 +340,28 @@ function DashboardSceneBar({
   const hasJourneySteps = Array.isArray(journeySteps) && journeySteps.length > 0;
 
   return (
-    <SurfaceCard
-      padding="md"
-      variant="editorial"
-      className="border-sd-border-strong"
-    >
+    <div className="sd-route-scene-bar grid gap-4" data-sd-route-console="integrated">
       <div
         className={cn(
-          'grid gap-5',
+          'grid gap-4',
           shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1fr)_auto]'
-            : shellFamily === 'tablet'
-              ? 'lg:grid-cols-[minmax(0,1fr)_auto]'
-              : ''
+            ? 'xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start'
+            : ''
         )}
       >
-        <PanelHeader
-          eyebrow={copy.eyebrow}
-          title={copy.title}
-          subtitle={copy.subtitle}
-        />
-        <DashboardTabs activeTab={activeTab} onChange={onChange} />
+        <div className="grid gap-1">
+          <strong className="text-sm font-semibold text-sd-text-inverse">{copy.title}</strong>
+          <p className="m-0 text-sm leading-6 text-sd-text-inverse">{copy.subtitle}</p>
+        </div>
+        <DashboardTabs activeTab={activeTab} onChange={onChange} tone="inverse" />
       </div>
 
       {hasJourneySteps ? (
         <details
-          className="sd-dashboard-stepper-toggle mt-5 border-t border-sd-border pt-4"
+          className="sd-dashboard-stepper-toggle rounded-[18px] border border-white/12 bg-white/[0.06] px-4 py-3"
           data-sd-journey-stepper="courses-route"
         >
-          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text-inverse">
             Ver progreso de la ruta
           </summary>
           <div className="mt-4">
@@ -329,7 +373,7 @@ function DashboardSceneBar({
           </div>
         </details>
       ) : null}
-    </SurfaceCard>
+    </div>
   );
 }
 
@@ -365,28 +409,32 @@ function RouteModulePill({
     >
       <div
         className={cn(
-          'pointer-events-none absolute inset-y-0 left-0',
+          'pointer-events-none absolute inset-y-0 left-0 rounded-l-[inherit]',
           selected ? 'w-1.5 bg-sd-accent' : recommended ? 'w-1 bg-sd-accent' : 'w-0 bg-transparent'
         )}
       />
       <div className="grid gap-3 pl-2">
-        <div className="grid min-w-0 grid-cols-[auto_1fr_auto] items-center gap-3">
+        <div className="flex items-start gap-3">
           <span className="rounded-full border border-sd-border bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-text">
             {String(entry.index + 1).padStart(2, '0')}
           </span>
-          <strong className="break-words text-base leading-6 text-sd-text">
-            {displayModuleTitle(entry.module)}
-          </strong>
-          <Badge tone={statusTone}>{statusLabel}</Badge>
+          <div className="grid min-w-0 flex-1 gap-2">
+            <div className="flex flex-wrap items-start gap-2">
+              <strong className="min-w-0 flex-1 break-words text-base leading-6 text-sd-text">
+                {displayModuleTitle(entry.module)}
+              </strong>
+              <Badge tone={statusTone}>{statusLabel}</Badge>
+            </div>
+
+            {recommended ? (
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-accent">
+                Siguiente recomendado
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <ProgressBar value={entry.stats.pct} tone={locked ? 'warning' : 'accent'} />
-
-        {recommended ? (
-          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-accent">
-            Siguiente recomendado
-          </span>
-        ) : null}
       </div>
     </SurfaceCard>
   );
@@ -410,27 +458,27 @@ function RouteNavigatorRail({
     <SurfaceCard
       padding="md"
       variant="support"
-      className={cn('overflow-hidden', shellFamily === 'desktop' ? 'xl:sticky xl:top-6' : '')}
+      className={cn('overflow-hidden', shellFamily === 'desktop' ? '2xl:sticky 2xl:top-6' : '')}
+      data-sd-route-rail="secondary"
     >
       <PanelHeader
         eyebrow="Navegador de ruta"
-        title="Ruta por modulos"
-        subtitle="Escanea estado, prioridad y detalle seleccionado."
+        title="Explora tu ruta"
+        subtitle="Cambia de modulo sin perder foco."
         divider
       />
 
       <div className="grid gap-4">
         {availableLevels.length > 1 ? (
-          <SurfaceCard padding="compact" variant="subtle">
+          <div className="grid gap-3 rounded-[18px] border border-sd-border bg-sd-canvas px-4 py-3">
             <PanelHeader
               eyebrow="Nivel visible"
               title={levelCopy.title}
-              subtitle="Filtra sin romper el orden."
             />
-            <div className="mt-4">
+            <div>
               <LevelFilter levels={availableLevels} activeLevel={level} onChange={onLevelChange} />
             </div>
-          </SurfaceCard>
+          </div>
         ) : null}
 
         <div className="grid gap-3">
@@ -463,35 +511,33 @@ function ModuleActivityList({ module, nextActivity, completedMap }) {
         const completed = Boolean(completedMap?.[activity.id]);
         const isNext = nextActivity?.id === activity.id;
         const stateLabel = completed ? 'Hecha' : isNext ? 'Siguiente' : activity?.tipo || 'Actividad';
+        const stateTone = completed ? 'success' : isNext ? 'accent' : 'soft';
 
         return (
           <li
             key={activity.id}
             className={cn(
-              'grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[14px] border px-3 py-2.5 transition',
+              'sd-module-activity-row grid gap-2 rounded-[16px] border px-4 py-3 transition',
               completed
                 ? 'border-emerald-300 bg-emerald-50/60'
                 : isNext
-                  ? 'border-sd-accent border-l-4 bg-white'
+                  ? 'border-sd-accent bg-white shadow-[0_18px_42px_-34px_rgba(47,99,255,0.34)]'
                   : 'border-sd-border bg-white'
             )}
             aria-current={isNext ? 'step' : undefined}
             data-activity-state={completed ? 'completed' : isNext ? 'next' : 'pending'}
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sd-border bg-sd-canvas text-xs font-semibold text-sd-text">
-              {completed ? 'OK' : String(index + 1).padStart(2, '0')}
-            </span>
-            <strong className="min-w-0 truncate text-sm leading-6 text-sd-text">
-              {displayActivityTitle(activity)}
-            </strong>
-            <span
-              className={cn(
-                'text-xs font-semibold uppercase tracking-[0.06em]',
-                isNext ? 'text-sd-accent' : 'text-sd-text-soft'
-              )}
-            >
-              {stateLabel}
-            </span>
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sd-border bg-sd-canvas text-xs font-semibold text-sd-text">
+                {completed ? 'OK' : String(index + 1).padStart(2, '0')}
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="block break-words text-sm leading-6 text-sd-text">
+                  {displayActivityTitle(activity)}
+                </strong>
+              </div>
+              <Badge tone={stateTone}>{stateLabel}</Badge>
+            </div>
           </li>
         );
       })}
@@ -517,7 +563,7 @@ function ModuleMissionBoard({
         <EmptyState
           eyebrow="Ruta"
           title="Elige un modulo para abrir su detalle"
-          body="Cuando selecciones un bloque, esta region se convierte en tu mission board con progreso, metadata y CTA."
+          body="Selecciona un bloque para ver accion y progreso."
         />
       </SurfaceCard>
     );
@@ -531,12 +577,33 @@ function ModuleMissionBoard({
     ? displayModuleTitle(nextUnlockEntry.module)
     : 'Ruta abierta completa';
   const activities = Array.isArray(module?.actividades) ? module.actividades : [];
+  const categoryLabel = CATEGORY_LABELS[module.categoria] || 'Ruta';
+  const progressHint = `${getModuleStatusLabel(stats.status)} · ${stats.completedCount}/${stats.total} actividades`;
+  const supportFacts = [
+    { key: 'category', label: 'Categoria', value: categoryLabel },
+    { key: 'gap', label: 'Gap visible', value: gapLabel },
+    { key: 'unlock', label: 'Siguiente desbloqueo', value: nextUnlockLabel },
+  ];
+  const statusNote = locked
+    ? {
+        tone: 'warning',
+        title: 'Bloqueado por secuencia.',
+        body: unlockMessage,
+      }
+    : adminAccess
+      ? {
+          tone: 'info',
+          title: 'Modo admin activo.',
+          body: 'Puedes abrir o repetir este modulo sin esperar el desbloqueo secuencial.',
+        }
+      : null;
+  const activityCountTone = stats.pct >= 100 ? 'success' : stats.completedCount ? 'accent' : 'soft';
 
   return (
     <SurfaceCard
       padding="lg"
       variant="panel"
-      className="sd-module-mission-board grid gap-6"
+      className="sd-module-mission-board grid gap-5"
       data-route-detail="module"
       data-selected-module-id={module.id}
       data-sd-module-layout={shellFamily === 'desktop' ? 'desktop-flat' : 'stacked-flat'}
@@ -545,76 +612,77 @@ function ModuleMissionBoard({
         <div className="flex flex-wrap items-center gap-3">
           <span className="sd-eyebrow m-0">{`Modulo ${index + 1}`}</span>
           {recommended ? <Badge tone="accent">Siguiente recomendado</Badge> : null}
+          <Badge tone="soft">{categoryLabel}</Badge>
         </div>
         <h2 className="sd-title m-0">{moduleTitle}</h2>
-        <p className="m-0 text-sm leading-6 text-sd-text">
+        <p className="m-0 max-w-[64ch] text-sm leading-6 text-sd-text">
           {cleanText(
             module.descripcion,
-            'Modulo practico con siguiente actividad y salida clara.'
+            'Modulo practico con salida clara.'
           )}
         </p>
-        <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-soft">
-          {`${CATEGORY_LABELS[module.categoria] || 'Ruta'} · ${getModuleObjective(module)}`}
-        </p>
+        <details className="rounded-[16px] border border-sd-border bg-sd-canvas px-4 py-3">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">Objetivo</summary>
+          <p className="mt-2 mb-0 text-sm leading-6 text-sd-text">{getModuleObjective(module)}</p>
+        </details>
       </div>
 
-      <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
-        <Button
-          type="button"
-          variant="primary"
-          size="lg"
-          disabled={locked}
-          data-sd-module-cta="courses-detail"
-          aria-label={`${getModuleCtaLabel({ locked, adminAccess, stats })}: ${moduleTitle}`}
-          onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}
-        >
-          {getModuleCtaLabel({ locked, adminAccess, stats })}
-        </Button>
-      </ActionCluster>
-
-      <ProgressSummary
-        eyebrow="Avance del modulo"
-        title={nextActivityTitle}
-        value={formatPercent(stats.pct)}
-        hint={getModuleStatusLabel(stats.status)}
-        progressValue={stats.pct}
-        tone="accent"
-        variant="support"
-      />
-
-      <dl className="grid gap-3 sm:grid-cols-2">
-        <div className="grid gap-1 rounded-[14px] border border-sd-border bg-sd-canvas px-4 py-3">
-          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-soft">
-            Gap visible
-          </dt>
-          <dd className="m-0 text-sm font-semibold leading-6 text-sd-text">{gapLabel}</dd>
+      <div
+        className="sd-module-command-deck grid gap-4 rounded-[24px] border border-sd-border-strong bg-sd-canvas px-4 py-4"
+        data-sd-module-flow="converged"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="grid min-w-0 flex-1 gap-2">
+            <p className="sd-eyebrow m-0">Siguiente bloque</p>
+            <h3 className="sd-heading-sm m-0">{nextActivityTitle}</h3>
+            <p className="m-0 text-sm leading-6 text-sd-text">{progressHint}</p>
+          </div>
+          <strong className="text-[1.85rem] leading-none font-semibold text-sd-text">
+            {formatPercent(stats.pct)}
+          </strong>
         </div>
-        <div className="grid gap-1 rounded-[14px] border border-sd-border bg-sd-canvas px-4 py-3">
-          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-soft">
-            Siguiente desbloqueo
-          </dt>
-          <dd className="m-0 text-sm font-semibold leading-6 text-sd-text">{nextUnlockLabel}</dd>
+
+        <ProgressBar value={stats.pct} tone="accent" size="lg" />
+
+        <div className="sd-module-support-facts grid gap-3 sm:grid-cols-2">
+          {supportFacts.slice(0, 2).map((item) => (
+            <div
+              key={item.key}
+              className="sd-module-support-fact grid gap-1 rounded-[16px] border border-sd-border bg-sd-surface px-4 py-3"
+            >
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text">
+                {item.label}
+              </span>
+              <strong className="text-sm leading-6 text-sd-text">{item.value}</strong>
+            </div>
+          ))}
         </div>
-      </dl>
 
-      {locked ? (
-        <InlineMessage tone="warning" title="Este modulo aun esta bloqueado.">
-          {unlockMessage}
-        </InlineMessage>
-      ) : null}
+        {statusNote ? (
+          <InlineMessage tone={statusNote.tone} title={statusNote.title}>
+            {statusNote.body}
+          </InlineMessage>
+        ) : null}
 
-      {adminAccess ? (
-        <InlineMessage tone="info" title="Modo admin activo.">
-          Puedes abrir o repetir este modulo sin esperar el desbloqueo secuencial.
-        </InlineMessage>
-      ) : null}
+        <ActionCluster align="start" collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}>
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            disabled={locked}
+            data-sd-module-cta="courses-detail"
+            aria-label={`${getModuleCtaLabel({ locked, adminAccess, stats })}: ${moduleTitle}`}
+            onClick={() => onOpenModule(index, { restart: adminAccess && stats.pct >= 100 })}
+          >
+            {getModuleCtaLabel({ locked, adminAccess, stats })}
+          </Button>
+        </ActionCluster>
+      </div>
 
       <details className="sd-module-activities-toggle rounded-[18px] border border-sd-border bg-sd-canvas px-4 py-3">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-sd-text">
-          <span>{`Ver actividades del modulo (${activities.length})`}</span>
-          <span aria-hidden="true" className="text-xs uppercase tracking-[0.08em] text-sd-text-soft">
-            Colapsable
-          </span>
+          <span>Mapa de actividades</span>
+          <Badge tone={activityCountTone}>{`${stats.completedCount}/${activities.length} hechas`}</Badge>
         </summary>
         <div className="mt-4">
           <ModuleActivityList
@@ -677,12 +745,12 @@ function ProgressScene({
 
   return (
     <div className="grid gap-5">
-      <StageHero
-        tone="editorial"
-        eyebrow="Progreso visible"
-        title="Progreso util de tu ruta"
-        subtitle={getPrioritySummary(answers, assessment)}
-        meta="Avance, fortaleza y gap sin datos decorativos."
+        <StageHero
+          tone="editorial"
+          eyebrow="Progreso visible"
+          title="Progreso util de tu ruta"
+          subtitle={getPrioritySummary(answers, assessment)}
+          meta="Avance, fortaleza y gap."
         footer={
           <StatStrip
             compact={shellFamily === 'mobile'}
@@ -695,7 +763,7 @@ function ProgressScene({
         <PanelHeader
           eyebrow="Competencias"
           title="Tu blindaje por tema"
-          subtitle="Lee rapido que esta fuerte y que conviene reforzar."
+          subtitle="Fortalezas y gaps."
           divider
         />
         <div className="grid gap-4">
@@ -717,7 +785,7 @@ function ProgressScene({
         tone="support"
         eyebrow="Lo importante"
         title="Senales de aprendizaje"
-        subtitle="Errores y fortalezas que ayudan a decidir como seguir."
+        subtitle="Lo que conviene repetir."
       >
         <KeyValueBlock
           items={[
@@ -745,7 +813,7 @@ function ProgressScene({
           <PanelHeader
             eyebrow="Historial reciente"
             title="Evolucion de la ruta"
-            subtitle="Snapshots recientes para retomar con contexto real."
+            subtitle="Historial para retomar."
             divider
           />
           <div className="grid gap-3">
@@ -755,7 +823,7 @@ function ProgressScene({
                 className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-sd-border bg-sd-canvas px-4 py-3"
               >
                 <strong className="text-sm text-sd-text">{formatDate(item.timestamp)}</strong>
-                <div className="flex items-center gap-3 text-sm text-sd-text-soft">
+                <div className="flex items-center gap-3 text-sm text-sd-text">
                   <span>{`${item.completedCount} actividad(es)`}</span>
                   <Badge tone="accent">{formatPercent(item.scoreTotal)}</Badge>
                 </div>
@@ -795,7 +863,7 @@ function SettingsScene({
       <PanelHeader
         eyebrow="Ajustes de ruta"
         title="Ajustes de ruta sin perder progreso"
-        subtitle="Cambia ritmo, dificultad o temas antes de regenerar. No toca diagnostico ni progreso."
+        subtitle="Cambia foco sin perder progreso."
         divider
       />
 
@@ -840,7 +908,7 @@ function SettingsScene({
         hint={
           selectedTopicCount
             ? `${selectedTopicCount} tema(s) priorizados manualmente.`
-            : 'Elige temas solo si quieres reforzar una prioridad concreta.'
+            : 'Opcional: refuerza un tema concreto.'
         }
       >
         <ActionCluster align="start" collapse="wrap">
@@ -985,7 +1053,7 @@ export default function CoursesView({
       <DashboardEmptyState
         shellFamily={shellFamily}
         title="Primero completa tu evaluacion"
-        body="Necesitamos tu diagnostico antes de ordenar una ruta con continuidad real."
+        body="Completa el diagnostico para ordenar tu ruta."
         error={error}
       />
     );
@@ -996,7 +1064,7 @@ export default function CoursesView({
       <DashboardEmptyState
         shellFamily={shellFamily}
         title="Tu ruta todavia no esta lista"
-        body="Desde aqui deberias poder leer continuidad, progreso y siguiente paso como una sola cabina de producto."
+        body="Genera la ruta para ver continuidad y progreso."
         error={error}
         actionLabel="Generar mi ruta"
         onAction={onGenerateCourse}
@@ -1010,7 +1078,7 @@ export default function CoursesView({
       <DashboardEmptyState
         shellFamily={shellFamily}
         title="Tu ruta no tiene modulos visibles"
-        body="Vuelve a generar la ruta para reconstruir la secuencia recomendada sin perder tu progreso."
+        body="Regenera la ruta para reconstruir la secuencia."
         error={error}
         actionLabel="Actualizar ruta"
         onAction={onGenerateCourse}
@@ -1045,8 +1113,8 @@ export default function CoursesView({
   const routeLayoutMode = isMobile
     ? 'mobile-stack'
     : shellFamily === 'tablet'
-      ? 'tablet-two-pane'
-      : 'desktop-two-pane';
+      ? 'tablet-stack'
+      : 'desktop-detail-first';
 
   return (
     <section
@@ -1059,45 +1127,26 @@ export default function CoursesView({
           shellFamily={shellFamily}
           target={nextRouteTarget}
           adminAccess={adminAccess}
+          activeTab={tab}
           prioritySummary={prioritySummary}
           completedModules={completedModules}
           routeLength={route.length}
           onContinue={onOpenModule}
           onShowInRoute={handleShowInRoute}
-        />
-
-        <DashboardSceneBar
-          shellFamily={shellFamily}
-          activeTab={tab}
-          onChange={setTab}
+          onTabChange={setTab}
         />
 
         {tab === 'ruta' ? (
           <div
             className={cn(
               'grid min-w-0 gap-[var(--sd-shell-pane-gap)]',
-              shellFamily === 'tablet'
-                ? 'lg:grid-cols-[minmax(17rem,19rem)_minmax(0,1fr)]'
-                : shellFamily === 'desktop'
-                  ? 'xl:grid-cols-[minmax(18rem,20rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(18.5rem,20.5rem)_minmax(0,1fr)]'
+              shellFamily === 'desktop'
+                ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(16rem,18rem)] xl:items-start'
                   : ''
             )}
             data-sd-route-layout={routeLayoutMode}
-            data-sd-route-comfort="balanced-two-pane"
+            data-sd-route-comfort={shellFamily === 'desktop' ? 'detail-first' : 'stacked'}
           >
-            <RouteNavigatorRail
-              shellFamily={shellFamily}
-              level={level}
-              availableLevels={availableLevels}
-              onLevelChange={setLevel}
-              currentLevelEntries={currentLevelEntries}
-              selectedEntry={selectedEntry}
-              adminAccess={adminAccess}
-              unlockedLimit={unlockedLimit}
-              recommendedIndex={recommendedIndex}
-              onSelectModule={setSelectedModuleId}
-            />
-
             <ModuleMissionBoard
               shellFamily={shellFamily}
               entry={selectedEntry}
@@ -1109,6 +1158,19 @@ export default function CoursesView({
               progressMap={courseProgress}
               weakestTopic={weakestTopic}
               nextUnlockEntry={nextUnlockEntry}
+            />
+
+            <RouteNavigatorRail
+              shellFamily={shellFamily}
+              level={level}
+              availableLevels={availableLevels}
+              onLevelChange={setLevel}
+              currentLevelEntries={currentLevelEntries}
+              selectedEntry={selectedEntry}
+              adminAccess={adminAccess}
+              unlockedLimit={unlockedLimit}
+              recommendedIndex={recommendedIndex}
+              onSelectModule={setSelectedModuleId}
             />
           </div>
         ) : null}

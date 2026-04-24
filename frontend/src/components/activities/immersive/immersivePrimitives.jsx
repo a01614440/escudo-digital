@@ -22,7 +22,7 @@ export function ImmersiveAsidePanel({
     <Component className={cn(SOFT_PANEL_CLASS, className)} {...props}>
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
       {title ? <strong className="mt-2 block text-base text-sd-text">{title}</strong> : null}
-      {body ? <p className="mt-3 text-sm leading-6 text-sd-text-soft">{body}</p> : null}
+      {body ? <p className="mt-3 text-sm leading-6 text-sd-text">{body}</p> : null}
       {children ? <div className={cn(title || body ? 'mt-3' : '')}>{children}</div> : null}
     </Component>
   );

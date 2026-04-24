@@ -99,10 +99,6 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         <span className="sms-app-pill active">SMS</span>
       </div>
 
-      <p className="mt-4 text-sm leading-6 text-sd-muted">
-        {cleanText(activity?.intro || 'Revisa remitente, tono y enlace antes de abrir o responder.')}
-      </p>
-
       <div className="mt-4 space-y-3">
         {messages.map((message) => {
           const reviewItem = result?.review?.find((item) => item.id === message.id);
@@ -116,7 +112,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
                 'email-list-item sms-thread-layout w-full rounded-[22px] border px-4 py-4 text-left transition',
                 selectedId === message.id
                   ? 'border-sd-accent bg-sd-accent-soft'
-                  : 'border-sd-border bg-white/65 hover:-translate-y-0.5 hover:bg-white/80',
+                  : 'border-sd-border-strong bg-sd-surface hover:-translate-y-0.5 hover:bg-sd-surface-raised',
                 reviewItem?.status === 'wrong'
                   ? 'border-amber-300/70'
                   : reviewItem?.status === 'correct'
@@ -140,10 +136,10 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
               <div className="sms-thread-main">
                 <div className="flex items-center justify-between gap-2">
                   <strong className="email-list-name truncate text-sm text-sd-text">{message.displayName}</strong>
-                  <span className="email-list-date text-xs text-sd-muted">{message.dateLabel}</span>
+                  <span className="email-list-date text-xs text-sd-text-soft">{message.dateLabel}</span>
                 </div>
                 <p className="email-list-subject mt-1 truncate text-sm font-medium text-sd-text">{message.subject}</p>
-                <p className="email-list-preview mt-1 line-clamp-2 text-xs leading-5 text-sd-muted">
+                <p className="email-list-preview mt-1 line-clamp-2 text-xs leading-5 text-sd-text-soft">
                   {message.preview || message.body[0] || 'Sin vista previa'}
                 </p>
                 <div className="sms-thread-footer mt-3">
@@ -210,7 +206,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
                 'email-list-item email-thread-layout w-full rounded-[22px] border px-4 py-4 text-left transition',
                 selectedId === message.id
                   ? 'border-sd-accent bg-sd-accent-soft'
-                  : 'border-sd-border bg-white/65 hover:-translate-y-0.5 hover:bg-white/80',
+                  : 'border-sd-border-strong bg-sd-surface hover:-translate-y-0.5 hover:bg-sd-surface-raised',
                 reviewItem?.status === 'wrong'
                   ? 'border-amber-300/70'
                   : reviewItem?.status === 'correct'
@@ -234,10 +230,10 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
               <div className="email-thread-main">
                 <div className="flex items-center justify-between gap-2">
                   <strong className="email-list-name truncate text-sm text-sd-text">{message.displayName}</strong>
-                  <span className="email-list-date text-xs text-sd-muted">{message.dateLabel}</span>
+                  <span className="email-list-date text-xs text-sd-text-soft">{message.dateLabel}</span>
                 </div>
                 <p className="email-list-subject mt-1 truncate text-sm font-medium text-sd-text">{message.subject}</p>
-                <p className="email-list-preview mt-1 line-clamp-2 text-xs leading-5 text-sd-muted">
+                <p className="email-list-preview mt-1 line-clamp-2 text-xs leading-5 text-sd-text-soft">
                   {message.preview || message.body[0] || 'Sin vista previa'}
                 </p>
                 <div className="email-thread-footer mt-3">
@@ -291,7 +287,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         <div className="min-w-0">
           <p className="eyebrow">Lectura del mensaje</p>
           <h3 className="font-display text-xl tracking-[-0.03em] text-sd-text">{selectedMessage.subject}</h3>
-          <p className="mt-2 text-sm text-sd-muted">
+          <p className="mt-2 text-sm text-sd-text-soft">
             {selectedMessage.dateLabel} · {selectedMessage.details?.replyTo || selectedMessage.from || 'Sin dato'}
           </p>
         </div>
@@ -318,7 +314,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
       ) : null}
 
       {showDetails ? (
-        <div className="sms-details-card mt-4 grid gap-3 rounded-[22px] border border-sd-border p-4 text-sm text-sd-muted sm:grid-cols-2">
+        <div className="sms-details-card mt-4 grid gap-3 rounded-[22px] border border-sd-border-strong bg-sd-surface p-4 text-sm text-sd-text-soft sm:grid-cols-2">
           <div>
             <strong className="block text-sd-text">From</strong>
             <p>{cleanText(selectedMessage?.details?.from || selectedMessage.from || 'Sin dato')}</p>
@@ -350,7 +346,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         {selectedMessage.attachments.length ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {selectedMessage.attachments.map((item) => (
-              <span className="sms-thread-chip neutral rounded-full border border-sd-border bg-white px-3 py-1 text-xs font-medium text-sd-muted" key={item}>
+              <span className="sms-thread-chip neutral rounded-full border border-sd-border-strong bg-sd-surface px-3 py-1 text-xs font-semibold text-sd-text" key={item}>
                 {item}
               </span>
             ))}
@@ -439,7 +435,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         <div className="min-w-0">
           <p className="eyebrow">Lectura del correo</p>
           <h3 className="font-display text-xl tracking-[-0.03em] text-sd-text">{selectedMessage.subject}</h3>
-          <p className="mt-2 text-sm text-sd-muted">
+          <p className="mt-2 text-sm text-sd-text-soft">
             {`${selectedMessage.displayName}${selectedMessage.from ? ` <${selectedMessage.from}>` : ''}`}
           </p>
         </div>
@@ -466,7 +462,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
       ) : null}
 
       {showDetails ? (
-        <div className="email-details-card mt-4 grid gap-3 rounded-[22px] border border-sd-border p-4 text-sm text-sd-muted sm:grid-cols-2">
+        <div className="email-details-card mt-4 grid gap-3 rounded-[22px] border border-sd-border-strong bg-sd-surface p-4 text-sm text-sd-text-soft sm:grid-cols-2">
           <div>
             <strong className="block text-sd-text">From</strong>
             <p>{cleanText(selectedMessage?.details?.from || selectedMessage.from || 'Sin dato')}</p>
@@ -498,7 +494,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         {selectedMessage.attachments.length ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {selectedMessage.attachments.map((item) => (
-              <span className="email-thread-chip neutral rounded-full border border-sd-border bg-white px-3 py-1 text-xs font-medium text-sd-muted" key={item}>
+              <span className="email-thread-chip neutral rounded-full border border-sd-border-strong bg-sd-surface px-3 py-1 text-xs font-semibold text-sd-text" key={item}>
                 {item}
               </span>
             ))}
@@ -585,9 +581,6 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
           <div>
             <p className="eyebrow">Bandeja prioritaria</p>
             <h3 className="font-display text-xl tracking-[-0.03em] text-sd-text">Correos por revisar</h3>
-            <p className="mt-2 text-sm leading-6 text-sd-muted">
-              Revisa remitente, asunto, enlaces y adjuntos antes de responder o reenviar.
-            </p>
           </div>
           <div className="inbox-stage-badges">
             <span className="sd-badge sd-badge-accent">Correo</span>
@@ -601,8 +594,14 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         <ActivitySummaryBar items={summaryItems} />
       </div>
 
-      <div className="sd-simulation-main-stage col-span-full grid gap-4 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]" data-sd-stage-layout="list-detail">
-        <ImmersivePanel className="email-sidebar">{isSms ? renderSmsSidebar() : renderEmailSidebar()}</ImmersivePanel>
+      <div
+        className="sd-simulation-main-stage col-span-full grid gap-4 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]"
+        data-sd-stage-focus="fullscreen"
+        data-sd-stage-layout="list-detail"
+      >
+        <ImmersivePanel className="email-sidebar" data-sd-stage-rail="subordinate">
+          {isSms ? renderSmsSidebar() : renderEmailSidebar()}
+        </ImmersivePanel>
 
         {selectedMessage ? (
           <ImmersivePanel className={cn('email-reader', isSms ? 'sms-reader-body' : 'email-reader-body')}>
@@ -618,7 +617,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
 
         {result ? (
         <div className="review-grid col-span-full">
-          {result.review.map((item) => (
+          {result.review.slice(0, 3).map((item) => (
             <article className={`review-card ${item.status} ${isSms ? 'sms-review-card' : 'email-review-card'}`.trim()} key={item.id}>
               <div className="review-card-head">
                 <strong>{item.label}</strong>
@@ -626,8 +625,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
               </div>
               <p>{item.reason}</p>
               <p className="review-card-meta">
-                {item.picked ? `Marcaste ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}` : 'Sin clasificar'} -{' '}
-                {`Respuesta esperada: ${item.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'}`}
+                {`${item.picked ? `Marcaste: ${item.picked === 'estafa' ? 'Sospechoso' : 'Seguro'}` : 'Sin clasificar'} · Esperado: ${item.correctChoice === 'estafa' ? 'Sospechoso' : 'Seguro'}`}
               </p>
             </article>
           ))}

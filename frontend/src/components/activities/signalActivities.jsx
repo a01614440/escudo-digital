@@ -108,8 +108,8 @@ function ChatFeedbackCard({
         title={repairPossibleMojibake(feedback.title || 'Lectura del resultado')}
         subtitle={
           done
-            ? 'La conversación ya cerró. Quédate con la señal principal y registra el cierre sin volver a abrir el chat.'
-            : 'Usa esta lectura antes de mandar el siguiente mensaje para no seguirle el ritmo al atacante.'
+            ? 'Cierre listo.'
+            : 'Ajusta antes de responder.'
         }
         meta={scoreLabel ? <Badge tone={tone === 'danger' ? 'warning' : tone === 'success' ? 'accent' : 'neutral'}>{scoreLabel}</Badge> : null}
         divider
@@ -132,19 +132,19 @@ function ChatFeedbackCard({
         {feedback.risk ? (
           <SurfaceCard padding="compact" variant="subtle">
             <strong className="block text-sm text-sd-text">Qué sigue siendo riesgoso</strong>
-            <p className="mt-2 text-sm leading-6 text-sd-text-soft">{repairPossibleMojibake(feedback.risk)}</p>
+            <p className="mt-2 text-sm leading-6 text-sd-text">{repairPossibleMojibake(feedback.risk)}</p>
           </SurfaceCard>
         ) : null}
 
         {feedback.action ? (
           <SurfaceCard padding="compact" variant="subtle">
             <strong className="block text-sm text-sd-text">Siguiente movimiento seguro</strong>
-            <p className="mt-2 text-sm leading-6 text-sd-text-soft">{repairPossibleMojibake(feedback.action)}</p>
+            <p className="mt-2 text-sm leading-6 text-sd-text">{repairPossibleMojibake(feedback.action)}</p>
           </SurfaceCard>
         ) : null}
 
         {feedback.extra ? (
-          <p className="m-0 text-sm leading-6 text-sd-text-soft">{repairPossibleMojibake(feedback.extra)}</p>
+          <p className="m-0 text-sm leading-6 text-sd-text">{repairPossibleMojibake(feedback.extra)}</p>
         ) : null}
       </div>
 
@@ -329,7 +329,7 @@ export function WhatsAppSimulation({
           divider
         />
         <div className="grid gap-3">
-          {signals.map((signal) => (
+          {signals.slice(0, 2).map((signal) => (
             <div className="sd-chat-support-row" key={signal.title}>
               <strong>{signal.title}</strong>
               <p>{signal.body}</p>
@@ -362,6 +362,7 @@ export function WhatsAppSimulation({
       data-sd-simulation-category="chat"
       data-sd-simulation-channel="whatsapp"
       data-sd-stage-dominance="primary"
+      data-sd-stage-focus="fullscreen"
     >
       <section className="sd-chat-surface">
         <header className="sd-chat-header">
@@ -505,13 +506,17 @@ export function WhatsAppSimulation({
             </div>
           ) : (
             <InlineMessage tone="success" title="La conversacion ya quedo cerrada" className="sd-chat-complete-note">
-              Sal del chat con esta lectura y registra el cierre sin volver a abrir la conversacion.
+              Registra el cierre y sal del chat.
             </InlineMessage>
           )}
         </div>
       </section>
 
-      {isDesktop ? <aside className="sd-chat-insight">{supportContent}</aside> : null}
+      {isDesktop ? (
+        <aside className="sd-chat-insight" data-sd-stage-rail="subordinate">
+          {supportContent}
+        </aside>
+      ) : null}
 
       {!isDesktop && !feedback ? (
         <SurfaceCard
@@ -522,12 +527,12 @@ export function WhatsAppSimulation({
           <PanelHeader
             eyebrow="QuÃ© mirar"
             title="SeÃ±ales que sÃ­ deben mover la decisiÃ³n"
-            subtitle="Solo dejamos lo mÃ­nimo para no romper el foco del hilo."
+            subtitle="Solo las claves."
             meta={<Badge tone="warning">{dominantSignal}</Badge>}
             divider
           />
           <div className="grid gap-3">
-            {signals.map((signal) => (
+            {signals.slice(0, 2).map((signal) => (
               <div className="sd-chat-support-row" key={signal.title}>
                 <strong>{signal.title}</strong>
                 <p>{signal.body}</p>

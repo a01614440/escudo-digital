@@ -84,7 +84,7 @@ describe('F6.B simulation contrast, readability and text density guards', () => 
   test('FeedbackPanel declares compact density and keeps feedback text readable', () => {
     assert.match(feedbackSource, /data-sd-text-density="compact"/);
     assert.match(feedbackSource, /Resumen corto para decidir el siguiente paso\./);
-    assert.match(feedbackSource, /Criterio y siguiente accion\./);
+    assert.match(feedbackSource, /Resultado breve\./);
   });
 
   test('Tailwind exposes F6 readable surfaces, summary cards and stronger feedback text', () => {

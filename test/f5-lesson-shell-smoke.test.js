@@ -41,10 +41,12 @@ describe('F5.E Lesson shell content-first fullscreen guards', () => {
 
     assert.match(block, /const stageMode = getLessonStageMode\(info\.activity\)/);
     assert.match(block, /data-sd-activity-mode=\{stageMode\}/);
-    assert.match(block, /data-sd-lesson-layout=\{isImmersive \? 'immersive-fullscreen' : 'guided-two-pane'\}/);
-    assert.match(block, /sd-lesson-layout-immersive/);
-    assert.match(block, /sd-lesson-layout-guided/);
+    assert.match(block, /className="sd-lesson-flow grid gap-\[var\(--sd-shell-pane-gap\)\]"/);
+    assert.match(block, /data-sd-lesson-layout=\{isImmersive \? 'immersive-stack' : 'guided-stack'\}/);
+    assert.match(block, /data-sd-lesson-secondary="subordinate"/);
+    assert.match(block, /sd-lesson-secondary-grid/);
     assert.doesNotMatch(block, /<WorkspaceLayout/);
+    assert.doesNotMatch(block, /guided-two-pane/);
   });
 
   test('LessonActivityStage gives immersive activities the renderer without nested lesson cards', () => {
@@ -54,8 +56,11 @@ describe('F5.E Lesson shell content-first fullscreen guards', () => {
     assert.match(block, /const isImmersive = stageMode === 'immersive'/);
     assert.match(block, /data-sd-lesson-stage="immersive"/);
     assert.match(block, /data-sd-activity-type=\{String\(activity\?\.tipo \|\| ''\)\}/);
+    assert.match(block, /data-sd-stage-comfort="fullscreen"/);
     assert.match(block, /sd-lesson-renderer-frame/);
     assert.match(block, /data-sd-lesson-stage="guided"/);
+    assert.match(block, /data-sd-stage-comfort="dominant"/);
+    assert.doesNotMatch(block, /<SurfaceCard/);
   });
 
   test('ActivityChrome bypasses the generic chrome for all immersive activity types', () => {
@@ -68,9 +73,10 @@ describe('F5.E Lesson shell content-first fullscreen guards', () => {
   });
 
   test('Lesson context and fullscreen hooks are present in the Tailwind layer', () => {
-    assert.match(tailwindSource, /\.sd-lesson-layout-immersive/);
-    assert.match(tailwindSource, /\.sd-lesson-layout-guided/);
+    assert.match(tailwindSource, /\.sd-lesson-flow/);
+    assert.match(tailwindSource, /\.sd-lesson-secondary-grid/);
     assert.match(tailwindSource, /\.sd-lesson-stage-immersive/);
+    assert.match(tailwindSource, /\.sd-lesson-stage-guided\[data-sd-stage-comfort='dominant'\]/);
     assert.match(tailwindSource, /\.sd-immersive-activity-shell/);
   });
 });

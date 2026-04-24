@@ -36,16 +36,18 @@ function defaultExportBlock(source, name) {
 }
 
 describe('F5.G Comfort, playability, and responsive guards', () => {
-  test('Courses route keeps a balanced two-pane layout and secondary stepper context', () => {
+  test('Courses route keeps the stepper context embedded while promoting a detail-first route layout', () => {
     const sceneBar = functionBlock(coursesSource, 'DashboardSceneBar', 'RouteModulePill');
     const block = defaultExportBlock(coursesSource, 'CoursesView');
 
     assert.match(sceneBar, /className="sd-dashboard-stepper-toggle /);
+    assert.match(sceneBar, /data-sd-route-console="integrated"/);
     assert.match(sceneBar, /data-sd-journey-stepper="courses-route"/);
     assert.match(sceneBar, /<summary[\s\S]*Ver progreso de la ruta/);
-    assert.match(block, /data-sd-route-comfort="balanced-two-pane"/);
-    assert.match(block, /lg:grid-cols-\[minmax\(17rem,19rem\)_minmax\(0,1fr\)\]/);
-    assert.match(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1fr\)\]/);
+    assert.match(block, /data-sd-route-comfort=\{shellFamily === 'desktop' \? 'detail-first' : 'stacked'\}/);
+    assert.match(block, /'tablet-stack'/);
+    assert.match(block, /'desktop-detail-first'/);
+    assert.match(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
     assert.doesNotMatch(block, /minmax\(0,1\.5fr\)/);
     assert.doesNotMatch(block, /minmax\(0,1\.6fr\)/);
   });
@@ -56,20 +58,22 @@ describe('F5.G Comfort, playability, and responsive guards', () => {
     const lessonView = defaultExportBlock(lessonSource, 'LessonView');
 
     assert.match(commandRail, /data-sd-lesson-map="secondary"/);
-    assert.match(stage, /padding="md"/);
-    assert.match(stage, /data-sd-stage-comfort="compact"/);
-    assert.match(stage, /rounded-\[22px\]/);
+    assert.match(stage, /data-sd-stage-comfort="dominant"/);
+    assert.match(stage, /rounded-\[26px\]/);
+    assert.doesNotMatch(stage, /<PanelHeader/);
     assert.doesNotMatch(stage, /padding=\{shellFamily === 'mobile' \? 'md' : 'lg'\}/);
-    assert.match(lessonView, /data-sd-lesson-comfort="content-first"/);
-    assert.match(lessonView, /md:grid-cols-\[minmax\(15\.5rem,18rem\)_minmax\(0,1fr\)\]/);
+    assert.match(lessonView, /data-sd-lesson-comfort="stage-first"/);
+    assert.match(lessonView, /md:grid-cols-2 xl:grid-cols-\[minmax\(0,1\.08fr\)_minmax\(20rem,0\.92fr\)\] xl:items-start/);
   });
 
   test('Tailwind exposes final comfort hooks for contrast, fullscreen and collapsible context', () => {
     assert.match(tailwindSource, /\.sd-route-pill\[aria-current='true'\]/);
     assert.match(tailwindSource, /\.sd-dashboard-stepper-toggle summary/);
     assert.match(tailwindSource, /\.sd-lesson-map-toggle summary/);
-    assert.match(tailwindSource, /\.sd-lesson-stage-guided\[data-sd-stage-comfort='compact'\]/);
-    assert.match(tailwindSource, /\.sd-immersive-activity-shell \{[\s\S]*--sd-simulation-stage-min-block: clamp\(38rem, 80vh, 72rem\)/);
+    assert.match(tailwindSource, /\.sd-lesson-insight-toggle summary/);
+    assert.match(tailwindSource, /\.sd-lesson-stage-guided\[data-sd-stage-comfort='dominant'\]/);
+    assert.match(tailwindSource, /\.sd-lesson-support-card/);
+    assert.match(tailwindSource, /\.sd-immersive-activity-shell \{[\s\S]*--sd-simulation-stage-min-block: clamp\(42rem, 86vh, 82rem\)/);
     assert.match(tailwindSource, /\.sd-immersive-activity-shell \{[\s\S]*min-height: var\(--sd-simulation-stage-min-block\)/);
   });
 });

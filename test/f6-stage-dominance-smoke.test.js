@@ -51,6 +51,7 @@ describe('F6.D simulation fullscreen and stage-dominance guards', () => {
     assert.match(sharedActivityUiSource, /import \{ cn \} from '\.\.\/\.\.\/lib\/ui\.js'/);
     assert.match(block, /data-sd-activity-chrome="immersive"/);
     assert.match(block, /data-sd-stage-dominance="primary"/);
+    assert.match(block, /data-sd-stage-focus="fullscreen"/);
     assert.match(block, /data-sd-stage-layout="fullscreen"/);
   });
 
@@ -68,21 +69,24 @@ describe('F6.D simulation fullscreen and stage-dominance guards', () => {
   });
 
   test('Tailwind stage hooks give immersive simulations more screen dominance', () => {
-    assert.match(tailwindSource, /--sd-simulation-stage-min-block: clamp\(38rem, 80vh, 72rem\)/);
+    assert.match(tailwindSource, /--sd-simulation-stage-min-block: clamp\(42rem, 86vh, 82rem\)/);
+    assert.match(tailwindSource, /--sd-simulation-stage-max-inline: 104rem/);
     assert.match(tailwindSource, /\.sd-immersive-activity-shell\[data-sd-stage-dominance='primary'\]/);
     assert.match(tailwindSource, /\.sd-simulation-category\[data-sd-stage-dominance='primary'\]/);
     assert.match(tailwindSource, /\.sd-simulation-main-stage \{/);
+    assert.match(tailwindSource, /\.sd-simulation-main-stage\[data-sd-stage-focus='fullscreen'\]/);
     assert.match(tailwindSource, /\.sd-simulation-main-stage\[data-sd-stage-layout='list-detail'\]/);
     assert.match(tailwindSource, /\.sd-simulation-main-stage\[data-sd-stage-layout='weblab-workbench'\]/);
     assert.match(tailwindSource, /\.sd-simulation-main-stage\[data-sd-stage-layout='scenario-flow'\]/);
+    assert.match(tailwindSource, /\[data-sd-stage-rail='subordinate'\]/);
     assert.match(tailwindSource, /\.call-immersive-shell\[data-sd-stage-dominance='primary'\]/);
   });
 
   test('chat stage no longer carries the narrow pre-F6.D limit', () => {
-    assert.match(tailwindSource, /\.sd-chat-sim \{[\s\S]*width: min\(100%, 76rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-sim \{[\s\S]*width: min\(100%, 94rem\)/);
     assert.match(tailwindSource, /\.sd-chat-sim\.sd-simulation-category\[data-sd-stage-dominance='primary'\]/);
-    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*min-height: clamp\(26rem, 54vh, 42rem\)/);
-    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*max-height: clamp\(34rem, 68vh, 54rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*min-height: clamp\(30rem, 62vh, 50rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*max-height: clamp\(38rem, 76vh, 64rem\)/);
     assert.doesNotMatch(tailwindSource, /width: min\(100%, 46rem\)/);
     assert.doesNotMatch(tailwindSource, /max-height: 32rem/);
   });

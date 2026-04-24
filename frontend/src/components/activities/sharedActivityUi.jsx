@@ -16,7 +16,11 @@ import { cn } from '../../lib/ui.js';
 import { ActionCluster } from '../../patterns/index.js';
 import FeedbackPanel from '../FeedbackPanel.jsx';
 import { Badge, SurfaceCard } from '../ui/index.js';
-import { getSimulationCategory, getSimulationCategoryClass } from './immersive/shared.js';
+import {
+  getSimulationCategory,
+  getSimulationCategoryClass,
+  getSimulationCategoryMeta,
+} from './immersive/shared.js';
 
 const IMMERSIVE_ACTIVITY_TYPES = new Set(['sim_chat', 'inbox', 'web_lab', 'call_sim', 'scenario_flow']);
 
@@ -29,6 +33,26 @@ export function Paragraphs({ text, className = 'activity-copy' }) {
       {lines.map((line) => (
         <p key={line}>{line}</p>
       ))}
+    </div>
+  );
+}
+
+export function SimulationIdentityBand({ category, compact = false }) {
+  const meta = getSimulationCategoryMeta(category);
+
+  return (
+    <div
+      className={cn('sd-simulation-identity-band', compact ? 'is-compact' : '')}
+      data-sd-category-channel={meta.channel}
+      data-sd-category-rhythm={meta.rhythm}
+      aria-label={`Identidad de simulacion: ${meta.label}`}
+    >
+      <span className="sd-simulation-identity-dot" aria-hidden="true" />
+      <span className="sd-simulation-identity-copy">
+        <strong>{meta.label}</strong>
+        {!compact ? <span>{meta.signature}</span> : null}
+      </span>
+      <span className="sd-simulation-identity-cue">{meta.cue}</span>
     </div>
   );
 }
@@ -87,9 +111,11 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
         data-sd-activity-type={activityType}
         data-sd-simulation-category={simulationCategory}
         data-sd-stage-dominance="primary"
+        data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="fullscreen"
         data-sd-container="true"
       >
+        <SimulationIdentityBand category={simulationCategory} compact />
         {children}
       </div>
     );
@@ -114,12 +140,14 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
         </summary>
 
         <div className="mt-4 grid gap-4">
+          <SimulationIdentityBand category={simulationCategory} compact={compact} />
+
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="grid gap-1">
               <strong className="text-sm text-sd-text">
                 {repairPossibleMojibake(activity?.titulo || 'Actividad')}
               </strong>
-              <p className="m-0 text-sm leading-6 text-sd-text-soft">{instructionMeta.quickTip}</p>
+              <p className="m-0 text-sm leading-6 text-sd-text">{instructionMeta.quickTip}</p>
             </div>
 
             <ActionCluster collapse="wrap">
@@ -169,8 +197,10 @@ export function formatPercent(score) {
   return formatActivityPercent(score);
 }
 
-export function ActivitySummaryBar({ items = [] }) {
-  const visibleItems = items.filter((item) => item && item.label && item.value !== undefined && item.value !== null);
+export function ActivitySummaryBar({ items = [], maxItems = 2, showCaptions = false }) {
+  const visibleItems = items
+    .filter((item) => item && item.label && item.value !== undefined && item.value !== null)
+    .slice(0, maxItems);
   if (!visibleItems.length) return null;
 
   return (
@@ -187,7 +217,7 @@ export function ActivitySummaryBar({ items = [] }) {
             {item.label}
           </strong>
           <p className="sd-activity-summary-value">{item.value}</p>
-          {item.caption ? <p className="sd-activity-summary-caption">{item.caption}</p> : null}
+          {showCaptions && item.caption ? <p className="sd-activity-summary-caption">{item.caption}</p> : null}
         </SurfaceCard>
       ))}
     </div>

@@ -65,7 +65,7 @@ describe('F3 Auth + Survey closeout guards', () => {
       source.indexOf('function LoadingPrimaryPanel')
     );
 
-    assert.match(source, /AssessmentLayout,/);
+    assert.match(source, /AssessmentLayout/);
     assert.match(source, /InfoPanel,/);
     assert.match(stageScene, /<AssessmentLayout/);
     assert.match(stageScene, /progress=\{[\s\S]*<SurveyCommandDeck/);
@@ -136,7 +136,7 @@ describe('F3 Auth + Survey closeout guards', () => {
     assert.match(source, /<InlineMessage id=\{routeErrorId\} tone="danger" title="No pudimos abrir tu ruta todavia\.">/);
     assert.match(source, /<Button[\s\S]*variant="primary"[\s\S]*size="lg"[\s\S]*onClick=\{onTakeCourses\}[\s\S]*aria-describedby=\{ctaDescription\}/);
     assert.match(source, /courseError \? 'Intentar abrir mi ruta de nuevo' : 'Ver mi ruta'/);
-    assert.match(source, /Mantienes tu perfil y respuestas; el siguiente paso abre la pantalla de cursos con este contexto\./);
+    assert.match(source, /Perfil listo; abre tu ruta\./);
     assert.match(routeContainer, /onTakeCourses: \(\) =>[\s\S]*course\.openCourses\(\{[\s\S]*answers: assessment\.answers,[\s\S]*assessment: assessment\.assessment,[\s\S]*authToken: auth\.authToken/);
   });
 });
