@@ -113,7 +113,7 @@ function ModuleEmptyState({ shellFamily, title, body, onBack }) {
           padding="xl"
           variant="command"
           tone="inverse"
-          className="sd-lesson-briefing sd-lesson-shell-command"
+          className="sd-lesson-briefing sd-lesson-shell-command sd-lesson-mission-hero"
           data-sd-container="true"
           data-sd-lesson-shell="empty"
         >
@@ -183,7 +183,7 @@ function LessonMissionHero({
       padding="xl"
       variant="command"
       tone="inverse"
-      className="sd-lesson-briefing relative overflow-hidden border-sd-border-strong"
+      className="sd-lesson-briefing sd-lesson-mission-hero relative overflow-hidden border-sd-border-strong"
       data-sd-container="true"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
@@ -506,7 +506,7 @@ function ModuleComplete({ shellFamily, module, courseProgress, onBack, onRetry }
           padding="xl"
           variant="command"
           tone="inverse"
-          className="sd-lesson-briefing sd-lesson-shell-command"
+          className="sd-lesson-briefing sd-lesson-shell-command sd-lesson-mission-hero"
           data-sd-container="true"
           data-sd-lesson-shell="complete"
         >

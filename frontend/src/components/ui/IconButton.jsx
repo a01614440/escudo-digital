@@ -45,6 +45,7 @@ export default function IconButton({
       title={title || label}
       data-active={active ? 'true' : undefined}
       data-loading={loading ? 'true' : undefined}
+      data-sd-interaction="button"
       aria-label={ariaLabel}
       aria-pressed={ariaPressed}
       aria-busy={loading ? 'true' : undefined}

@@ -36,7 +36,7 @@ describe('F5.D Route-to-lesson transition guards', () => {
 
     assert.match(block, /variant="command"/);
     assert.match(block, /tone="inverse"/);
-    assert.match(block, /className="sd-lesson-briefing /);
+    assert.match(block, /className="sd-lesson-briefing sd-lesson-mission-hero /);
     assert.match(block, /data-sd-container="true"/);
     assert.match(block, /sd-title-display/);
     assert.match(block, /<ProgressBar/);
@@ -61,5 +61,12 @@ describe('F5.D Route-to-lesson transition guards', () => {
   test('Tailwind layer defines the sd-lesson-enter animation with a bounded duration', () => {
     assert.match(tailwindSource, /@keyframes sd-lesson-enter/);
     assert.match(tailwindSource, /\.sd-lesson-enter \{[\s\S]*animation: sd-lesson-enter \d+ms/);
+  });
+
+  test('Lesson mission hero has a dedicated light-safe contrast class', () => {
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{/);
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{[\s\S]*background-color: #0d1830 !important/);
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{[\s\S]*color: var\(--sd-text-inverse\) !important/);
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \.sd-title-display \{[\s\S]*color: var\(--sd-text-inverse\) !important/);
   });
 });

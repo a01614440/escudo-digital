@@ -656,11 +656,29 @@ body[data-theme='dark'] {
     align-items: flex-start;
     gap: var(--sd-space-3);
     border: 0;
+    border-radius: var(--sd-radius-md);
     background: transparent;
     color: inherit;
     cursor: pointer;
     padding: 0;
     text-align: left;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      color var(--sd-motion-base) var(--sd-ease-standard),
+      transform var(--sd-motion-fast) var(--sd-ease-standard);
+  }
+
+  @media (hover: hover) {
+    .sd-route-pill-trigger:hover {
+      color: var(--sd-accent-strong);
+    }
+  }
+
+  .sd-route-pill-trigger:active {
+    transform: translateY(1px) scale(0.997);
+    transition-duration: 80ms;
   }
 
   .sd-route-pill-trigger:focus-visible {
@@ -1511,6 +1529,10 @@ body[data-theme='dark'] {
   }
 
   .sd-interactive-surface {
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
     transition:
       transform var(--sd-motion-fast) var(--sd-ease-standard),
       border-color var(--sd-motion-base) var(--sd-ease-standard),
@@ -1524,6 +1546,19 @@ body[data-theme='dark'] {
       border-color: var(--sd-border-strong);
       box-shadow: var(--sd-shadow-md);
     }
+  }
+
+  .sd-interactive-surface:focus-within {
+    border-color: color-mix(in srgb, var(--sd-accent) 34%, var(--sd-border-strong));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--sd-accent) 22%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--sd-accent) 12%, transparent),
+      var(--sd-shadow-md);
+  }
+
+  .sd-interactive-surface:active {
+    transform: translateY(1px) scale(0.995);
+    transition-duration: 80ms;
   }
 
   .sd-interactive-surface[data-selected='true'] {
@@ -1734,10 +1769,14 @@ body[data-theme='dark'] {
 
   .sd-button {
     @apply inline-flex max-w-full items-center justify-center gap-2 border disabled:cursor-not-allowed disabled:opacity-60;
+    cursor: pointer;
     font-weight: var(--sd-type-weight-semibold);
     letter-spacing: var(--sd-type-tracking-ui);
     border-radius: var(--sd-radius-pill);
     white-space: nowrap;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
     transition:
       transform var(--sd-motion-fast) var(--sd-ease-standard),
       background-color var(--sd-motion-base) var(--sd-ease-standard),
@@ -1750,11 +1789,24 @@ body[data-theme='dark'] {
   @media (hover: hover) {
     .sd-button:hover:not(:disabled) {
       transform: translateY(-1px);
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--sd-accent) 12%, transparent),
+        var(--sd-shadow-md);
+    }
+
+    .sd-button-quiet:hover:not(:disabled),
+    .sd-button-ghost:hover:not(:disabled),
+    .sd-button-soft:hover:not(:disabled),
+    .sd-button-secondary:hover:not(:disabled) {
+      border-color: color-mix(in srgb, var(--sd-accent) 28%, var(--sd-border));
+      background: color-mix(in srgb, var(--sd-accent-soft) 54%, var(--sd-surface) 46%);
+      color: var(--sd-text-strong);
     }
   }
 
   .sd-button:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(1px) scale(0.985);
+    transition-duration: 80ms;
   }
 
   .sd-button:focus-visible,
@@ -1766,6 +1818,9 @@ body[data-theme='dark'] {
   }
 
   .sd-button[data-active='true'] {
+    border-color: color-mix(in srgb, var(--sd-accent) 48%, var(--sd-border));
+    background: color-mix(in srgb, var(--sd-accent-soft) 68%, var(--sd-surface) 32%);
+    color: var(--sd-text-strong);
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--sd-accent) 24%, transparent),
       0 14px 28px -18px var(--sd-accent-glow);
@@ -3254,6 +3309,99 @@ body[data-theme='dark'] {
       linear-gradient(135deg, color-mix(in srgb, var(--sd-simulation-category-accent) 10%, transparent), transparent),
       color-mix(in srgb, var(--sd-simulation-category-surface) 80%, var(--sd-surface) 20%);
     padding: 0.75rem;
+  }
+
+  :is(
+    .btn,
+    .option-btn,
+    .domain-btn,
+    .email-list-item,
+    .web-lab-domain,
+    .scenario-option-card,
+    .call-control-btn
+  ) {
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--sd-motion-fast) var(--sd-ease-standard),
+      border-color var(--sd-motion-base) var(--sd-ease-standard),
+      background-color var(--sd-motion-base) var(--sd-ease-standard),
+      box-shadow var(--sd-motion-base) var(--sd-ease-standard),
+      opacity var(--sd-motion-base) var(--sd-ease-standard);
+  }
+
+  @media (hover: hover) {
+    :is(
+      .btn,
+      .option-btn,
+      .domain-btn,
+      .email-list-item,
+      .web-lab-domain,
+      .scenario-option-card,
+      .call-control-btn
+    ):hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--sd-simulation-category-accent, var(--sd-accent)) 34%, var(--sd-border-strong));
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--sd-simulation-category-accent, var(--sd-accent)) 10%, transparent),
+        0 18px 36px -28px var(--sd-simulation-category-glow, var(--sd-accent-glow));
+    }
+  }
+
+  :is(
+    .btn,
+    .option-btn,
+    .domain-btn,
+    .email-list-item,
+    .web-lab-domain,
+    .scenario-option-card,
+    .call-control-btn
+  ):active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+    transition-duration: 80ms;
+  }
+
+  :is(
+    .btn,
+    .option-btn,
+    .domain-btn,
+    .email-list-item,
+    .web-lab-domain,
+    .scenario-option-card,
+    .call-control-btn
+  ):focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--sd-simulation-category-accent, var(--sd-accent)) 28%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--sd-simulation-category-accent, var(--sd-accent)) 16%, transparent),
+      0 18px 36px -30px var(--sd-simulation-category-glow, var(--sd-accent-glow));
+  }
+
+  :is(
+    .btn,
+    .option-btn,
+    .domain-btn,
+    .email-list-item,
+    .web-lab-domain,
+    .scenario-option-card,
+    .call-control-btn
+  ):disabled {
+    cursor: not-allowed;
+    filter: saturate(0.72);
+  }
+
+  :is(
+    .email-list-item.active,
+    .scenario-option-card[aria-pressed='true'],
+    .web-lab-stage-tabs .sd-button[aria-current='step'],
+    .call-control-btn.primary,
+    .sd-button[data-active='true']
+  ) {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--sd-simulation-category-accent, var(--sd-accent)) 20%, transparent),
+      0 18px 36px -30px var(--sd-simulation-category-glow, var(--sd-accent-glow));
   }
 
   @keyframes sd-chat-typing {

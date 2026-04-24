@@ -37,6 +37,7 @@ export default function Button({
       )}
       data-active={active ? 'true' : undefined}
       data-loading={loading ? 'true' : undefined}
+      data-sd-interaction="button"
       aria-busy={loading ? 'true' : undefined}
       disabled={props.disabled || loading}
       {...props}

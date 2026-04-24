@@ -49,6 +49,7 @@ export default function SurfaceCard({
       )}
       data-tone={tone !== 'default' ? tone : undefined}
       data-selected={selected ? 'true' : undefined}
+      data-sd-interaction={interactive ? 'surface' : undefined}
       {...props}
     >
       {children}
