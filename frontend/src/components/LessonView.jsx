@@ -111,8 +111,7 @@ function ModuleEmptyState({ shellFamily, title, body, onBack }) {
       <div className="grid gap-[var(--sd-shell-section-gap)]">
         <SurfaceCard
           padding="xl"
-          variant="command"
-          tone="inverse"
+          variant="panel"
           className="sd-lesson-briefing sd-lesson-shell-command sd-lesson-mission-hero"
           data-sd-container="true"
           data-sd-lesson-shell="empty"
@@ -181,8 +180,7 @@ function LessonMissionHero({
   return (
     <SurfaceCard
       padding="xl"
-      variant="command"
-      tone="inverse"
+      variant="panel"
       className="sd-lesson-briefing sd-lesson-mission-hero relative overflow-hidden border-sd-border-strong"
       data-sd-container="true"
     >
@@ -504,8 +502,7 @@ function ModuleComplete({ shellFamily, module, courseProgress, onBack, onRetry }
       <div className="grid gap-[var(--sd-shell-section-gap)]">
         <SurfaceCard
           padding="xl"
-          variant="command"
-          tone="inverse"
+          variant="panel"
           className="sd-lesson-briefing sd-lesson-shell-command sd-lesson-mission-hero"
           data-sd-container="true"
           data-sd-lesson-shell="complete"

@@ -611,6 +611,7 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         className="sd-simulation-main-stage col-span-full grid gap-4"
         data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="list-detail"
+        data-sd-hotfix="inbox-list-detail"
         data-sd-r10d-stage="single-column"
       >
         <ImmersivePanel className="email-sidebar" data-sd-stage-rail="subordinate">

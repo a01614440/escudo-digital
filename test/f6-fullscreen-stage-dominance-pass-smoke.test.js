@@ -61,11 +61,14 @@ describe('F6.R9 fullscreen stage dominance pass', () => {
     assert.match(tailwindSource, /grid-template-columns: minmax\(0, 2\.25fr\) minmax\(14rem, 0\.62fr\)/);
   });
 
-  test('chat and calls use expanded stage dimensions for demo-ready play space', () => {
+  test('chat uses a centered phone stage while calls keep expanded play space', () => {
     assert.match(tailwindSource, /\.sd-chat-sim \{[\s\S]*width: min\(100%, 94rem\)/);
-    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 2\.25fr\) minmax\(16rem, 0\.65fr\)/);
-    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*min-height: clamp\(30rem, 62vh, 50rem\)/);
-    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*max-height: clamp\(38rem, 76vh, 64rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*justify-items: center/);
+    assert.match(tailwindSource, /\.sd-chat-surface \{[\s\S]*width: min\(100%, 31rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-surface \{[\s\S]*min-height: clamp\(42rem, 78vh, 56rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*min-height: clamp\(24rem, 52vh, 38rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*max-height: clamp\(30rem, 62vh, 44rem\)/);
     assert.match(tailwindSource, /\.call-immersive-shell\[data-sd-stage-dominance='primary'\] \{[\s\S]*width: min\(100%, 92rem\)/);
     assert.match(tailwindSource, /\.call-immersive-phone \{[\s\S]*min-height: clamp\(40rem, 78vh, 72rem\)/);
   });

@@ -875,6 +875,17 @@ body[data-theme='dark'] {
     scrollbar-gutter: auto;
   }
 
+  .sd-simulation-main-stage[data-sd-hotfix='inbox-list-detail'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sd-simulation-main-stage[data-sd-hotfix='inbox-list-detail'] [data-sd-stage-rail='subordinate'] {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
   .sd-immersive-activity-shell[data-sd-r10d-stage='dominant'] :is(h1, h2, h3, h4, strong, p, span, button) {
     overflow-wrap: normal;
     word-break: normal;
@@ -905,6 +916,11 @@ body[data-theme='dark'] {
       grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
     }
 
+    .sd-simulation-main-stage[data-sd-hotfix='inbox-list-detail'] {
+      grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+      align-items: stretch;
+    }
+
     .sd-simulation-main-stage[data-sd-stage-layout='weblab-workbench'] {
       grid-template-columns: minmax(0, 4.2fr) minmax(14rem, 0.72fr);
     }
@@ -930,6 +946,20 @@ body[data-theme='dark'] {
     .call-immersive-shell[data-sd-stage-dominance='primary'] .call-dashboard-row,
     .call-immersive-shell[data-sd-stage-dominance='primary'] .call-ended-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .sd-simulation-main-stage[data-sd-hotfix='inbox-list-detail'] {
+      grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr) !important;
+      align-items: stretch;
+    }
+
+    .sd-simulation-main-stage[data-sd-hotfix='inbox-list-detail'] [data-sd-stage-rail='subordinate'] {
+      position: static;
+      max-height: none;
+      overflow: visible;
+      scrollbar-gutter: auto;
     }
   }
 
@@ -2324,27 +2354,29 @@ body[data-theme='dark'] {
 
   .sd-lesson-mission-hero {
     backdrop-filter: none !important;
-    background-color: #0d1830 !important;
+    background-color: #ffffff !important;
     background:
-      radial-gradient(circle at top left, rgba(109, 141, 255, 0.24), transparent 18rem),
-      radial-gradient(circle at bottom right, rgba(38, 76, 182, 0.18), transparent 16rem),
-      linear-gradient(160deg, #0f1b33, #091426 72%) !important;
-    border-color: color-mix(in srgb, var(--sd-accent) 28%, rgba(255, 255, 255, 0.14)) !important;
-    box-shadow: 0 38px 96px -48px rgba(8, 16, 31, 0.64) !important;
-    color: var(--sd-text-inverse) !important;
+      radial-gradient(circle at top left, color-mix(in srgb, var(--sd-accent) 12%, transparent), transparent 18rem),
+      radial-gradient(circle at bottom right, rgba(205, 218, 246, 0.38), transparent 16rem),
+      linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(240, 245, 253, 0.98) 72%) !important;
+    border-color: color-mix(in srgb, var(--sd-accent) 20%, var(--sd-border-strong)) !important;
+    box-shadow: 0 32px 78px -52px rgba(31, 55, 102, 0.34) !important;
+    color: var(--sd-text) !important;
   }
 
   .sd-lesson-mission-hero .sd-eyebrow,
   .sd-lesson-mission-hero .sd-section-header > div:last-child,
   .sd-lesson-mission-hero .sd-copy-inverse,
+  .sd-lesson-mission-hero .text-sd-text-inverse,
+  .sd-lesson-mission-hero .text-sd-text-inverse-soft,
   .sd-lesson-mission-hero .sd-stage-hero-shell > div > div > p:last-child {
-    color: color-mix(in srgb, var(--sd-text-inverse) 72%, var(--sd-text-inverse-soft) 28%) !important;
+    color: var(--sd-text) !important;
   }
 
   .sd-lesson-mission-hero .sd-title-display {
     max-width: 12ch;
-    color: var(--sd-text-inverse) !important;
-    text-shadow: 0 10px 34px rgba(5, 11, 24, 0.28);
+    color: var(--sd-text-strong) !important;
+    text-shadow: none;
   }
 
   .sd-lesson-mission-hero .sd-stage-hero-meta,
@@ -2355,26 +2387,26 @@ body[data-theme='dark'] {
   .sd-lesson-mission-hero .sd-progress-summary,
   .sd-lesson-mission-hero .sd-stat-card {
     backdrop-filter: none !important;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.08)) !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 248, 255, 0.94)) !important;
+    border-color: color-mix(in srgb, var(--sd-accent) 18%, var(--sd-border-strong)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
   }
 
   .sd-lesson-mission-hero .sd-progress-summary .sd-eyebrow,
   .sd-lesson-mission-hero .sd-stat-card .sd-eyebrow,
   .sd-lesson-mission-hero .sd-progress-summary .sd-copy-sm,
   .sd-lesson-mission-hero .sd-stat-card p:last-child {
-    color: color-mix(in srgb, var(--sd-text-inverse) 66%, var(--sd-text-inverse-soft) 34%) !important;
+    color: var(--sd-text) !important;
   }
 
   .sd-lesson-mission-hero .sd-progress-summary .sd-heading-sm,
   .sd-lesson-mission-hero .sd-stat-card strong,
   .sd-lesson-mission-hero .sd-progress-summary-value {
-    color: var(--sd-text-inverse) !important;
+    color: var(--sd-text-strong) !important;
   }
 
   .sd-lesson-mission-hero .sd-progress-summary .sd-progress-track {
-    background: rgba(255, 255, 255, 0.14);
+    background: color-mix(in srgb, var(--sd-border) 72%, white 28%);
   }
 
   .sd-stage-hero-actions {
@@ -2826,20 +2858,37 @@ body[data-theme='dark'] {
   }
 
   .sd-chat-sim-desktop {
-    grid-template-columns: minmax(0, 2.25fr) minmax(16rem, 0.65fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
+    justify-items: center;
   }
 
   .sd-chat-surface {
     display: grid;
-    gap: var(--sd-space-4);
-    border: 1px solid color-mix(in srgb, var(--sd-simulation-category-accent) 28%, var(--sd-border-strong));
-    border-radius: 30px;
+    gap: 0.95rem;
+    width: min(100%, 31rem);
+    min-height: clamp(42rem, 78vh, 56rem);
+    margin-inline: auto;
+    border: 1px solid color-mix(in srgb, var(--sd-simulation-category-accent) 32%, var(--sd-border-strong));
+    border-radius: 42px;
     background:
-      radial-gradient(circle at top left, var(--sd-simulation-category-glow), transparent 16rem),
-      linear-gradient(180deg, #f9fbff, #eef3fb 100%);
-    box-shadow: 0 28px 72px -42px rgba(11, 24, 46, 0.34);
-    padding: clamp(1rem, 2vw, 1.35rem);
+      radial-gradient(circle at top left, color-mix(in srgb, var(--sd-simulation-category-accent) 10%, transparent), transparent 16rem),
+      linear-gradient(180deg, #ffffff, #eef3fb 100%);
+    box-shadow:
+      0 42px 96px -54px rgba(11, 24, 46, 0.46),
+      inset 0 0 0 8px rgba(15, 23, 42, 0.035);
+    padding: 1rem;
+    position: relative;
+  }
+
+  .sd-chat-surface::before {
+    content: '';
+    width: 5.5rem;
+    height: 0.34rem;
+    justify-self: center;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.18);
+    margin-block: 0.2rem 0.05rem;
   }
 
   .sd-chat-surface,
@@ -2853,13 +2902,13 @@ body[data-theme='dark'] {
     gap: 0.9rem;
     align-items: center;
     grid-template-columns: minmax(0, 1fr);
-    padding: 1rem 1.05rem;
-    border-radius: 24px;
-    border: 1px solid rgba(15, 26, 48, 0.08);
+    padding: 0.95rem 1rem;
+    border-radius: 28px;
+    border: 1px solid color-mix(in srgb, var(--sd-simulation-category-accent) 18%, var(--sd-border));
     background:
-      linear-gradient(180deg, rgba(14, 23, 42, 0.98), rgba(11, 18, 33, 0.98)),
-      radial-gradient(circle at top right, rgba(109, 141, 255, 0.16), transparent 26%);
-    color: var(--sd-text-inverse);
+      linear-gradient(135deg, color-mix(in srgb, var(--sd-simulation-category-accent) 9%, white 91%), white),
+      radial-gradient(circle at top right, color-mix(in srgb, var(--sd-simulation-category-accent) 14%, transparent), transparent 28%);
+    color: var(--sd-text);
   }
 
   .sd-chat-header-main {
@@ -2876,8 +2925,8 @@ body[data-theme='dark'] {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: var(--sd-simulation-category-rail);
-    color: white;
+    background: color-mix(in srgb, var(--sd-simulation-category-accent) 14%, white 86%);
+    color: var(--sd-simulation-category-accent-strong);
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -2893,14 +2942,14 @@ body[data-theme='dark'] {
     font-size: 0.98rem;
     font-weight: 700;
     line-height: 1.2;
-    color: var(--sd-text-inverse);
+    color: var(--sd-text-strong);
   }
 
   .sd-chat-contact p {
     margin: 0;
     font-size: 0.82rem;
     line-height: 1.45;
-    color: color-mix(in srgb, var(--sd-text-inverse) 74%, var(--sd-text-inverse-soft) 26%);
+    color: var(--sd-text);
   }
 
   .sd-chat-header-meta {
@@ -2914,7 +2963,7 @@ body[data-theme='dark'] {
   .sd-chat-header-meta > span:last-child {
     font-size: 0.78rem;
     font-weight: 600;
-    color: color-mix(in srgb, var(--sd-text-inverse) 74%, var(--sd-text-inverse-soft) 26%);
+    color: var(--sd-text);
   }
 
   .sd-chat-scene-note {
@@ -2955,7 +3004,7 @@ body[data-theme='dark'] {
   .sd-chat-thread-shell {
     display: grid;
     gap: 0.9rem;
-    border-radius: 28px;
+    border-radius: 32px;
     border: 1px solid rgba(25, 41, 73, 0.1);
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 253, 0.98)),
@@ -2967,8 +3016,8 @@ body[data-theme='dark'] {
   .sd-chat-thread {
     display: grid;
     gap: 0.6rem;
-    min-height: clamp(30rem, 62vh, 50rem);
-    max-height: clamp(38rem, 76vh, 64rem);
+    min-height: clamp(24rem, 52vh, 38rem);
+    max-height: clamp(30rem, 62vh, 44rem);
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
@@ -3155,8 +3204,9 @@ body[data-theme='dark'] {
     display: grid;
     gap: var(--sd-space-4);
     align-content: start;
-    position: sticky;
-    top: clamp(1rem, 2vw, 1.5rem);
+    width: min(100%, 48rem);
+    margin-inline: auto;
+    position: static;
   }
 
   .sd-chat-inline-feedback {
@@ -3420,7 +3470,7 @@ body[data-theme='dark'] {
 
   @media (min-width: 48rem) {
     .sd-chat-surface {
-      min-height: clamp(42rem, 80vh, 72rem);
+      min-height: clamp(42rem, 78vh, 56rem);
     }
 
     .sd-chat-header {
@@ -3432,7 +3482,7 @@ body[data-theme='dark'] {
     }
 
     .sd-chat-thread {
-      min-height: clamp(34rem, 66vh, 54rem);
+      min-height: clamp(24rem, 52vh, 38rem);
     }
   }
 

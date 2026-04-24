@@ -82,11 +82,14 @@ describe('F6.D simulation fullscreen and stage-dominance guards', () => {
     assert.match(tailwindSource, /\.call-immersive-shell\[data-sd-stage-dominance='primary'\]/);
   });
 
-  test('chat stage no longer carries the narrow pre-F6.D limit', () => {
+  test('chat stage uses a dominant phone shell instead of the narrow pre-F6.D rail', () => {
     assert.match(tailwindSource, /\.sd-chat-sim \{[\s\S]*width: min\(100%, 94rem\)/);
     assert.match(tailwindSource, /\.sd-chat-sim\.sd-simulation-category\[data-sd-stage-dominance='primary'\]/);
-    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*min-height: clamp\(30rem, 62vh, 50rem\)/);
-    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*max-height: clamp\(38rem, 76vh, 64rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+    assert.match(tailwindSource, /\.sd-chat-surface \{[\s\S]*width: min\(100%, 31rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-surface \{[\s\S]*min-height: clamp\(42rem, 78vh, 56rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*min-height: clamp\(24rem, 52vh, 38rem\)/);
+    assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*max-height: clamp\(30rem, 62vh, 44rem\)/);
     assert.doesNotMatch(tailwindSource, /width: min\(100%, 46rem\)/);
     assert.doesNotMatch(tailwindSource, /max-height: 32rem/);
   });

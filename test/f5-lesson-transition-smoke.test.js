@@ -31,11 +31,11 @@ function lessonViewBlock() {
 }
 
 describe('F5.D Route-to-lesson transition guards', () => {
-  test('LessonMissionHero adopts the same inverse command language as RouteBriefing', () => {
+  test('LessonMissionHero keeps continuity but renders as a real light-mode panel', () => {
     const block = functionBlock(lessonSource, 'LessonMissionHero', 'ActivityMapList');
 
-    assert.match(block, /variant="command"/);
-    assert.match(block, /tone="inverse"/);
+    assert.match(block, /variant="panel"/);
+    assert.doesNotMatch(block, /tone="inverse"/);
     assert.match(block, /className="sd-lesson-briefing sd-lesson-mission-hero /);
     assert.match(block, /data-sd-container="true"/);
     assert.match(block, /sd-title-display/);
@@ -65,8 +65,8 @@ describe('F5.D Route-to-lesson transition guards', () => {
 
   test('Lesson mission hero has a dedicated light-safe contrast class', () => {
     assert.match(tailwindSource, /\.sd-lesson-mission-hero \{/);
-    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{[\s\S]*background-color: #0d1830 !important/);
-    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{[\s\S]*color: var\(--sd-text-inverse\) !important/);
-    assert.match(tailwindSource, /\.sd-lesson-mission-hero \.sd-title-display \{[\s\S]*color: var\(--sd-text-inverse\) !important/);
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{[\s\S]*background-color: #ffffff !important/);
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \{[\s\S]*color: var\(--sd-text\) !important/);
+    assert.match(tailwindSource, /\.sd-lesson-mission-hero \.sd-title-display \{[\s\S]*color: var\(--sd-text-strong\) !important/);
   });
 });
