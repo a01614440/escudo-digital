@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { feedbackToText } from '../../../lib/course.js';
 import { getDecisionRatingLabel } from '../../../lib/activityScoring.js';
 import { cn } from '../../../lib/ui.js';
+import FeedbackPanel from '../../FeedbackPanel.jsx';
 import Button from '../../ui/Button.jsx';
 import { ActivitySummaryBar, buildActivityFeedback, completeActivity } from '../sharedActivityUi.jsx';
 import { ImmersiveAsidePanel, ImmersivePanel } from './immersivePrimitives.jsx';

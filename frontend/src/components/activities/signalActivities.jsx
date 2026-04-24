@@ -9,6 +9,7 @@ import {
 import { cn } from '../../lib/ui.js';
 import { requestSimulationTurn } from '../../services/courseService.js';
 import { ActionCluster, PanelHeader } from '../../patterns/index.js';
+import FeedbackPanel from '../FeedbackPanel.jsx';
 import { Badge, Button, InlineMessage, Input, SurfaceCard } from '../ui/index.js';
 import { getSimulationCategoryClass } from './immersive/shared.js';
 import {
