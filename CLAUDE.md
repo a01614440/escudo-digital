@@ -32,7 +32,7 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.K F6 closeout validation cerrada localmente. Siguiente frente recomendado: F7 Chat + Admin refine.**
+**F7.A Chat + Admin baseline audit abierta localmente. Siguiente frente recomendado: F7.B Chat drawer accessibility pass.**
 
 F6.J cerró el borde transversal compartido de las simulaciones:
 
@@ -285,6 +285,8 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.K F6 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F6.K-f6-closeout-validation.md`;
 - F6.K confirmo como referencia tecnica el cierre de fase ya validado en F6.J: `.\npm-local.cmd test` con 119/119, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.K no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;
-- el siguiente paso recomendado es abrir F7 - Chat + Admin refine.
+- F7.A Chat + Admin baseline audit quedo abierta localmente con `docs/rebuild/audit/F7.A-chat-admin-baseline-audit.md`;
+- F7.A solo audita el estado real de `ChatDrawer.jsx`, `AdminView.jsx`, `SessionBar.jsx`, `buildShellSlots.jsx` y la policy de navegacion asociada; no implementa cambios;
+- el siguiente paso recomendado es abrir F7.B - Chat drawer accessibility pass.
 
-No abrir F7 ni retomar WIP de simulaciones sin autorizacion explicita del usuario.
+No abrir F8 ni retomar WIP de cleanup masivo sin autorizacion explicita del usuario.
