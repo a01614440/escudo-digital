@@ -85,9 +85,7 @@ function DashboardTabs({ activeTab, onChange, tone = 'default' }) {
           type="button"
           variant={
             activeTab === tab.id
-              ? tone === 'inverse'
-                ? 'primary'
-                : 'hero'
+              ? 'primary'
               : tone === 'inverse'
                 ? 'ghost'
                 : 'quiet'
@@ -219,23 +217,15 @@ function RouteBriefing({
 
   return (
     <SurfaceCard
-      padding="xl"
-      variant="command"
-      tone="inverse"
+      padding="lg"
+      variant="panel"
       className="sd-route-briefing relative overflow-hidden border-sd-border-strong"
       data-sd-container="true"
-      data-sd-route-shelf="integrated"
+      data-sd-route-shelf="hard-rebuild"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sd-accent via-sd-accent to-sd-accent-strong" />
 
-      <div
-        className={cn(
-          'grid gap-6',
-          shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1.16fr)_minmax(18rem,0.84fr)] xl:items-start'
-            : ''
-        )}
-      >
+      <div className="grid gap-6">
         <div className="grid gap-5">
           <div className="flex flex-wrap items-center gap-3">
             <span className="sd-eyebrow m-0">Ruta personalizada</span>
@@ -244,7 +234,7 @@ function RouteBriefing({
           </div>
 
           <div className="grid gap-2">
-            <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text-inverse">
+            <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-sd-text">
               {activeCopy.title}
             </p>
             <h1 className="sd-title-display m-0">
@@ -258,73 +248,77 @@ function RouteBriefing({
           </div>
 
           {hasTarget ? (
-            <div className="grid gap-2 rounded-[22px] border border-white/12 bg-white/[0.08] px-4 py-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="accent">Siguiente paso</Badge>
-                <span className="text-sm font-medium text-sd-text-inverse">
-                  {getModuleStatusLabel(target.stats.status)}
-                </span>
+            <div className="sd-route-continuity-card grid gap-4 rounded-[24px] border border-sd-border-strong bg-sd-surface px-4 py-4 sm:px-5">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="grid min-w-0 gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone="accent">Siguiente paso</Badge>
+                    <span className="text-sm font-semibold text-sd-text">
+                      {getModuleStatusLabel(target.stats.status)}
+                    </span>
+                  </div>
+                  <strong className="sd-route-continuity-title text-base font-semibold leading-6 text-sd-text">
+                    {moduleTitle}
+                  </strong>
+                  <p className="m-0 text-sm leading-6 text-sd-text">
+                    {nextActivityTitle}
+                  </p>
+                </div>
+
+                <strong className="sd-route-progress-number text-[1.4rem] leading-none font-semibold text-sd-text">
+                  {`${routePct}%`}
+                </strong>
               </div>
-              <strong className="text-base font-semibold leading-6 text-sd-text-inverse">
-                {moduleTitle}
-              </strong>
-              <p className="m-0 text-sm leading-6 text-sd-text-inverse">
-                {nextActivityTitle}
-              </p>
+
+              {routeLength > 0 ? (
+                <div className="sd-route-briefing-progress grid gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                    <span className="text-sd-text">Avance total de tu ruta</span>
+                    <strong className="sd-copy-strong m-0">
+                      {`${completedModules}/${routeLength} modulos`}
+                    </strong>
+                  </div>
+                  <ProgressBar value={routePct} tone="accent" size="lg" />
+                </div>
+              ) : null}
+
+              <ActionCluster
+                align="start"
+                collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
+              >
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="lg"
+                  data-sd-primary-cta="courses-continuity"
+                  aria-label={`${primaryLabel}: ${moduleTitle}`}
+                  onClick={() =>
+                    onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
+                  }
+                >
+                  {primaryLabel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onShowInRoute(target.module.id)}
+                >
+                  Ver en la ruta
+                </Button>
+              </ActionCluster>
             </div>
           ) : (
             <InlineMessage tone="info" title="Sin continuidad activa">
               Cuando exista ruta, aqui aparece el siguiente paso.
             </InlineMessage>
           )}
-
-          {hasTarget ? (
-            <ActionCluster
-              align="start"
-              collapse={shellFamily === 'mobile' ? 'stack' : 'wrap'}
-            >
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                data-sd-primary-cta="courses-continuity"
-                aria-label={`${primaryLabel}: ${moduleTitle}`}
-                onClick={() =>
-                  onContinue(target.moduleIndex, { restart: adminAccess && target.stats.pct >= 100 })
-                }
-              >
-                {primaryLabel}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onShowInRoute(target.module.id)}
-              >
-                Ver en la ruta
-              </Button>
-            </ActionCluster>
-          ) : null}
         </div>
 
-        <div className="grid gap-4">
-          <DashboardSceneBar
-            shellFamily={shellFamily}
-            activeTab={activeTab}
-            onChange={onTabChange}
-          />
-
-          {routeLength > 0 ? (
-            <div className="sd-route-briefing-progress grid gap-2 rounded-[22px] border border-white/12 bg-white/[0.06] px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <span className="text-sd-text-inverse">Avance total de tu ruta</span>
-              <strong className="sd-copy-strong m-0">
-                {`${completedModules}/${routeLength} modulos · ${routePct}%`}
-              </strong>
-            </div>
-            <ProgressBar value={routePct} tone="accent" size="lg" />
-          </div>
-        ) : null}
-        </div>
+        <DashboardSceneBar
+          shellFamily={shellFamily}
+          activeTab={activeTab}
+          onChange={onTabChange}
+        />
       </div>
     </SurfaceCard>
   );
@@ -343,25 +337,22 @@ function DashboardSceneBar({
     <div className="sd-route-scene-bar grid gap-4" data-sd-route-console="integrated">
       <div
         className={cn(
-          'grid gap-4',
-          shellFamily === 'desktop'
-            ? 'xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start'
-            : ''
+          'grid gap-4 rounded-[20px] border border-sd-border bg-sd-surface px-4 py-4'
         )}
       >
         <div className="grid gap-1">
-          <strong className="text-sm font-semibold text-sd-text-inverse">{copy.title}</strong>
-          <p className="m-0 text-sm leading-6 text-sd-text-inverse">{copy.subtitle}</p>
+          <strong className="text-sm font-semibold text-sd-text">{copy.title}</strong>
+          <p className="m-0 text-sm leading-6 text-sd-text">{copy.subtitle}</p>
         </div>
-        <DashboardTabs activeTab={activeTab} onChange={onChange} tone="inverse" />
+        <DashboardTabs activeTab={activeTab} onChange={onChange} />
       </div>
 
       {hasJourneySteps ? (
         <details
-          className="sd-dashboard-stepper-toggle rounded-[18px] border border-white/12 bg-white/[0.06] px-4 py-3"
+          className="sd-dashboard-stepper-toggle rounded-[18px] border border-sd-border bg-sd-surface px-4 py-3"
           data-sd-journey-stepper="courses-route"
         >
-          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text-inverse">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-sd-text">
             Ver progreso de la ruta
           </summary>
           <div className="mt-4">
@@ -380,19 +371,26 @@ function DashboardSceneBar({
 function RouteModulePill({
   entry,
   selected,
+  expanded,
   locked,
   recommended,
-  onSelect,
+  adminAccess,
+  onToggle,
+  onOpenModule,
 }) {
   const categoryLabel = CATEGORY_LABELS[entry.module.categoria] || 'Ruta';
   const levelLabel = LEVEL_LABELS[normalizeModuleLevel(entry.module.nivel)] || 'Nivel';
+  const stats = entry.stats;
+  const moduleTitle = displayModuleTitle(entry.module);
+  const nextActivityTitle = displayActivityTitle(stats.nextActivity, 'Actividad pendiente');
   const statusLabel = locked ? 'Bloqueado' : getModuleStatusLabel(entry.stats.status);
   const statusTone = locked ? 'warning' : getModuleStatusTone(entry.stats.status);
+  const disclosureId = `route-module-${String(entry.module.id || entry.index).replace(/[^a-zA-Z0-9_-]/g, '-')}-details`;
+  const triggerId = `${disclosureId}-trigger`;
 
   return (
     <SurfaceCard
-      as="button"
-      type="button"
+      as="article"
       padding="compact"
       variant={selected ? 'raised' : 'subtle'}
       interactive
@@ -403,9 +401,8 @@ function RouteModulePill({
         locked ? 'opacity-90' : ''
       )}
       aria-current={selected ? 'true' : undefined}
-      aria-label={`${displayModuleTitle(entry.module)}: ${statusLabel}, ${categoryLabel}, ${levelLabel}`}
       data-route-module-state={locked ? 'locked' : recommended ? 'recommended' : entry.stats.status}
-      onClick={onSelect}
+      data-route-module-expanded={expanded ? 'true' : 'false'}
     >
       <div
         className={cn(
@@ -414,27 +411,81 @@ function RouteModulePill({
         )}
       />
       <div className="grid gap-3 pl-2">
-        <div className="flex items-start gap-3">
+        <button
+          id={triggerId}
+          type="button"
+          className="sd-route-pill-trigger"
+          aria-expanded={expanded ? 'true' : 'false'}
+          aria-controls={expanded ? disclosureId : undefined}
+          aria-label={`${displayModuleTitle(entry.module)}: ${statusLabel}, ${categoryLabel}, ${levelLabel}`}
+          onClick={onToggle}
+        >
           <span className="rounded-full border border-sd-border bg-sd-canvas px-2.5 py-1.5 text-xs font-semibold text-sd-text">
             {String(entry.index + 1).padStart(2, '0')}
           </span>
-          <div className="grid min-w-0 flex-1 gap-2">
-            <div className="flex flex-wrap items-start gap-2">
-              <strong className="min-w-0 flex-1 break-words text-base leading-6 text-sd-text">
-                {displayModuleTitle(entry.module)}
-              </strong>
+          <span className="grid min-w-0 flex-1 gap-2">
+            <strong className="sd-route-pill-title block text-base leading-6 text-sd-text">
+              {moduleTitle}
+            </strong>
+            <span className="flex flex-wrap items-center gap-2">
               <Badge tone={statusTone}>{statusLabel}</Badge>
-            </div>
-
-            {recommended ? (
-              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-accent">
-                Siguiente recomendado
-              </span>
-            ) : null}
-          </div>
-        </div>
+              {recommended ? (
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-accent">
+                  Siguiente recomendado
+                </span>
+              ) : null}
+            </span>
+          </span>
+        </button>
 
         <ProgressBar value={entry.stats.pct} tone={locked ? 'warning' : 'accent'} />
+
+        {expanded ? (
+          <div
+            id={disclosureId}
+            role="region"
+            aria-labelledby={triggerId}
+            className="sd-route-pill-disclosure grid gap-4"
+            data-sd-route-module-disclosure="true"
+          >
+            <p className="m-0 text-sm leading-6 text-sd-text">
+              {cleanText(entry.module.descripcion, 'Modulo practico con siguiente paso claro.')}
+            </p>
+
+            <div className="sd-route-pill-disclosure-grid grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1 rounded-[16px] border border-sd-border bg-sd-surface px-4 py-3">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text">
+                  Siguiente actividad
+                </span>
+                <strong className="text-sm leading-6 text-sd-text">{nextActivityTitle}</strong>
+              </div>
+              <div className="grid gap-1 rounded-[16px] border border-sd-border bg-sd-surface px-4 py-3">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-sd-text">
+                  Progreso
+                </span>
+                <strong className="text-sm leading-6 text-sd-text">
+                  {`${formatPercent(stats.pct)} - ${stats.completedCount}/${stats.total} actividades`}
+                </strong>
+              </div>
+            </div>
+
+            <ActionCluster align="start" collapse="wrap">
+              <Button
+                type="button"
+                variant="primary"
+                size="compact"
+                disabled={locked}
+                data-sd-route-module-inline-cta="true"
+                aria-label={`${getModuleCtaLabel({ locked, adminAccess, stats })}: ${moduleTitle}`}
+                onClick={() =>
+                  onOpenModule(entry.index, { restart: adminAccess && stats.pct >= 100 })
+                }
+              >
+                {getModuleCtaLabel({ locked, adminAccess, stats })}
+              </Button>
+            </ActionCluster>
+          </div>
+        ) : null}
       </div>
     </SurfaceCard>
   );
@@ -447,10 +498,12 @@ function RouteNavigatorRail({
   onLevelChange,
   currentLevelEntries,
   selectedEntry,
+  expandedModuleId,
   adminAccess,
   unlockedLimit,
   recommendedIndex,
-  onSelectModule,
+  onToggleModule,
+  onOpenModule,
 }) {
   const levelCopy = getLevelCopy(level);
 
@@ -458,13 +511,13 @@ function RouteNavigatorRail({
     <SurfaceCard
       padding="md"
       variant="support"
-      className={cn('overflow-hidden', shellFamily === 'desktop' ? '2xl:sticky 2xl:top-6' : '')}
-      data-sd-route-rail="secondary"
+      className="sd-route-navigator-block overflow-hidden"
+      data-sd-route-rail="module-list"
     >
       <PanelHeader
-        eyebrow="Navegador de ruta"
+        eyebrow="Modulos"
         title="Explora tu ruta"
-        subtitle="Cambia de modulo sin perder foco."
+        subtitle="Toca un modulo para ver acciones aqui mismo."
         divider
       />
 
@@ -481,7 +534,7 @@ function RouteNavigatorRail({
           </div>
         ) : null}
 
-        <div className="grid gap-3">
+        <div className="grid gap-3" data-sd-route-module-list="single-column">
           {currentLevelEntries.map((entry) => {
             const locked = adminAccess ? false : entry.index > unlockedLimit;
 
@@ -490,9 +543,12 @@ function RouteNavigatorRail({
                 key={entry.module.id}
                 entry={entry}
                 selected={selectedEntry?.module.id === entry.module.id}
+                expanded={expandedModuleId === entry.module.id}
                 locked={locked}
                 recommended={entry.index === recommendedIndex}
-                onSelect={() => onSelectModule(entry.module.id)}
+                adminAccess={adminAccess}
+                onToggle={() => onToggleModule(entry.module.id)}
+                onOpenModule={onOpenModule}
               />
             );
           })}
@@ -532,7 +588,7 @@ function ModuleActivityList({ module, nextActivity, completedMap }) {
                 {completed ? 'OK' : String(index + 1).padStart(2, '0')}
               </span>
               <div className="min-w-0 flex-1">
-                <strong className="block break-words text-sm leading-6 text-sd-text">
+                <strong className="sd-module-activity-title block text-sm leading-6 text-sd-text">
                   {displayActivityTitle(activity)}
                 </strong>
               </div>
@@ -1020,6 +1076,7 @@ export default function CoursesView({
   const [selectedModuleId, setSelectedModuleId] = useState(
     recommendedEntry?.module?.id || entries[0]?.module?.id || null
   );
+  const [expandedModuleId, setExpandedModuleId] = useState(null);
 
   const resumeTarget = useMemo(() => buildResumeTarget(entries), [entries]);
 
@@ -1035,8 +1092,14 @@ export default function CoursesView({
     );
     if (!currentLevelEntries.some((entry) => entry.module.id === selectedModuleId)) {
       setSelectedModuleId(currentLevelEntries[0]?.module?.id || entries[0]?.module?.id || null);
+      setExpandedModuleId(null);
+      return;
     }
-  }, [entries, level, selectedModuleId]);
+
+    if (expandedModuleId && !currentLevelEntries.some((entry) => entry.module.id === expandedModuleId)) {
+      setExpandedModuleId(null);
+    }
+  }, [entries, expandedModuleId, level, selectedModuleId]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -1102,6 +1165,13 @@ export default function CoursesView({
   const handleShowInRoute = (moduleId) => {
     setTab('ruta');
     setSelectedModuleId(moduleId);
+    setExpandedModuleId(moduleId);
+  };
+
+  const handleRouteModuleToggle = (moduleId) => {
+    setTab('ruta');
+    setSelectedModuleId(moduleId);
+    setExpandedModuleId((current) => (current === moduleId ? null : moduleId));
   };
 
   const selectedLocked =
@@ -1110,11 +1180,7 @@ export default function CoursesView({
     entries[unlockedLimit]?.module?.titulo
       ? `Completa "${displayModuleTitle(entries[unlockedLimit].module)}" para desbloquear este bloque.`
       : 'Completa el bloque anterior para avanzar.';
-  const routeLayoutMode = isMobile
-    ? 'mobile-stack'
-    : shellFamily === 'tablet'
-      ? 'tablet-stack'
-      : 'desktop-detail-first';
+  const routeLayoutMode = 'hard-stack';
 
   return (
     <section
@@ -1139,13 +1205,10 @@ export default function CoursesView({
         {tab === 'ruta' ? (
           <div
             className={cn(
-              'grid min-w-0 gap-[var(--sd-shell-pane-gap)]',
-              shellFamily === 'desktop'
-                ? 'xl:grid-cols-[minmax(0,1.18fr)_minmax(16rem,18rem)] xl:items-start'
-                  : ''
+              'grid min-w-0 gap-[var(--sd-shell-pane-gap)]'
             )}
             data-sd-route-layout={routeLayoutMode}
-            data-sd-route-comfort={shellFamily === 'desktop' ? 'detail-first' : 'stacked'}
+            data-sd-route-comfort="hard-rebuild"
           >
             <ModuleMissionBoard
               shellFamily={shellFamily}
@@ -1167,10 +1230,12 @@ export default function CoursesView({
               onLevelChange={setLevel}
               currentLevelEntries={currentLevelEntries}
               selectedEntry={selectedEntry}
+              expandedModuleId={expandedModuleId}
               adminAccess={adminAccess}
               unlockedLimit={unlockedLimit}
               recommendedIndex={recommendedIndex}
-              onSelectModule={setSelectedModuleId}
+              onToggleModule={handleRouteModuleToggle}
+              onOpenModule={onOpenModule}
             />
           </div>
         ) : null}

@@ -42,7 +42,8 @@ describe('F6.R6 contrast and readability guards', () => {
     assert.match(tailwindSource, /--sd-text-soft: #33445f;/);
     assert.match(tailwindSource, /--sd-muted: #4b5d78;/);
     assert.match(tailwindSource, /--sd-text-inverse-soft: #dce7f8;/);
-    assert.match(tailwindSource, /\.sd-route-briefing \.text-sd-text-inverse-soft/);
+    assert.match(tailwindSource, /\.sd-route-briefing\.sd-surface-tone-inverse \.text-sd-text-inverse-soft/);
+    assert.match(tailwindSource, /body\[data-theme='light'\] :is\(\s*\.sd-route-briefing:not\(\.sd-surface-tone-inverse\)/);
     assert.match(tailwindSource, /\.sd-simulation-category \.text-sd-muted/);
   });
 

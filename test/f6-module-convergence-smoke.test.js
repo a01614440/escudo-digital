@@ -24,8 +24,11 @@ describe('F6.R4 Cursos / modulos convergence guards', () => {
     const rail = functionBlock('RouteNavigatorRail', 'ModuleActivityList');
     const board = functionBlock('ModuleMissionBoard', 'ProgressScene');
 
-    assert.match(rail, /data-sd-route-rail="secondary"/);
+    assert.match(rail, /data-sd-route-rail="module-list"/);
     assert.match(rail, /title="Explora tu ruta"/);
+    assert.match(rail, /subtitle="Toca un modulo para ver acciones aqui mismo\."/);
+    assert.match(rail, /data-sd-route-module-list="single-column"/);
+    assert.doesNotMatch(rail, /sm:grid-cols-2 xl:grid-cols-3/);
     assert.match(board, /data-sd-module-flow="converged"/);
     assert.match(board, /<ProgressBar value=\{stats\.pct\} tone="accent" size="lg" \/>/);
     assert.match(board, /const supportFacts = \[/);
@@ -49,7 +52,8 @@ describe('F6.R4 Cursos / modulos convergence guards', () => {
     const block = functionBlock('ModuleActivityList', 'ModuleMissionBoard');
 
     assert.match(block, /sd-module-activity-row/);
-    assert.match(block, /break-words text-sm leading-6 text-sd-text/);
+    assert.match(block, /sd-module-activity-title block text-sm leading-6 text-sd-text/);
+    assert.doesNotMatch(block, /break-words text-sm leading-6 text-sd-text/);
     assert.match(block, /<Badge tone=\{stateTone\}>\{stateLabel\}<\/Badge>/);
     assert.match(block, /aria-current=\{isNext \? 'step' : undefined\}/);
     assert.doesNotMatch(block, /grid-cols-\[auto_1fr_auto\]/);

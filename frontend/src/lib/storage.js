@@ -7,6 +7,8 @@ export const STORAGE_KEYS = {
   theme: 'escudo_theme_v1',
 };
 
+export const PRESENTATION_THEME = 'light';
+
 export const safeJsonParse = (value) => {
   if (!value) return null;
   try {
@@ -48,16 +50,18 @@ export const writeSessionToken = (token) => {
 
 export const readThemePreference = () => {
   try {
-    const value = localStorage.getItem(STORAGE_KEYS.theme);
-    return value === 'dark' ? 'dark' : 'light';
+    if (localStorage.getItem(STORAGE_KEYS.theme) === 'dark') {
+      localStorage.setItem(STORAGE_KEYS.theme, PRESENTATION_THEME);
+    }
+    return PRESENTATION_THEME;
   } catch {
-    return 'light';
+    return PRESENTATION_THEME;
   }
 };
 
-export const writeThemePreference = (theme) => {
+export const writeThemePreference = () => {
   try {
-    localStorage.setItem(STORAGE_KEYS.theme, theme === 'dark' ? 'dark' : 'light');
+    localStorage.setItem(STORAGE_KEYS.theme, PRESENTATION_THEME);
   } catch {
     // ignore
   }

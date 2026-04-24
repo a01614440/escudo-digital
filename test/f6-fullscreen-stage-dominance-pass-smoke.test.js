@@ -42,7 +42,7 @@ describe('F6.R9 fullscreen stage dominance pass', () => {
     assert.match(signalActivitiesSource, /<aside className="sd-chat-insight" data-sd-stage-rail="subordinate">/);
     assert.match(inboxSource, /<ImmersivePanel className="email-sidebar" data-sd-stage-rail="subordinate">/);
     assert.match(webLabSource, /data-sd-stage-rail="subordinate"/);
-    assert.match(scenarioSource, /<aside className="grid gap-4" data-sd-stage-rail="subordinate">/);
+    assert.match(scenarioSource, /<aside className="scenario-flow-rail grid gap-4" data-sd-stage-rail="subordinate">/);
   });
 
   test('shared CSS gives the stage more width, height and rail subordination', () => {

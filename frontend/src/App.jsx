@@ -251,7 +251,6 @@ export default function App() {
         routeDefinition,
         adminPreviewAsUser,
         onNavigate: handleViewChange,
-        onThemeToggle: device.toggleTheme,
         onToggleAdminPreview: () => setAdminPreviewAsUser((current) => !current),
         onLogout: auth.handleLogout,
       }),

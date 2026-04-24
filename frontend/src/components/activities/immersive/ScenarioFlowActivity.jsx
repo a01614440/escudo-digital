@@ -85,6 +85,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
       data-sd-simulation-category="scenario"
       data-sd-simulation-channel="scenario-flow"
       data-sd-stage-dominance="primary"
+      data-sd-specific-simulation-pass="scenario"
     >
       <ActivitySummaryBar
         items={[
@@ -107,9 +108,10 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
       />
 
       <section
-        className="sd-simulation-main-stage grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.85fr)]"
+        className="sd-simulation-main-stage grid gap-4"
         data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="scenario-flow"
+        data-sd-r10d-stage="single-column"
       >
         <ImmersivePanel>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -126,7 +128,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
           </div>
 
           {currentStep ? (
-            <div className="mt-5 rounded-[24px] border border-sd-border-strong bg-sd-surface p-5">
+            <div className="scenario-decision-card mt-5 rounded-[24px] border border-sd-border-strong bg-sd-surface p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="eyebrow">Situación actual</p>
@@ -135,10 +137,10 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
                 <span className="sd-badge sd-badge-accent">{`Paso ${stepIndex + 1}`}</span>
               </div>
               <p className="mt-4 text-base leading-7 text-sd-text">{cleanText(currentStep?.texto)}</p>
-              <div className="mt-5 grid gap-3">
+              <div className="scenario-choice-stack mt-5 grid gap-3" data-sd-specific-strip="scenario">
                 {(Array.isArray(currentStep?.opciones) ? currentStep.opciones : []).map((option) => (
                   <button
-                    className="rounded-[20px] border border-sd-border-strong bg-sd-surface-raised px-4 py-4 text-left text-sm font-medium text-sd-text transition hover:-translate-y-0.5 hover:bg-sd-surface disabled:cursor-not-allowed disabled:opacity-60"
+                    className="scenario-option-card rounded-[20px] border border-sd-border-strong bg-sd-surface-raised px-4 py-4 text-left text-sm font-medium text-sd-text transition hover:-translate-y-0.5 hover:bg-sd-surface disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={Boolean(feedback)}
                     key={option?.id || option?.texto}
                     type="button"
@@ -158,7 +160,7 @@ export default function ScenarioFlowActivity({ activity, startedAtRef, onComplet
           )}
         </ImmersivePanel>
 
-        <aside className="grid gap-4" data-sd-stage-rail="subordinate">
+        <aside className="scenario-flow-rail grid gap-4" data-sd-stage-rail="subordinate">
           <ImmersiveAsidePanel eyebrow="Bitácora de decisiones">
             <div className="space-y-3">
               {flowChoices.length ? (

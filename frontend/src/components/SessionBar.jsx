@@ -10,8 +10,6 @@ function UtilityBar({
   isAdmin,
   adminPreviewAsUser,
   detailsOpen,
-  theme,
-  onThemeToggle,
   onToggleAdminPreview,
   onToggleDetails,
 }) {
@@ -27,9 +25,6 @@ function UtilityBar({
           {adminPreviewAsUser ? 'Volver a admin' : 'Ver como usuario'}
         </Button>
       ) : null}
-      <Button variant="quiet" size="compact" type="button" onClick={onThemeToggle}>
-        {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-      </Button>
       <Button
         variant={detailsOpen ? 'soft' : 'quiet'}
         size="compact"
@@ -46,10 +41,8 @@ export default function SessionBar({
   shellFamily = 'desktop',
   user,
   navigation,
-  theme,
   adminPreviewAsUser = false,
   onNavigate,
-  onThemeToggle,
   onToggleAdminPreview,
   onLogout,
 }) {
@@ -93,8 +86,6 @@ export default function SessionBar({
             isAdmin={isAdmin}
             adminPreviewAsUser={adminPreviewAsUser}
             detailsOpen={detailsOpen}
-            theme={theme}
-            onThemeToggle={onThemeToggle}
             onToggleAdminPreview={onToggleAdminPreview}
             onToggleDetails={() => setDetailsOpen((value) => !value)}
           />

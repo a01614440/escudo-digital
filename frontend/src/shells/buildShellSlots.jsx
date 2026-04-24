@@ -10,7 +10,6 @@ export default function buildShellSlots({
   routeDefinition,
   adminPreviewAsUser,
   onNavigate,
-  onThemeToggle,
   onToggleAdminPreview,
   onLogout,
 }) {
@@ -21,10 +20,8 @@ export default function buildShellSlots({
         shellPolicy={device.shellPolicy}
         user={auth.currentUser}
         navigation={navigation}
-        theme={device.theme}
         adminPreviewAsUser={adminPreviewAsUser}
         onNavigate={onNavigate}
-        onThemeToggle={onThemeToggle}
         onToggleAdminPreview={onToggleAdminPreview}
         onLogout={onLogout}
       />

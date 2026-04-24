@@ -204,6 +204,7 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
       data-sd-simulation-category="web"
       data-sd-simulation-channel="weblab"
       data-sd-stage-dominance="primary"
+      data-sd-specific-simulation-pass="weblab"
       data-sd-web-lab-theme={webLabTheme}
       data-sd-web-lab-stage={stage}
     >
@@ -228,8 +229,9 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
       />
 
       <section
-        className="web-lab-mission sd-simulation-briefing-strip grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]"
+        className="web-lab-mission sd-simulation-briefing-strip grid gap-4"
         data-sd-stage-layout="briefing"
+        data-sd-r10d-briefing="stacked"
       >
         <ImmersivePanel className="web-lab-brief">
           <p className="eyebrow">Antes de empezar</p>
@@ -257,9 +259,10 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
       </section>
 
       <section
-        className="sd-simulation-main-stage web-lab-workbench grid gap-4 xl:grid-cols-[minmax(0,1.82fr)_minmax(16rem,0.68fr)]"
+        className="sd-simulation-main-stage web-lab-workbench grid gap-4"
         data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="weblab-workbench"
+        data-sd-r10d-stage="single-column"
       >
         <ImmersivePanel>
           <div className="web-lab-browser-bar">
@@ -294,13 +297,20 @@ export default function WebLabActivity({ module, activity, startedAtRef, onCompl
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="web-lab-stage-tabs mt-5" data-sd-specific-strip="weblab" aria-label="Etapas del sitio">
             {[
               ['product', 'Producto'],
               ['cart', 'Carrito'],
               ['checkout', 'Checkout'],
             ].map(([value, label]) => (
-              <Button key={value} variant={stage === value ? 'primary' : 'ghost'} size="compact" type="button" onClick={() => setStage(value)}>
+              <Button
+                key={value}
+                variant={stage === value ? 'primary' : 'ghost'}
+                size="compact"
+                type="button"
+                aria-current={stage === value ? 'step' : undefined}
+                onClick={() => setStage(value)}
+              >
                 {label}
               </Button>
             ))}

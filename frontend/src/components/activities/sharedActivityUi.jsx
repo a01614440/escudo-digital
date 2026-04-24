@@ -113,6 +113,7 @@ export function ActivityChrome({ module, activity, compact = false, children }) 
         data-sd-stage-dominance="primary"
         data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="fullscreen"
+        data-sd-r10d-stage="dominant"
         data-sd-container="true"
       >
         <SimulationIdentityBand category={simulationCategory} compact />

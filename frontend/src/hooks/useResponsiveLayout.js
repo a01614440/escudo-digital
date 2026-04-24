@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { readThemePreference, writeThemePreference } from '../lib/storage.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PRESENTATION_THEME, writeThemePreference } from '../lib/storage.js';
 
 export const TOUCH_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact', 'tablet']);
 export const COMPACT_VIEWPORTS = new Set(['phone-small', 'phone', 'tablet-compact']);
@@ -59,16 +59,20 @@ function clearBodyLayoutDatasets() {
 }
 
 export function useResponsiveLayout() {
-  const [theme, setTheme] = useState(readThemePreference());
+  const theme = PRESENTATION_THEME;
   const [profile, setProfile] = useState(() =>
     typeof window === 'undefined' ? buildResponsiveProfile(1440) : buildResponsiveProfile(window.innerWidth)
   );
 
   useEffect(() => {
-    document.body.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    writeThemePreference(theme);
-  }, [theme]);
+    document.body.dataset.theme = PRESENTATION_THEME;
+    document.documentElement.style.colorScheme = PRESENTATION_THEME;
+    writeThemePreference();
+  }, []);
+
+  const lockPresentationTheme = useCallback(() => {
+    writeThemePreference();
+  }, []);
 
   useEffect(() => {
     const applyViewportProfile = () => {
@@ -89,16 +93,14 @@ export function useResponsiveLayout() {
   return useMemo(
     () => ({
       theme,
-      setTheme,
-      toggleTheme() {
-        setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
-      },
+      setTheme: lockPresentationTheme,
+      toggleTheme: lockPresentationTheme,
       ...profile,
       compatViewport: profile.viewport,
       compatViewportDataset: 'body[data-viewport]',
       macroLayoutSource: 'shellFamily',
       legacyLayoutCompatSource: 'viewport',
     }),
-    [profile, theme]
+    [lockPresentationTheme, profile, theme]
   );
 }

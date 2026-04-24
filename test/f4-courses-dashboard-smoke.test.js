@@ -40,7 +40,7 @@ describe('F4.B Courses dashboard information density guards', () => {
     const block = functionBlock('RouteNavigatorRail', 'ModuleActivityList');
 
     assert.doesNotMatch(block, /visibles/);
-    assert.match(block, /Cambia de modulo sin perder foco\./);
+    assert.match(block, /Toca un modulo para ver acciones aqui mismo\./);
     assert.doesNotMatch(block, /Filtra sin romper la continuidad\./);
   });
 
@@ -122,15 +122,13 @@ describe('F4.F Courses shell layout comfort guards', () => {
     assert.match(block, /<JourneyStepper[\s\S]*steps=\{journeySteps\}[\s\S]*compact=\{shellFamily !== 'desktop'\}/);
   });
 
-  test('CoursesView exposes explicit route layout modes and keeps desktop to two panes', () => {
+  test('CoursesView exposes explicit route layout modes and stacks the route body for visual recovery', () => {
     const block = coursesViewBlock();
 
-    assert.match(block, /const routeLayoutMode = isMobile/);
-    assert.match(block, /'mobile-stack'/);
-    assert.match(block, /'tablet-stack'/);
-    assert.match(block, /'desktop-detail-first'/);
+    assert.match(block, /const routeLayoutMode = 'hard-stack'/);
     assert.match(block, /data-sd-route-layout=\{routeLayoutMode\}/);
-    assert.match(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
+    assert.match(block, /data-sd-route-comfort="hard-rebuild"/);
+    assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
     assert.doesNotMatch(block, /<WorkspaceLayout/);
     assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(18rem,20rem\)_minmax\(0,1\.55fr\)_minmax\(16\.5rem,18\.5rem\)\]/);
     assert.doesNotMatch(block, /<RouteInsightRail/);
@@ -159,19 +157,23 @@ describe('F4.D Courses route navigator and module detail guards', () => {
 
     assert.match(block, /variant="support"/);
     assert.match(block, /title="Explora tu ruta"/);
-    assert.match(block, /data-sd-route-rail="secondary"/);
+    assert.match(block, /data-sd-route-rail="module-list"/);
+    assert.match(block, /data-sd-route-module-list="single-column"/);
+    assert.doesNotMatch(block, /sm:grid-cols-2 xl:grid-cols-3/);
     assert.doesNotMatch(block, /bg-\[linear-gradient/);
     assert.doesNotMatch(block, /text-white/);
     assert.doesNotMatch(block, /shadow-\[0_36px_90px/);
   });
 
-  test('RouteModulePill exposes selected state, readable wrapping and semantic status badges', () => {
+  test('RouteModulePill exposes selected state, readable title clamp and semantic status badges', () => {
     const block = functionBlock('RouteModulePill', 'RouteNavigatorRail');
 
     assert.match(block, /aria-current=\{selected \? 'true' : undefined\}/);
     assert.match(block, /aria-label=\{`\$\{displayModuleTitle\(entry\.module\)\}: \$\{statusLabel\}, \$\{categoryLabel\}, \$\{levelLabel\}`\}/);
     assert.match(block, /data-route-module-state=\{locked \? 'locked' : recommended \? 'recommended' : entry\.stats\.status\}/);
-    assert.match(block, /break-words text-base leading-6/);
+    assert.match(block, /sd-route-pill-title block text-base leading-6 text-sd-text/);
+    assert.doesNotMatch(block, /sd-route-pill-title min-w-0 flex-1/);
+    assert.doesNotMatch(block, /break-words text-base leading-6/);
     assert.match(block, /<Badge tone=\{statusTone\}>\{statusLabel\}<\/Badge>/);
     assert.doesNotMatch(block, /shadow-\[0_24px_50px/);
   });
@@ -203,16 +205,16 @@ describe('F4.D Courses route navigator and module detail guards', () => {
 });
 
 describe('F5.B Route top / continuity / CTA unification guards', () => {
-  test('RouteBriefing fuses hero, continuity and CTA into a single inverse surface', () => {
+  test('RouteBriefing fuses hero, continuity and CTA into a high-contrast recovery surface', () => {
     const block = functionBlock('RouteBriefing', 'DashboardSceneBar');
     const actionIndex = block.indexOf('<ActionCluster');
     const progressIndex = block.indexOf('<ProgressBar');
 
-    assert.match(block, /variant="command"/);
-    assert.match(block, /tone="inverse"/);
+    assert.match(block, /variant="panel"/);
+    assert.doesNotMatch(block, /tone="inverse"/);
     assert.match(block, /className="sd-route-briefing/);
     assert.match(block, /data-sd-container="true"/);
-    assert.match(block, /data-sd-route-shelf="integrated"/);
+    assert.match(block, /data-sd-route-shelf="hard-rebuild"/);
     assert.match(block, /Tu ruta ya esta lista para continuar\./);
     assert.match(block, /const primaryLabel = target\?\.stats\.completedCount \? 'Continuar mi ruta' : 'Abrir modulo recomendado'/);
     assert.match(block, /<DashboardSceneBar/);
@@ -222,7 +224,8 @@ describe('F5.B Route top / continuity / CTA unification guards', () => {
     assert.match(block, /variant="ghost"/);
     assert.ok(actionIndex > -1, 'RouteBriefing should render a single action cluster');
     assert.ok(progressIndex > -1, 'RouteBriefing should render a single inline progress bar');
-    assert.ok(actionIndex < progressIndex, 'primary CTA should appear before supporting progress');
+    assert.ok(progressIndex < actionIndex, 'supporting progress should stay inside the continuity card before actions');
+    assert.doesNotMatch(block, /text-sd-text-inverse/);
     assert.doesNotMatch(block, /<StatStrip/);
     assert.doesNotMatch(block, /<ProgressSummary/);
     assert.doesNotMatch(block, /<SupportRail/);
@@ -280,9 +283,11 @@ describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
 
     assert.match(block, /<ol className="sd-module-activity-list/);
     assert.match(block, /sd-module-activity-row/);
+    assert.match(block, /sd-module-activity-title block text-sm leading-6 text-sd-text/);
     assert.match(block, /const stateTone = completed \? 'success' : isNext \? 'accent' : 'soft'/);
     assert.match(block, /shadow-\[0_18px_42px_-34px_rgba\(47,99,255,0\.34\)\]/);
     assert.doesNotMatch(block, /bg-sd-accent-soft/);
+    assert.doesNotMatch(block, /break-words text-sm leading-6 text-sd-text/);
     assert.doesNotMatch(block, /activity\?\.descripcion/);
     assert.doesNotMatch(block, /bg-white\/72/);
   });
@@ -314,13 +319,13 @@ describe('F5.C Route density / symmetry / contrast cleanup guards', () => {
     assert.match(block, /<KeyValueBlock/);
   });
 
-  test('CoursesView ruta body uses a single two-pane grid and no permanent insight column', () => {
+  test('CoursesView ruta body stacks module detail and route rail without a permanent insight column', () => {
     const block = coursesViewBlock();
     const detailIndex = block.indexOf('<ModuleMissionBoard');
     const railIndex = block.indexOf('<RouteNavigatorRail');
 
-    assert.match(block, /data-sd-route-comfort=\{shellFamily === 'desktop' \? 'detail-first' : 'stacked'\}/);
-    assert.match(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\] xl:items-start/);
+    assert.match(block, /data-sd-route-comfort="hard-rebuild"/);
+    assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\] xl:items-start/);
     assert.ok(detailIndex > -1, 'CoursesView should render module detail inside the route body');
     assert.ok(railIndex > -1, 'CoursesView should keep the route rail available');
     assert.ok(detailIndex < railIndex, 'module detail should render before the secondary route rail');

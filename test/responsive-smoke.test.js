@@ -47,7 +47,7 @@ describe('responsive and presentation smoke validations', () => {
   test('keeps only body layout datasets that still have consumers', () => {
     const source = readFileSync(new URL('../frontend/src/hooks/useResponsiveLayout.js', import.meta.url), 'utf8');
 
-    assert.match(source, /document\.body\.dataset\.theme = theme/);
+    assert.match(source, /document\.body\.dataset\.theme = PRESENTATION_THEME/);
     assert.match(source, /document\.body\.dataset\.viewport = profile\.viewport/);
     assert.match(source, /document\.body\.dataset\.inputMode = profile\.inputMode/);
     assert.doesNotMatch(source, /document\.body\.dataset\.shell/);

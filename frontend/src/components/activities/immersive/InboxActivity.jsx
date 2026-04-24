@@ -557,7 +557,14 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
   );
 
   return (
-    <div className={rootClassName} data-sd-simulation-category={simulationCategory} data-sd-simulation-channel={isSms ? 'sms' : 'email'} data-sd-stage-dominance="primary">
+    <div
+      className={rootClassName}
+      data-sd-simulation-category={simulationCategory}
+      data-sd-simulation-channel={isSms ? 'sms' : 'email'}
+      data-sd-stage-dominance="primary"
+      data-sd-specific-simulation-pass={simulationCategory}
+      data-sd-r10d-simulation="list-stack"
+    >
       {isSms ? (
         <>
           <div className="sms-app-topbar col-span-full">
@@ -594,10 +601,17 @@ export default function InboxActivity({ module, activity, startedAtRef, onComple
         <ActivitySummaryBar items={summaryItems} />
       </div>
 
+      <div className="inbox-action-strip col-span-full" data-sd-specific-strip="inbox" aria-label="Flujo de clasificacion">
+        <span>1. Abre</span>
+        <span>2. Clasifica</span>
+        <span>3. Evalua</span>
+      </div>
+
       <div
-        className="sd-simulation-main-stage col-span-full grid gap-4 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]"
+        className="sd-simulation-main-stage col-span-full grid gap-4"
         data-sd-stage-focus="fullscreen"
         data-sd-stage-layout="list-detail"
+        data-sd-r10d-stage="single-column"
       >
         <ImmersivePanel className="email-sidebar" data-sd-stage-rail="subordinate">
           {isSms ? renderSmsSidebar() : renderEmailSidebar()}

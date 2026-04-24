@@ -44,10 +44,11 @@ describe('F5.G Comfort, playability, and responsive guards', () => {
     assert.match(sceneBar, /data-sd-route-console="integrated"/);
     assert.match(sceneBar, /data-sd-journey-stepper="courses-route"/);
     assert.match(sceneBar, /<summary[\s\S]*Ver progreso de la ruta/);
-    assert.match(block, /data-sd-route-comfort=\{shellFamily === 'desktop' \? 'detail-first' : 'stacked'\}/);
-    assert.match(block, /'tablet-stack'/);
-    assert.match(block, /'desktop-detail-first'/);
-    assert.match(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
+    assert.match(block, /data-sd-route-comfort="hard-rebuild"/);
+    assert.match(block, /const routeLayoutMode = 'hard-stack'/);
+    assert.doesNotMatch(block, /'tablet-stack'/);
+    assert.doesNotMatch(block, /'desktop-detail-first'/);
+    assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
     assert.doesNotMatch(block, /minmax\(0,1\.5fr\)/);
     assert.doesNotMatch(block, /minmax\(0,1\.6fr\)/);
   });
@@ -63,7 +64,8 @@ describe('F5.G Comfort, playability, and responsive guards', () => {
     assert.doesNotMatch(stage, /<PanelHeader/);
     assert.doesNotMatch(stage, /padding=\{shellFamily === 'mobile' \? 'md' : 'lg'\}/);
     assert.match(lessonView, /data-sd-lesson-comfort="stage-first"/);
-    assert.match(lessonView, /md:grid-cols-2 xl:grid-cols-\[minmax\(0,1\.08fr\)_minmax\(20rem,0\.92fr\)\] xl:items-start/);
+    assert.match(lessonView, /data-sd-r10d-secondary="stacked"/);
+    assert.doesNotMatch(lessonView, /md:grid-cols-2 xl:grid-cols-\[minmax\(0,1\.08fr\)_minmax\(20rem,0\.92fr\)\] xl:items-start/);
   });
 
   test('Tailwind exposes final comfort hooks for contrast, fullscreen and collapsible context', () => {

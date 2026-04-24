@@ -363,6 +363,7 @@ export function WhatsAppSimulation({
       data-sd-simulation-channel="whatsapp"
       data-sd-stage-dominance="primary"
       data-sd-stage-focus="fullscreen"
+      data-sd-specific-simulation-pass="chat"
     >
       <section className="sd-chat-surface">
         <header className="sd-chat-header">
@@ -388,6 +389,12 @@ export function WhatsAppSimulation({
             <p>{scenarioText}</p>
           </div>
           {!isMobile ? <p className="sd-chat-threat-note">{threatNote}</p> : null}
+        </div>
+
+        <div className="sd-chat-stage-cues" data-sd-specific-strip="chat" aria-label="Claves del chat">
+          <span>{dominantSignal}</span>
+          <span>No verificado</span>
+          <span>Salir por fuera</span>
         </div>
 
         <div className="sd-chat-thread-shell">
@@ -736,6 +743,12 @@ export function CompareDomainsActivity({ module, activity, startedAtRef, onCompl
         ]}
       />
 
+      <div className="analysis-action-strip" data-sd-specific-strip="analysis" aria-label="Regla de dominio">
+        <span>Compara</span>
+        <span>Elige</span>
+        <span>Verifica fuera</span>
+      </div>
+
       <SurfaceCard padding="compact" variant="insight" className="border-sd-border-strong">
         <div className="option-grid">
           {domains.map((domain, index) => {
@@ -877,6 +890,11 @@ export function SignalHuntActivity({ module, activity, startedAtRef, onComplete 
           },
         ]}
       />
+      <div className="analysis-action-strip" data-sd-specific-strip="analysis" aria-label="Regla de senales">
+        <span>Marca claves</span>
+        <span>Evita ruido</span>
+        <span>Evalua</span>
+      </div>
       <SurfaceCard padding="compact" variant="insight" className="border-sd-border-strong">
         <div className="signal-list">
           {signals.map((signal) => {

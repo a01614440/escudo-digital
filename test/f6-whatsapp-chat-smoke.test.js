@@ -33,11 +33,11 @@ describe('F6.E WhatsApp/chat refine guards', () => {
     assert.match(block, /sd-chat-complete-note/);
   });
 
-  test('WhatsApp/chat styles make desktop two-column and keep composer and insight persistent', () => {
-    assert.match(tailwindSource, /\.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 2\.25fr\) minmax\(16rem, 0\.65fr\);/);
+  test('WhatsApp/chat styles keep composer readable and let R10.D stack insight below the stage', () => {
+    assert.match(tailwindSource, /\.sd-immersive-activity-shell\[data-sd-r10d-stage='dominant'\] \.sd-simulation-main-stage,[\s\S]*\.sd-immersive-activity-shell\[data-sd-r10d-stage='dominant'\] \.sd-chat-sim-desktop \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
     assert.match(tailwindSource, /\.sd-chat-thread \{[\s\S]*overscroll-behavior: contain;[\s\S]*scrollbar-gutter: stable;/);
     assert.match(tailwindSource, /\.sd-chat-composer-help \{/);
-    assert.match(tailwindSource, /\.sd-chat-insight \{[\s\S]*position: sticky;[\s\S]*top: clamp\(1rem, 2vw, 1\.5rem\);/);
+    assert.match(tailwindSource, /\.sd-immersive-activity-shell\[data-sd-r10d-stage='dominant'\] \[data-sd-stage-rail='subordinate'\] \{[\s\S]*position: static;[\s\S]*max-height: none;[\s\S]*overflow: visible/);
     assert.match(tailwindSource, /@media \(max-width: 47\.99rem\) \{[\s\S]*\.sd-chat-composer \{[\s\S]*position: sticky;[\s\S]*bottom: 0\.75rem;/);
     assert.match(tailwindSource, /body\[data-theme='dark'\] \.sd-chat-composer \{/);
   });

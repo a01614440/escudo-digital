@@ -687,6 +687,7 @@ export default function LessonView({
       data-sd-container="true"
       data-sd-lesson-source="courses-continuity"
       data-sd-activity-mode={stageMode}
+      data-sd-r10d-lesson="stage-recovery"
     >
       <div className="grid gap-[var(--sd-shell-section-gap)]">
         {hero}
@@ -699,13 +700,9 @@ export default function LessonView({
           <div className="sd-lesson-primary min-w-0">{activityStage}</div>
 
           <div
-            className={cn(
-              'sd-lesson-secondary-grid grid gap-[var(--sd-shell-pane-gap)]',
-              shellFamily === 'mobile'
-                ? ''
-                : 'md:grid-cols-2 xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] xl:items-start'
-            )}
+            className="sd-lesson-secondary-grid grid gap-[var(--sd-shell-pane-gap)]"
             data-sd-lesson-secondary="subordinate"
+            data-sd-r10d-secondary="stacked"
           >
             {commandRail}
             {insightRail}

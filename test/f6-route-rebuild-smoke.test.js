@@ -29,7 +29,7 @@ describe('F6.R3 Mi ruta rebuild guards', () => {
   test('RouteBriefing merges continuity, tabs and progress into one integrated shelf', () => {
     const block = functionBlock('RouteBriefing', 'DashboardSceneBar');
 
-    assert.match(block, /data-sd-route-shelf="integrated"/);
+    assert.match(block, /data-sd-route-shelf="hard-rebuild"/);
     assert.match(block, /<DashboardSceneBar/);
     assert.match(block, /<Badge tone="accent">Siguiente paso<\/Badge>/);
     assert.match(block, /data-sd-primary-cta="courses-continuity"/);
@@ -40,21 +40,23 @@ describe('F6.R3 Mi ruta rebuild guards', () => {
     const block = functionBlock('DashboardSceneBar', 'RouteModulePill');
 
     assert.match(block, /data-sd-route-console="integrated"/);
-    assert.match(block, /tone="inverse"/);
+    assert.doesNotMatch(block, /tone="inverse"/);
+    assert.match(block, /border border-sd-border bg-sd-surface/);
     assert.doesNotMatch(block, /<SurfaceCard/);
     assert.doesNotMatch(block, /<PanelHeader/);
   });
 
-  test('CoursesView promotes module detail before the route rail in a detail-first layout', () => {
+  test('CoursesView renders route detail and modules in one hard-stack layout', () => {
     const block = coursesViewBlock();
     const detailIndex = block.indexOf('<ModuleMissionBoard');
     const railIndex = block.indexOf('<RouteNavigatorRail');
 
-    assert.match(block, /'tablet-stack'/);
-    assert.match(block, /'desktop-detail-first'/);
-    assert.match(block, /data-sd-route-comfort=\{shellFamily === 'desktop' \? 'detail-first' : 'stacked'\}/);
+    assert.match(block, /const routeLayoutMode = 'hard-stack'/);
+    assert.match(block, /data-sd-route-comfort="hard-rebuild"/);
     assert.ok(detailIndex > -1, 'CoursesView should render module detail');
-    assert.ok(railIndex > -1, 'CoursesView should keep the route rail');
-    assert.ok(detailIndex < railIndex, 'module detail should render before the secondary rail');
+    assert.ok(railIndex > -1, 'CoursesView should keep modules available as a readable block');
+    assert.ok(detailIndex < railIndex, 'module detail should render before the full module list');
+    assert.doesNotMatch(block, /xl:grid-cols-\[minmax\(0,1\.18fr\)_minmax\(16rem,18rem\)\]/);
+    assert.doesNotMatch(block, /desktop-detail-first/);
   });
 });

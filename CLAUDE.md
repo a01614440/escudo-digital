@@ -32,9 +32,9 @@ Estas reglas son específicas de esta herramienta y complementan lo definido en 
 
 ## Fase actual
 
-**F6.R9 Fullscreen stage dominance pass cerrada localmente. F6 sigue reabierta a nivel visual/UX aunque su cierre tecnico previo siga siendo valido. Siguiente frente recomendado: F6.R10 Specific simulation passes.**
+**FASE X abierta como Presentation Critical UX/UI Recovery. FX.X0.A/B Theme audit + light mode lock, FX.X0.C/D full light text visibility audit y FX.X2 Explora tu ruta expandable modules quedan cerradas localmente. Light mode es el unico tema activo para presentacion, `Modo oscuro` ya no aparece en la UI y `Explora tu ruta` ya expande modulos con contexto, progreso y CTA local. Siguiente frente recomendado: FX.X3 Button / tap / active feedback pass.**
 
-F7 queda en pausa hasta que termine la rearmada visible de F6.
+F7 queda en pausa hasta que termine FASE X.
 
 F6.J cerró el borde transversal compartido de las simulaciones:
 
@@ -313,6 +313,39 @@ F4.A Dashboard / Courses baseline audit quedo cerrada localmente:
 - F6.R9 agrego `test/f6-fullscreen-stage-dominance-pass-smoke.test.js` y actualizo guards heredados F5/F6;
 - F6.R9 valido `.\npm-local.cmd test` con 152/152, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.R9 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `SurveyView.jsx`, `app.css` ni `legacy.css`;
+- F6.R10 Specific simulation passes quedo cerrada localmente con `docs/rebuild/audit/F6.R10-specific-simulation-passes.md`;
+- F6.R10 agrego marcadores `data-sd-specific-simulation-pass` para chat, SMS/email, WebLab, ScenarioFlow, CallSimulation y analysis;
+- F6.R10 agrego strips compactos `sd-chat-stage-cues`, `inbox-action-strip`, `analysis-action-strip`, `web-lab-stage-tabs`, `scenario-choice-stack` y `call-safety-strip`;
+- F6.R10 reforzo affordances especificos: `aria-current="step"` en WebLab, `scenario-decision-card`/`scenario-option-card`, `data-sd-call-phase` y `data-sd-call-control-dock`;
+- F6.R10 agrego `test/f6-specific-simulation-pass-smoke.test.js` y actualizo el guard F6.R9 de ScenarioFlow;
+- F6.R10 valido `.\npm-local.cmd test` con 156/156, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R10 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `SurveyView.jsx`, `app.css` ni `legacy.css`;
+- F6.R10.A Critical Visual Audit quedo cerrada localmente con `docs/rebuild/audit/F6.R10.A-visual-audit.md`;
+- F6.R10.A solo audito `Mi ruta`, modulos, lesson, simulaciones, feedback y completion; no implemento cambios;
+- F6.R10.B Critical layout + text fixes quedo cerrada localmente con `docs/rebuild/audit/F6.R10.B-critical-layout-text-fixes.md`;
+- F6.R10.B corrigio la recuperacion critica de `Mi ruta`: `RouteBriefing` paso a `variant="editorial"` con `data-sd-route-shelf="critical-recovery"`, continuidad/progreso/CTA quedaron integrados y el body de ruta paso a `data-sd-route-comfort="stacked-recovery"`;
+- F6.R10.B convirtio el navegador de ruta en bloque secundario ancho `data-sd-route-rail="secondary-block"` y agrego clamps `sd-route-pill-title` / `sd-module-activity-title` para evitar titulos partidos verticalmente;
+- F6.R10.B agrego `test/f6-critical-visual-recovery-smoke.test.js` y actualizo guards heredados de F4/F5/F6 para proteger la recuperacion visual;
+- F6.R10.B valido `.\npm-local.cmd test` con 160/160, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R10.B no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts, scoring, `SurveyView.jsx`, `LessonView.jsx`, simulaciones especificas, `app.css` ni `legacy.css`;
+- F6.R10.C Hard layout rebuild quedo cerrada localmente con `docs/rebuild/audit/F6.R10.C-hard-layout-rebuild.md` y evidencia visual `docs/rebuild/audit/F6.R10.C-mi-ruta-hard-rebuild.png`;
+- F6.R10.C corrigio la causa raiz del texto vertical en `Mi ruta`: rail/navegador demasiado estrecho + hard grids + clamps insuficientes; `CoursesView` paso a `routeLayoutMode = 'hard-stack'` y `RouteNavigatorRail` a lista amplia de una columna;
+- F6.R10.C valido tests enfocados con 37/37, `.\npm-local.cmd test` con 161/161, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
+- F6.R10.D Lesson + simulaciones refine quedo cerrada localmente con `docs/rebuild/audit/F6.R10.D-lesson-simulation-refine.md`;
+- F6.R10.D agrego `data-sd-r10d-lesson="stage-recovery"`, `data-sd-r10d-stage="dominant"` y `data-sd-r10d-stage="single-column"` para neutralizar splits y rails sticky en lesson/chat/inbox/WebLab/ScenarioFlow;
+- F6.R10.D agrego `test/f6-r10d-lesson-simulation-recovery-smoke.test.js`, actualizo guards de comfort/chat y genero capturas `docs/rebuild/audit/F6.R10.D-lesson-chat-stage.png` y `docs/rebuild/audit/F6.R10.D-lesson-weblab-stage.png`;
+- F6.R10.D no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts ni scoring;
+- FX.X0.A/B Theme audit + light mode lock quedo cerrada localmente con `docs/rebuild/audit/FX.X0.AB-theme-audit-light-lock.md`;
+- FX.X0.A/B agrego `PRESENTATION_THEME = 'light'`, normalizo cualquier preferencia dark guardada a light, fijo `body[data-theme="light"]` y `color-scheme: light`;
+- FX.X0.A/B removio el boton visible `Modo oscuro` / `Modo claro` de `SessionBar`, dejo de pasar `onThemeToggle` desde `App`/`buildShellSlots` y agrego `test/fx-light-mode-lock-smoke.test.js`;
+- FX.X0.A/B genero evidencia visual `docs/rebuild/audit/FX.X0.AB-light-mode-lock-header.png` con `bodyTheme: light`, `storedTheme: light` y `hasDarkButton: false`;
+- FX.X0.A/B no toco layout de ruta, simulaciones, `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, DB, services, contracts ni scoring;
+- FX.X0.C/D full light text visibility audit + dangerous inverse token cleanup quedo cerrada localmente con evidencia visual `docs/rebuild/audit/FX.X0.CD-light-text-route.png`;
+- FX.X0.C/D reforzo la visibilidad de textos de ruta en light mode y limpio usos peligrosos de tokens inverse en superficies no inversas;
+- FX.X2 Explora tu ruta expandable modules quedo cerrada localmente con `docs/rebuild/audit/FX.X2-route-expandable-modules.md`;
+- FX.X2 convirtio los modulos de `Explora tu ruta` en disclosures accesibles con `aria-expanded`, `aria-controls`, `role="region"`, contexto local, progreso y CTA dentro de la card expandida;
+- FX.X2 agrego `test/fx-route-expandable-modules-smoke.test.js` y evidencia visual `docs/rebuild/audit/FX.X2-route-modules-closed.png` / `docs/rebuild/audit/FX.X2-route-module-expanded.png`;
+- FX.X2 no toco `ActivityRenderer.jsx`, `activityRegistry.js`, simulaciones especificas, hooks de dominio, backend, DB, services, contracts ni scoring;
 - F6.K F6 closeout validation quedo cerrada localmente con `docs/rebuild/audit/F6.K-f6-closeout-validation.md`;
 - F6.K confirmo como referencia tecnica el cierre de fase ya validado en F6.J: `.\npm-local.cmd test` con 119/119, `.\npm-local.cmd run build`, `.\npm-local.cmd run build-storybook` y `git diff --check`;
 - F6.K no toco `ActivityRenderer.jsx`, `activityRegistry.js`, hooks de dominio, backend, services, contracts, scoring, `CoursesView.jsx`, `LessonView.jsx`, `app.css` ni `legacy.css`;

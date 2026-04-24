@@ -420,6 +420,8 @@ export default function CallSimulationActivity({
       data-sd-simulation-channel="call"
       data-sd-stage-dominance="primary"
       data-sd-stage-focus="fullscreen"
+      data-sd-specific-simulation-pass="call"
+      data-sd-call-phase={phase}
     >
       {phase === 'incoming' ? (
         <section className="call-immersive-phone incoming">
@@ -442,6 +444,11 @@ export default function CallSimulationActivity({
             <span />
           </div>
           <p className="call-immersive-intro">{intro}</p>
+          <div className="call-safety-strip" data-sd-specific-strip="call" aria-label="Reglas de llamada">
+            <span>Limite claro</span>
+            <span>Corta presion</span>
+            <span>Verifica fuera</span>
+          </div>
           <div className="call-dashboard-row">
             <article className="call-info-card">
               <span>Qué debes hacer</span>
@@ -485,6 +492,11 @@ export default function CallSimulationActivity({
               <span className="call-badge subtle">{fraudType}</span>
               <span className="call-badge subtle">{modeLabel}</span>
             </div>
+          </div>
+          <div className="call-safety-strip" data-sd-specific-strip="call" aria-label="Reglas de llamada">
+            <span>Habla poco</span>
+            <span>No des codigos</span>
+            <span>Cuelga si insiste</span>
           </div>
           <div className="call-mode-grid">
             <button className="call-mode-card voice" type="button" onClick={requestVoiceMode}>
@@ -646,7 +658,7 @@ export default function CallSimulationActivity({
             </div>
           ) : null}
 
-          <div className="call-controls-bar">
+          <div className="call-controls-bar" data-sd-call-control-dock="true">
             <button
               className={`call-control-btn ${speakerEnabled ? '' : 'muted'}`}
               type="button"
